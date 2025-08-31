@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <title>Game Boy Shell — Small Town Adventure (Mobile)</title>
+  <style>
+    :root { --shell:#4f50db; --shell-dark:#3d38b5; --shell-deep:#0d0e51; --ui:#2a2d33; --accent:#6b67ed; --ink:#eee; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; height:100%; background:linear-gradient(to top, #bbb 0%, #fff 100%); color:var(--ink); font:14px/1.3 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  body { display:flex; align-items:center; justify-content:center; padding:10px 10px 10px; }
+  .gameboy { position:relative; max-width:420px; width: min(calc(100% - 20px), 420px); max-height:900px; border-radius:20px; padding:16px 16px 18px; background:var(--shell);
+      box-shadow:0 -5px 0 var(--shell-deep), 0 6px 0 var(--shell-dark), 0 16px 20px rgba(0,0,0,.25); -webkit-user-select:none; user-select:none; cursor:default; }
+  /* ensure at least 10px margin top/bottom around the shell */
+  .gameboy { margin:10px 0; }
+    .screen-area { position:relative; margin-bottom:14px; border-radius:12px; background:#1a1b27; padding:10px; box-shadow:inset 0 0 0 2px #10121a, inset 0 0 18px rgba(0,0,0,.6); }
+    .power { position:absolute; left:10px; top:10px; font-size:10px; letter-spacing:.4px; opacity:.9; color:#c6c9ff; }
+    .power .indicator { display:inline-flex; align-items:center; gap:3px; margin-right:6px; }
+    .power .indicator .led { width:8px; height:8px; border-radius:50%; background:#ca1a21; box-shadow:0 0 10px #ff552e; }
+    .display { display:block; width:100%; height:auto; background:#7cd27f; border-radius:8px; outline:1px solid #7cd27f; image-rendering:pixelated; }
+  .screen-frame { display:flex; align-items:center; justify-content:center; background:transparent; }
+  .screen-top-bar, .screen-bottom-bar { background:#000; color:#fff; font-family:monospace; font-size:14px; line-height:1.2; }
+  /* Increase default buffer sizes so bars are visually substantial */
+  .screen-top-bar { height:40px; min-height:32px; max-height:20vh; border-top-left-radius:10px; border-top-right-radius:10px; padding:6px 10px; }
+  .screen-bottom-bar { height:64px; min-height:48px; max-height:25vh; border-bottom-left-radius:10px; border-bottom-right-radius:10px; padding:8px 12px; display:flex; align-items:center; justify-content:center; white-space:pre-wrap; word-break:break-word; text-align:left; }
+  .win-screen { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.85); color:#fff; z-index:40; border-radius:18px; padding:18px; flex-direction:column; gap:12px; text-align:center; }
+  .win-screen h1{ margin:0;font-size:20px;letter-spacing:0.6px }
+  .win-screen p{ margin:0; font-size:14px; opacity:0.95 }
+  .win-screen button{ margin-top:8px; padding:8px 14px; border-radius:8px; border:0; background:#ffd77e; color:#1a1b27; font-weight:700 }
+  /* ticket image transition: the win screen will fade text then scale the ticket image into view */
+  .win-screen .meta { transition: opacity .45s ease; }
+  .win-screen img.ticket { width:70%; max-width:340px; height:auto; transform:scale(.6); opacity:0; transition: transform .6s cubic-bezier(.2,.8,.2,1), opacity .4s ease; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.5); }
+  .win-screen.show-ticket img.ticket { transform:scale(1); opacity:1; }
+  .win-screen.show-ticket .meta { opacity:0; pointer-events:none; }
+
+  /* Intro overlay that covers the screen on load */
+  #introScreen{ position:fixed; inset:0; z-index:120; background:#000; display:flex; align-items:center; justify-content:center; color:#fff; font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  #introScreen .intro-text{ font-weight:700; font-size:clamp(18px,6vw,36px); text-align:center; letter-spacing:0.5px; }
+  #introScreen.intro-hidden{ opacity:0; transition:opacity .9s ease; pointer-events:none; }
+    .label { display:none; } .nintendo { display:none; }
+
+    .controls { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+    .dpad { position:relative; width:112px; height:112px; touch-action:none; }
+    .dpad > div { position:absolute; width:36%; height:36%; background:var(--ui); border:1px solid #555; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:22px; color:#333a4a; }
+    .dpad .up    { left:32%; top:0; }
+    .dpad .down  { left:32%; bottom:0; }
+    .dpad .left  { left:0; top:32%; }
+    .dpad .right { right:0; top:32%; }
+    .dpad .middle{ left:32%; top:32%; visibility:hidden; }
+    .btn-a { width:68px; height:68px; border-radius:999px; background:var(--ui); border:1px solid #555; display:flex; align-items:center; justify-content:center; font-weight:bold; touch-action:none; }
+    .btn-a:active, .dpad > div.active { filter:brightness(1.2); transform:translateY(1px); }
+
+    .start-select { display:none; } /* removed per request */
+    @media (hover:none){ .controls { position:sticky; bottom:10px; background:transparent; } }
+
+    /* Mobile: make the shell taller (750px) and pin controls to the bottom
+       without changing canvas or button sizes. */
+   @media (max-width: 900px) and (orientation: portrait) {
+    /* Shell becomes a vertical flex container and scales with the viewport.
+      We keep the canvas and buttons their current sizes and only adjust
+      spacing so controls are no further than 80px from the canvas. */
+    .gameboy { height: min(750px, 98vh); display:flex; flex-direction:column; align-items:stretch; padding:12px; }
+    /* Ensure the visible screen area can shrink if necessary but keep
+      distance between it and controls <= 80px. Make the screen area
+      take ~50% of the shell height and let the canvas fill that area. */
+   .screen-area { height: 50%; margin-bottom: clamp(8px, 5vh, 80px); display:flex; align-items:stretch; justify-content:center; flex-direction:column; padding:6px; }
+   /* Keep the canvas area at the original 3:2 aspect ratio so it does not
+     stretch vertically; top/bottom bars will absorb extra space. */
+   .screen-area .screen-frame { flex: none; width:100%; aspect-ratio: 3 / 2; display:flex; align-items:center; justify-content:center; max-height: calc(100% -  (40px + 64px)); }
+   .screen-area .display { width:100%; height:100%; display:block; max-width:100%; }
+    /* Remove automatic push-to-bottom and let the gap be controlled by
+      the clamped margin above so controls sit within 80px of canvas. */
+    .controls { margin-top: 0; padding: 12px 18px; }
+   }
+  </style>
+</head>
+<body>
+<div id="introScreen">
+  <div class="intro-text">find yo gift girly</div>
+</div>
+<div class="gameboy" id="GameBoy">
+  <div class="screen-area">
+    <div class="power">
+      <span class="indicator"><span class="led"></span></span>POWER
+    </div>
+    <div class="screen-top-bar" aria-hidden="true"></div>
+    <div class="screen-frame">
+      <canvas class="display" id="mainCanvas" width="720" height="480" tabindex="0" aria-label="Game screen"></canvas>
+    </div>
+    <div class="screen-bottom-bar" aria-live="polite"></div>
+  </div>
+
+  <div class="controls">
+    <div class="dpad">
+      <div class="up"    aria-label="Up">▲</div>
+      <div class="left"  aria-label="Left">◀</div>
+      <div class="middle"></div>
+      <div class="right" aria-label="Right">▶</div>
+      <div class="down"  aria-label="Down">▼</div>
+    </div>
+    <div class="btn-a" aria-label="A">A</div>
+  </div>
+  <div class="win-screen" id="winScreen" style="display:none;">
+    <div class="meta">
+      <h1>Congratulations!</h1>
+      <p>You found the present — the town celebrates.</p>
+      <button id="winRestart">Play again</button>
+    </div>
+    <img class="ticket" src="Tickets.png" alt="Tickets" aria-hidden="true" />
+  </div>
+</div>
+
+<audio id="bgm" src="assets/Boatfriend.mp3" loop preload="auto" crossorigin="anonymous"></audio>
+
+<script>
+/* ===== Game code (trimmed and adapted) ===== */
+const TILE_SIZE = 16, SCALE = 3, TILE = TILE_SIZE * SCALE;
+const tilesetSVG = `<?xml version="1.0" encoding="UTF-8" ?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" shape-rendering="crispEdges">
+  <defs>
+    <g id="road"><rect width="16" height="16" fill="#59606f"/><rect y="15" width="16" height="1" fill="#474e5c"/><rect y="0" width="16" height="1" fill="#475061"/>
+      <rect x="3" y="5" width="1" height="1" fill="#62697a"/><rect x="10" y="10" width="1" height="1" fill="#62697a"/>
+      <rect x="2" y="7" width="4" height="2" fill="#ffd77e"/><rect x="8" y="7" width="4" height="2" fill="#ffd77e"/></g>
+    <g id="roadCross"><rect width="16" height="16" fill="#59606f"/><rect x="0" y="7" width="16" height="2" fill="#ffd77e"/><rect x="7" y="0" width="2" height="16" fill="#ffd77e"/></g>
+    <g id="crosswalk"><rect width="16" height="16" fill="#59606f"/><rect x="1" y="4" width="14" height="2" fill="#f4f7ff"/><rect x="1" y="9" width="14" height="2" fill="#f4f7ff"/></g>
+    <g id="sidewalk"><rect width="16" height="16" fill="#d4d7dc"/><rect y="7" width="16" height="1" fill="#c2c7ce"/><rect y="15" width="16" height="1" fill="#b6bcc5"/></g>
+    <g id="lawn"><rect width="16" height="16" fill="#7cd27f"/><rect y="0" width="16" height="1" fill="#6ec571"/><rect x="4" y="5" width="1" height="1" fill="#93e894"/><rect x="10" y="9" width="1" height="1" fill="#67be6b"/></g>
+    <g id="tree">
+      <rect width="16" height="16" fill="none"/>
+      <rect x="6" y="10" width="4" height="6" fill="#805a3a"/>
+      <ellipse cx="8" cy="7" rx="6" ry="5" fill="#5ed487"/>
+      <ellipse cx="8" cy="6" rx="5" ry="4" fill="#4cc77a"/>
+      <ellipse cx="8" cy="8" rx="4" ry="3" fill="#86eca9"/>
+      <ellipse cx="10" cy="5" rx="2" ry="1.5" fill="#93e894"/>
+      <ellipse cx="6" cy="9" rx="1.5" ry="1" fill="#67be6b"/>
+      <ellipse cx="12" cy="8" rx="1" ry="0.7" fill="#c2f7b0"/>
+      <ellipse cx="4" cy="6" rx="1" ry="0.7" fill="#b6e8a0"/>
+    </g>
+    <g id="fence"><rect width="16" height="16" fill="#7cd27f"/><rect x="0" y="6" width="16" height="4" fill="#efefef"/><rect x="2" y="4" width="2" height="8" fill="#dbdbdb"/><rect x="7" y="4" width="2" height="8" fill="#dbdbdb"/><rect x="12" y="4" width="2" height="8" fill="#dbdbdb"/></g>
+    <g id="houseWall"><rect width="16" height="16" fill="#f4a6a6"/><rect y="3" width="16" height="1" fill="#e58f8f"/><rect y="8" width="16" height="1" fill="#e58f8f"/></g>
+    <g id="houseWin"><rect width="16" height="16" fill="#f4a6a6"/><rect x="3" y="4" width="4" height="4" fill="#cfeeff"/><rect x="9" y="4" width="4" height="4" fill="#cfeeff"/><rect x="6" y="11" width="4" height="4" fill="#cfeeff"/></g>
+    <g id="houseDoor"><rect width="16" height="16" fill="#f4a6a6"/><rect x="6" y="6" width="4" height="8" fill="#724a39"/><rect x="7" y="10" width="2" height="2" fill="#ffd77e"/></g>
+    <g id="roof"><rect width="16" height="16" fill="#c47ad0"/><rect x="1" y="1" width="14" height="1" fill="#d498dd"/><rect x="1" y="3" width="14" height="1" fill="#a960b7"/></g>
+    <g id="shop"><rect width="16" height="16" fill="#7ab0f4"/><rect x="1" y="1" width="14" height="5" fill="#ff5c5c"/><rect x="1" y="6" width="14" height="1" fill="#ffe27a"/><rect x="2" y="8" width="4" height="7" fill="#d9f3ff"/><rect x="7" y="8" width="7" height="7" fill="#2a2d33"/></g>
+    <g id="lamp"><rect x="7" y="2" width="2" height="12" fill="#818999"/><rect x="5" y="1" width="6" height="3" fill="#fff1a8"/></g>
+    <g id="bench"><rect x="1" y="7" width="14" height="3" fill="#9a6a47"/><rect x="1" y="11" width="14" height="2" fill="#7a5238"/><rect x="0" y="13" width="16" height="3" fill="#7cd27f"/></g>
+    <g id="sign"><rect width="16" height="16" fill="#d4d7dc"/><rect x="6" y="4" width="4" height="8" fill="#7ab0f4"/><rect x="7" y="12" width="2" height="1" fill="#7cd27f"/></g>
+    <g id="player1"><rect width="16" height="16" fill="none"/><rect x="5" y="2" width="6" height="5" fill="#ffe0b8"/><rect x="4" y="7" width="8" height="6" fill="#ff6a6a"/><rect x="5" y="13" width="2" height="3" fill="#5270c9"/><rect x="9" y="13" width="2" height="3" fill="#5270c9"/></g>
+    <g id="player2"><rect width="16" height="16" fill="none"/><rect x="5" y="2" width="6" height="5" fill="#ffe0b8"/><rect x="4" y="7" width="8" height="6" fill="#ff6a6a"/><rect x="4" y="13" width="3" height="3" fill="#5270c9"/><rect x="9" y="13" width="3" height="3" fill="#5270c9"/></g>
+    <g id="npc1"><rect width="16" height="16" fill="none"/><rect x="5" y="2" width="6" height="5" fill="#ffd7a1"/><rect x="4" y="7" width="8" height="6" fill="#ffe27a"/><rect x="5" y="13" width="2" height="3" fill="#4ac269"/><rect x="9" y="13" width="2" height="3" fill="#4ac269"/></g>
+    <g id="npc2"><rect width="16" height="16" fill="none"/><rect x="5" y="2" width="6" height="5" fill="#ffd7a1"/><rect x="4" y="7" width="8" height="6" fill="#a4e2ff"/><rect x="5" y="13" width="2" height="3" fill="#6f4ac2"/><rect x="9" y="13" width="2" height="3" fill="#6f4ac2"/></g>
+    <g id="water1"><rect width="16" height="16" fill="#66a8ff" fill-opacity="0.95"/><rect x="3" y="6" width="3" height="1" fill="#a9d0ff"/><rect x="9" y="10" width="3" height="1" fill="#a9d0ff"/></g>
+    <g id="water2"><rect width="16" height="16" fill="#66a8ff" fill-opacity="0.95"/><rect x="4" y="7" width="3" height="1" fill="#a9d0ff"/><rect x="10" y="12" width="2" height="1" fill="#a9d0ff"/></g>
+    <g id="planks"><rect width="16" height="16" fill="#b88a5d" fill-opacity="0.97"/><rect y="4" width="16" height="1" fill="#a17a50"/><rect y="9" width="16" height="1" fill="#a17a50"/><rect y="14" width="16" height="1" fill="#a17a50"/></g>
+    <g id="sand"><rect width="16" height="16" fill="#ffe6a8" fill-opacity="0.97"/></g>
+  </defs>
+  <use href="#road" x="0" y="0"/><use href="#roadCross" x="16" y="0"/><use href="#crosswalk" x="32" y="0"/><use href="#sidewalk" x="48" y="0"/><use href="#lawn" x="64" y="0"/>
+  <use href="#tree" x="80" y="0"/><use href="#fence" x="96" y="0"/><use href="#houseWall" x="112" y="0"/><use href="#houseWin" x="128" y="0"/><use href="#houseDoor" x="144" y="0"/>
+  <use href="#roof" x="160" y="0"/><use href="#shop" x="176" y="0"/><use href="#lamp" x="192" y="0"/><use href="#bench" x="208" y="0"/><use href="#sign" x="224" y="0"/>
+  <use href="#player1" x="0" y="16"/><use href="#player2" x="16" y="16"/><use href="#npc1" x="32" y="16"/><use href="#npc2" x="48" y="16"/>
+  <use href="#water1" x="0" y="32"/><use href="#water2" x="16" y="32"/><use href="#planks" x="32" y="32"/><use href="#sand" x="48" y="32"/>
+</svg>`;
+
+function loadTileset(){
+  return new Promise(res=>{
+    const blob=new Blob([tilesetSVG],{type:"image/svg+xml"});
+    const url=URL.createObjectURL(blob);
+    const img=new Image();
+    img.onload=()=>{ URL.revokeObjectURL(url); res(img); };
+    img.src=url;
+  });
+}
+
+const TI = {
+  ".":[4,0], "+":[4,0], "w":[4,0],
+  "#":[3,0], "g":[4,0], "t":[5,0], "f":[6,0],
+  "H":[7,0], "N":[8,0], "D":[9,0], "R":[10,0], "S":[11,0], "L":[12,0], "B":[13,0], "U":[14,0],
+  "X":[0,2], "x":[1,2], "K":[2,2], "P":[3,2], "A":[4,2]
+};
+// treat water as solid (collision) so players can't walk into it
+const SOLID = new Set(["H","N","D","R","t","f","w"]);
+const INTERACTABLE = new Set(["S","U","B","L"]);
+
+const MAP = [
+  "ggggggggggggggggggggGGGGGGGGggggGGgggggg".replace(/G/g,"g"),
+  "gggg###########gggggggggggg###########gg",
+  "gggg#HHH# #HHH#gggggggggggg#HHH# #HHH#gg",
+  "gggg#NDN# #NDN#gggggggggggg#NDN# #NDN#gg",
+  "gggg#HHH# #HHH#gggggggggggg#HHH# #HHH#gg",
+  "gggg###########gggggggggggg###########gg",
+  "gggggggggggggggggggggggggggggggggggggggg",
+  "gggggttgggLgBggggggttgggggggLgBgggttgggg",
+  "gggggttggggggggggggttggggggggGGgggttgggg".replace(/G/g,"g"),
+  "gggggggggggggggggggggggggggggggggggggggg",
+  "gggg#########gggggggggggggggg#########gg",
+  "gggg#UU  U U#ggggggggggggggg#U  U  UU#gg".replace(/ /g,"N"),
+  "gggg#  U   U#gggggSggggggggg# U   U  #gg".replace(/ /g,"N"),
+  "gggg#########gggggggggggggggg#########gg",
+  "gggggggggggggggggggggggggggggggggggggggg",
+  "gggttggggggggggggggggggggggggggggggttggg",
+  "gggttggggggggggggggggggggggggggggggttggg",
+  "gggggggggggggggggggAAAAAAggggggggggggggg",
+  "ggggggggggggggggggAXXxXXAggggggggggggggg",
+  "ggggggggggggggggggAPPPPPAggggggggggggggg",
+  "ggggggggggggggggggAAAAAAgggggggggggggggg",
+  "gggggggggggggggggggggggggggggggggggggggg",
+  "gggg###########gggggggggggg###########gg",
+  "gggg#HHH# #HHH#gggggggggggg#HHH# #HHH#gg",
+  "gggg#N D# #D N#gggggggggggg#N D# #D N#gg".replace(/ /g,"N"),
+  "gggg#HHH# #HHH#gggggggggggg#HHH# #HHH#gg",
+  "gggg###########gggggggggggg###########gg",
+  "gggggggggggggggggggggggggggggggggggggggg",
+  "gggggLggggggggBgggggggggggBggggggggLgggg",
+  "gggggggggggggggggggggggggggggggggggggggg",
+];
+const NPCS = [
+  { x: 10, y: 12, talk: "He really loves you, he left you something further down" },
+  { x: 32, y: 7,  talk: "He really loves you, he left you something further down" },
+  { x: 22, y: 28, talk: "He really loves you, he left you something further down" },
+];
+for (const n of NPCS){ n.lastSpoken = -9999; n.hintTimer = 0; }
+
+let gameState='playing', questItem=null, celebrationParticles=[];
+function spawnConfetti(px, py, amount=32){
+  const colors = ['#ffd77e','#ff7ab6','#7cd27f','#66a8ff','#ffb86b'];
+  for (let i=0;i<amount;i++){
+    celebrationParticles.push({
+      x: px + (Math.random()-0.5)*24,
+      y: py + (Math.random()-0.5)*24,
+      vx: (Math.random()-0.5)*200,
+      vy: -Math.random()*150 - 50,
+      life: 1 + Math.random()*1.2,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      size: 2 + Math.random()*4
+    });
+  }
+}
+function updateCelebration(dt){ for (const p of celebrationParticles){ p.vy += 300*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt; } celebrationParticles = celebrationParticles.filter(p=>p.life>0); }
+function drawCelebration(ctx){ for (const p of celebrationParticles){ ctx.fillStyle=p.color; ctx.globalAlpha=Math.max(0, Math.min(1,p.life)); ctx.fillRect(p.x,p.y,p.size,p.size);} ctx.globalAlpha=1; }
+
+function placeQuestItem(){
+  const width = MAP[0].length, height = MAP.length;
+  // Prefer placing the present on a dock (tiles marked 'P').
+  const docks = [];
+  for (let y = Math.max(0, height-8); y < height; y++){
+    for (let x = 0; x < width; x++){
+      if (cell(x,y) === 'P') docks.push({x,y});
+    }
+  }
+  // If no dock exists, create a small dock near the southern edge (beach + dock)
+  if (docks.length === 0){
+    const dockY = Math.max(0, height - 4);
+    const center = Math.floor(width/2);
+    // turn the row at dockY into a sand + dock row
+    const rowArr = MAP[dockY].split('');
+    for (let dx = -3; dx <= 3; dx++){
+      const px = center + dx;
+      if (px < 0 || px >= width) continue;
+      // place planks for dock center, sand around
+      rowArr[px] = (Math.abs(dx) <= 2) ? 'P' : 'g';
+    }
+    MAP[dockY] = rowArr.join('');
+    // put water rows below dock if possible
+    for (let wy = dockY+1; wy < Math.min(height, dockY+4); wy++){
+      const wrow = MAP[wy].split('');
+      for (let x = 0; x < width; x++) wrow[x] = 'w';
+      MAP[wy] = wrow.join('');
+    }
+    // collect new dock tiles
+    for (let x = 0; x < width; x++){ if (cell(x,dockY) === 'P') docks.push({x,y:dockY}); }
+  }
+
+  // pick a random dock tile that's not occupied
+  for (let attempts = 0; attempts < 200 && docks.length; attempts++){
+    const idx = Math.floor(Math.random()*docks.length);
+    const {x,y} = docks[idx];
+    if (!cell(x,y) || SOLID.has(cell(x,y))) { docks.splice(idx,1); continue; }
+    if (NPCS.some(n=>n.x===x&&n.y===y)) { docks.splice(idx,1); continue; }
+    questItem = { x,y }; return true;
+  }
+
+  // fallback to original random placement
+  for (let a=0;a<1000;a++){
+    const x=Math.floor(Math.random()*width), y=Math.floor(Math.random()*height), c=cell(x,y);
+    if (!c || SOLID.has(c)) continue;
+    if (NPCS.some(n=>n.x===x&&n.y===y)) continue;
+    questItem={x,y}; return true;
+  }
+  questItem=null; return false;
+}
+
+let player = { x:8, y:14, frame:0 };
+const canvas = document.getElementById("mainCanvas");
+const ctx = canvas.getContext("2d");
+const topBar = document.querySelector('.screen-top-bar');
+const bottomBar = document.querySelector('.screen-bottom-bar');
+let tilesetImg;
+let hasWon = false;
+const winScreen = document.getElementById('winScreen');
+const winRestart = document.getElementById('winRestart');
+
+const VIEW_W = Math.floor(canvas.width / TILE);
+const VIEW_H = Math.floor(canvas.height / TILE);
+
+function drawTile(tx,ty,dx,dy){ ctx.drawImage(tilesetImg, tx*16, ty*16, 16,16, dx,dy, TILE,TILE); }
+function cell(x,y){ if(y<0||y>=MAP.length) return null; const r=MAP[y]; if(x<0||x>=r.length) return null; return r[x]; }
+function passable(x,y){
+  const c=cell(x,y); if (!c) return false;
+  for (const n of NPCS){ if (n.x===x && n.y===y) return false; }
+  // block movement into the present's tile
+  if (questItem && questItem.x===x && questItem.y===y) return false;
+  return !SOLID.has(c);
+}
+function interactable(x,y){ const c=cell(x,y); return c && INTERACTABLE.has(c); }
+
+let globalSeconds=0, timeOfDay=6*60; const DAY_LENGTH_SEC=24*60;
+function time01(){ return (timeOfDay%(24*60))/(24*60); }
+function nightFactor(t){ const d=Math.min(Math.abs(t-0.5)*2,1); return Math.pow(d,1.3); }
+
+const Weather={SUNNY:"Sunny",OVERCAST:"Overcast",RAIN:"Rain",SNOW:"Snow"};
+let weather=Weather.RAIN, wind={x:1.2,y:2.6}, weatherTimer=0, particles=[];
+function setWeather(w){ weather=w; particles=[]; wind=(w===Weather.RAIN)?{x:1.2,y:2.6}:(w===Weather.SNOW?{x:0.3,y:0.9}:{x:0.15,y:0}); }
+function spawnParticles(dt){
+  const density=(weather===Weather.RAIN)?350:(weather===Weather.SNOW?50:0);
+  const toSpawn=Math.floor(density*dt*(canvas.width/720));
+  for(let i=0;i<toSpawn;i++){ particles.push({ x:Math.random()*canvas.width, y:-5, vx:(Math.random()*0.5+0.5)*wind.x*60, vy:(Math.random()*0.5+0.5)*wind.y*60, s:(weather===Weather.SNOW)?(1+Math.random()*2):1, life:6+Math.random()*4 }); }
+}
+function updateParticles(dt){ for(const p of particles){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt; } particles=particles.filter(p=>p.y<canvas.height+6 && p.life>0); }
+function drawParticles(){ if (weather===Weather.RAIN){ ctx.strokeStyle="#b8d6ff"; ctx.globalAlpha=.85; ctx.lineWidth=2; ctx.beginPath(); for(const p of particles){ ctx.moveTo(p.x,p.y); ctx.lineTo(p.x-3,p.y-12);} ctx.stroke(); ctx.globalAlpha=1; } else if (weather===Weather.SNOW){ ctx.fillStyle="#fff"; ctx.globalAlpha=.9; for(const p of particles){ ctx.fillRect(p.x,p.y,p.s,p.s);} ctx.globalAlpha=1; } }
+function drawSkyTint(t01){ const n=nightFactor(t01); ctx.fillStyle=(n>0.15)?`rgba(20,30,60,${0.25+0.45*n})`:"rgba(255,255,220,0.05)"; ctx.fillRect(0,0,canvas.width,canvas.height); }
+function tileFrameFor(ch){ if (ch==="X"||ch==="x"){ const t=(Math.floor(globalSeconds*6)%2); return t? TI["X"] : TI["x"]; } return TI[ch] || TI["g"]; }
+
+function drawWorld(camX,camY,t01){
+  const sx=Math.max(0,Math.floor(camX)), sy=Math.max(0,Math.floor(camY));
+  const ex=Math.min(MAP[0].length, sx+VIEW_W+1), ey=Math.min(MAP.length, sy+VIEW_H+1);
+  for(let y=sy;y<ey;y++){
+    for(let x=sx;x<ex;x++){
+      const c=cell(x,y)||"g"; const frame=tileFrameFor(c); const [tx,ty]=frame;
+      const dx=(x-camX)*TILE, dy=(y-camY)*TILE;
+      if (c==="f"){ drawTile(...TI["g"],dx,dy); drawTile(...TI["f"],dx,dy); } else { drawTile(tx,ty,dx,dy); }
+      if (SOLID.has(c)){ ctx.globalAlpha=.20; ctx.fillStyle="#7cd27f"; ctx.fillRect(dx, dy + TILE - Math.max(2,TILE/8), TILE, Math.max(2,TILE/8)); ctx.fillRect(dx + TILE - Math.max(2,TILE/8), dy, Math.max(2,TILE/8), TILE); ctx.globalAlpha=1; }
+      if (c==="L"){ const n=nightFactor(t01); if (n>.25){ const flick=.03+.04*Math.sin(globalSeconds*6 + x*.7 + y*.9); ctx.globalAlpha=Math.min(.12 + n*.25 + flick, .35); ctx.fillStyle="#fff7cc"; ctx.beginPath(); ctx.arc(dx+TILE/2,dy+TILE/2,TILE*1.6,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; } }
+    }
+  }
+}
+
+function fixNPCPositions(){
+  for (const n of NPCS){
+    const onBad = SOLID.has(cell(n.x,n.y)) || INTERACTABLE.has(cell(n.x,n.y)) || (n.x===player.x && n.y===player.y);
+    if (!onBad) continue;
+    const tries=[{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0},{x:-1,y:-1},{x:1,y:1}];
+    for (const t of tries){ const nx=n.x+t.x, ny=n.y+t.y; if (!cell(nx,ny)) continue; if (SOLID.has(cell(nx,ny))) continue; if (NPCS.some(o=>o!==n&&o.x===nx&&o.y===ny)) continue; if (nx===player.x && ny===player.y) continue; n.x=nx; n.y=ny; break; }
+  }
+}
+
+/* === Input (keyboard + on-screen A + D-pad) === */
+const down=new Set(); const MOVE_COOLDOWN=110; let moveTimer=0;
+function isDown(dir){ if (dir==="up") return down.has("ArrowUp")||down.has("KeyW")||down.has("UP")||down.has("w"); if (dir==="down") return down.has("ArrowDown")||down.has("KeyS")||down.has("DOWN")||down.has("s"); if (dir==="left") return down.has("ArrowLeft")||down.has("KeyA")||down.has("LEFT")||down.has("a"); if (dir==="right") return down.has("ArrowRight")||down.has("KeyD")||down.has("RIGHT")||down.has("d"); }
+function onKeyDown(e){ const prevent=["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," ","Enter","Space","KeyW","KeyA","KeyS","KeyD","KeyM","m","M","KeyR","r"]; if (prevent.includes(e.key)||prevent.includes(e.code)) e.preventDefault(); down.add(e.key); down.add(e.code); if (e.key===" "||e.code==="Space"||e.key==="Enter") interact(); if (e.key==="m"||e.key==="M") toggleMute(); if (e.key==="r"||e.key==="R") restartGame(); }
+function onKeyDown(e){ const prevent=["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," ","Enter","Space","KeyW","KeyA","KeyS","KeyD","KeyM","m","M","KeyR","r"]; if (prevent.includes(e.key)||prevent.includes(e.code)) e.preventDefault(); down.add(e.key); down.add(e.code); if (e.key===" "||e.code==="Space"||e.key==="Enter") interact(); if (e.key==="m"||e.key==="M") toggleMute(); if (e.key==="r"||e.key==="R") restartGame(); }
+function onKeyUp(e){ down.delete(e.key); down.delete(e.code); }
+window.addEventListener("keydown", onKeyDown, {passive:false});
+window.addEventListener("keyup", onKeyUp, {passive:true});
+canvas.addEventListener("keydown", onKeyDown, {passive:false});
+canvas.addEventListener("keyup", onKeyUp, {passive:true});
+canvas.addEventListener("mousedown", ()=>canvas.focus());
+window.addEventListener("load", ()=>canvas.focus());
+
+function bindHold(el, press, release){ if (!el) return; const start=ev=>{ ev.preventDefault(); el.classList.add("active"); press(); ensureAudio(); }; const end=ev=>{ ev && ev.preventDefault && ev.preventDefault(); el.classList.remove("active"); release(); }; el.addEventListener("pointerdown", start, {passive:false}); window.addEventListener("pointerup", end, {passive:false}); el.addEventListener("pointerleave", end, {passive:false}); el.addEventListener("contextmenu", e=>e.preventDefault()); }
+const gb=document.getElementById("GameBoy");
+bindHold(gb.querySelector(".dpad .up"),    ()=>down.add("UP"),   ()=>down.delete("UP"));
+bindHold(gb.querySelector(".dpad .down"),  ()=>down.add("DOWN"), ()=>down.delete("DOWN"));
+bindHold(gb.querySelector(".dpad .left"),  ()=>down.add("LEFT"), ()=>down.delete("LEFT"));
+bindHold(gb.querySelector(".dpad .right"), ()=>down.add("RIGHT"),()=>down.delete("RIGHT"));
+bindHold(gb.querySelector(".btn-a"), ()=>interact(), ()=>{});
+
+/* === Audio === */
+let actx=null, masterGain, sfxGain;
+function ensureAudio(){ if (actx) return; actx = new (window.AudioContext||window.webkitAudioContext)(); masterGain = actx.createGain(); masterGain.gain.value=.9; sfxGain=actx.createGain(); sfxGain.gain.value=.5; sfxGain.connect(masterGain); masterGain.connect(actx.destination); }
+function footstep(){ if (!actx) return; const o=actx.createOscillator(), g=actx.createGain(); o.type="square"; o.frequency.value=280+Math.random()*20; g.gain.setValueAtTime(0.0001, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.15, actx.currentTime+0.005); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+0.10); o.connect(g); g.connect(sfxGain); o.start(); o.stop(actx.currentTime+0.12); }
+const bgm=document.getElementById("bgm"); bgm.volume=0.5;
+function startBGM(){ bgm.play().catch(()=>{}); window.removeEventListener("pointerdown", startBGM); window.removeEventListener("keydown", startBGM); }
+window.addEventListener("pointerdown", startBGM);
+window.addEventListener("keydown", startBGM);
+function toggleMute(){ bgm.muted = !bgm.muted; }
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && !bgm.muted) bgm.play().catch(()=>{}); });
+
+/* === RUMBLE (vibrate + screen shake) === */
+let shakeT=0, shakeMag=0;
+function rumble(ms=50, mag=4){ try{ if (navigator.vibrate) navigator.vibrate(ms); }catch(e){} shakeT = Math.max(shakeT, ms/1000); shakeMag = Math.max(shakeMag, mag); }
+function applyShake(){ if (shakeT>0){ const dx=(Math.random()*2-1)*shakeMag, dy=(Math.random()*2-1)*shakeMag; ctx.save(); ctx.translate(dx,dy); return true; } return false; }
+function endShake(dt){ if (shakeT>0){ shakeT -= dt; shakeMag *= 0.9; if (shakeT<=0){ shakeT=0; shakeMag=0; } ctx.restore?.(); } }
+
+/* === Gameplay === */
+let dialog=null;
+function tryMove(dx,dy){
+  if (hasWon) return false;
+  const nx=player.x+dx, ny=player.y+dy;
+  if (passable(nx,ny)){ player.x=nx; player.y=ny; player.frame=1-player.frame; footstep(); return true; }
+  // RUMBLE on collision with wall/NPC
+  rumble(30, 3);
+  return false;
+}
+function interact(){
+  if (hasWon) return;
+  ensureAudio();
+  // RUMBLE on interact press
+  rumble(60, 5);
+  for (const n of NPCS){ const d=Math.abs(n.x-player.x)+Math.abs(n.y-player.y); if (d<=1){ dialog={text:n.talk,timer:150}; return; } }
+  if (interactable(player.x,player.y)){
+    const c=cell(player.x,player.y);
+    if (c==="U") dialog={text:"Welcome! Fresh cookies and simple potions today.", timer:200};
+    if (c==="S") dialog={text:"Car-free town! Trails only — mind the flowers.", timer:200};
+    if (c==="B") dialog={text:"You rest on the bench. Birds chirp nearby.", timer:160};
+    if (c==="L") dialog={text:"A warm lamp hums softly.", timer:120};
+  }
+}
+
+// camera and timing state used by the main loop
+let last = performance.now(), camera = { x:0, y:0 };
+
+function tryWinSequence(){
+  if (hasWon) return;
+  if (!questItem) return;
+  const d = Math.abs(questItem.x - player.x) + Math.abs(questItem.y - player.y);
+  if (d <= 1) {
+    // Player is adjacent to the present — win!
+    const px = (questItem.x - camera.x) * TILE + TILE/2;
+    const py = (questItem.y - camera.y) * TILE + TILE/2;
+    spawnConfetti(px, py, 96);
+    hasWon = true;
+    gameState = 'won';
+    if (bottomBar) {
+      bottomBar.textContent = 'You opened the present! You win!';
+      bottomBar.style.visibility = 'visible';
+    }
+    // play a short flourish if AudioContext is available
+    if (actx) {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'sine'; o.frequency.value = 880; g.gain.setValueAtTime(0.0001, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.2, actx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.5);
+      o.connect(g); g.connect(sfxGain); o.start(); o.stop(actx.currentTime + 0.5);
+    }
+    // remove the quest item so it no longer renders
+    questItem = null;
+    if (winScreen) winScreen.style.display = 'flex';
+    // reveal the ticket image with a small delay so the meta text can fade
+    if (winScreen) {
+      winScreen.classList.remove('show-ticket');
+      // ensure display applied before the class add
+      setTimeout(()=>{ try{ winScreen.classList.add('show-ticket'); }catch(e){} }, 400);
+    }
+  }
+}
+
+function update(dtMs){
+  globalSeconds += dtMs/1000;
+  timeOfDay += (dtMs/1000) * (24*60) / DAY_LENGTH_SEC;
+  setWeather(Weather.RAIN);
+  weatherTimer = 999999;
+
+  spawnParticles(dtMs/1000); updateParticles(dtMs/1000);
+
+  moveTimer -= dtMs;
+  if (moveTimer<=0){
+    let moved=false;
+    if (isDown("up")) moved=tryMove(0,-1);
+    else if (isDown("down")) moved=tryMove(0,1);
+    else if (isDown("left")) moved=tryMove(-1,0);
+    else if (isDown("right")) moved=tryMove(1,0);
+    if (moved) moveTimer = MOVE_COOLDOWN;
+    if (moved && typeof checkCollect === 'function') checkCollect(canvas, actx);
+  }
+
+  const maxX = MAP[0].length - Math.floor(canvas.width / TILE);
+  const maxY = MAP.length   - Math.floor(canvas.height / TILE);
+  const targetX = player.x - Math.floor(canvas.width/TILE)/2 + 0.5;
+  const targetY = player.y - Math.floor(canvas.height/TILE)/2 + 0.5;
+  camera.x = Math.min(Math.max(0, targetX), Math.max(0, maxX));
+  camera.y = Math.min(Math.max(0, targetY), Math.max(0, maxY));
+
+  if (dialog){ if (--dialog.timer<=0) dialog=null; }
+
+  // update bottom bar text for dialog (outside canvas)
+  if (bottomBar) {
+    if (dialog) {
+      bottomBar.textContent = dialog.text;
+      bottomBar.style.visibility = 'visible';
+    } else {
+      bottomBar.textContent = '';
+      bottomBar.style.visibility = 'hidden';
+    }
+  }
+
+  // auto-win if player is within 1 tile of the present (no timer)
+  if (!hasWon && questItem) {
+    const d = Math.abs(questItem.x - player.x) + Math.abs(questItem.y - player.y);
+    if (d <= 1) tryWinSequence();
+  }
+
+  // auto-activate NPC dialog when player is adjacent (with a short cooldown)
+  for (let i=0;i<NPCS.length;i++){
+    const n = NPCS[i];
+    const d = Math.abs(n.x-player.x)+Math.abs(n.y-player.y);
+    if (d<=1 && (globalSeconds - n.lastSpoken) > 2){ dialog = { text: n.talk, timer: 150, source: 'npc', npcIndex: i }; n.lastSpoken = globalSeconds; break; }
+  }
+
+  updateCelebration(dtMs/1000);
+}
+
+function restartGame(){
+  hasWon = false;
+  gameState = 'playing';
+  celebrationParticles = [];
+  placeQuestItem();
+  fixNPCPositions();
+  if (winScreen) { winScreen.style.display = 'none'; winScreen.classList.remove('show-ticket'); }
+  if (bottomBar){ bottomBar.textContent = ''; bottomBar.style.visibility = 'hidden'; }
+}
+
+if (winRestart) winRestart.addEventListener('click', ()=>{ restartGame(); });
+
+function render(){
+  ctx.imageSmoothingEnabled=false;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const shaken = applyShake();
+
+  const t01=time01();
+  drawWorld(camera.x,camera.y,t01);
+
+  // NPCs
+  for (const n of NPCS){
+    const dx=(n.x-camera.x)*TILE, dy=(n.y-camera.y)*TILE;
+    const bob = Math.sin(globalSeconds*1.6 + n.x*0.3 + n.y*0.2) * 2;
+    const frame = [2,1];
+    drawTile(...frame, dx, dy + bob);
+  }
+  // Player
+  { const dx=(player.x-camera.x)*TILE, dy=(player.y-camera.y)*TILE; const frame=player.frame?[1,1]:[0,1]; drawTile(...frame, dx, dy); }
+
+  drawParticles();
+
+  if (questItem){
+  const dx=(questItem.x-camera.x)*TILE, dy=(questItem.y-camera.y)*TILE;
+  ctx.save();
+  // drop shadow
+  ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.fillRect(dx+6, dy+TILE-8, TILE-12, 6);
+  // present box
+  const boxW = TILE*0.7, boxH = TILE*0.6; const bx = dx + (TILE-boxW)/2, by = dy + (TILE-boxH)/2 + 4;
+  ctx.fillStyle = '#fff1a8'; roundRect(ctx, bx, by, boxW, boxH, 4, true, false);
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 1; ctx.strokeRect(bx+1, by+1, boxW-2, boxH-2);
+  // ribbon vertical (brighter)
+  ctx.fillStyle = '#ff3b3b'; ctx.fillRect(bx + boxW*0.45, by+2, boxW*0.1, boxH-4);
+  // ribbon horizontal
+  ctx.fillRect(bx+2, by + boxH*0.45, boxW-4, boxH*0.1);
+  // bow (brighter)
+  ctx.beginPath(); ctx.fillStyle='#ff5c8f'; ctx.moveTo(bx + boxW*0.45, by + boxH*0.35); ctx.quadraticCurveTo(bx + boxW*0.38, by + boxH*0.28, bx + boxW*0.33, by + boxH*0.3); ctx.quadraticCurveTo(bx + boxW*0.42, by + boxH*0.4, bx + boxW*0.45, by + boxH*0.37); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(bx + boxW*0.55, by + boxH*0.35); ctx.quadraticCurveTo(bx + boxW*0.62, by + boxH*0.28, bx + boxW*0.67, by + boxH*0.3); ctx.quadraticCurveTo(bx + boxW*0.58, by + boxH*0.4, bx + boxW*0.55, by + boxH*0.37); ctx.fill();
+  ctx.restore();
+  }
+
+  const n=nightFactor(t01);
+  ctx.fillStyle=(n>0.15)?`rgba(20,30,60,${0.25+0.45*n})`:"rgba(255,255,220,0.05)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  const cx=canvas.width-18, cy=18; ctx.beginPath(); ctx.fillStyle=(n<.25)?"#ffd77e":"#cfe8ff"; ctx.arc(cx,cy,8,0,Math.PI*2); ctx.fill();
+
+  // dialog is shown in the bottom bar (DOM), not drawn on the canvas anymore
+
+  drawCelebration(ctx);
+
+  if (shaken) endShake(1/60);
+}
+
+function roundRect(ctx, x, y, w, h, r, fill, stroke){
+  if (r===undefined) r=5; ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+  if (fill) ctx.fill(); if (stroke) ctx.stroke();
+}
+
+function loop(now){ const dt=now-last; last=now; update(dt); render(); requestAnimationFrame(loop); }
+
+loadTileset().then(img=>{
+  tilesetImg=img;
+  window.addEventListener("pointerdown", ensureAudio, {once:true});
+  window.addEventListener("keydown", ensureAudio, {once:true});
+  fixNPCPositions();
+  placeQuestItem();
+  requestAnimationFrame(loop);
+  // intro screen: fade out after 3s, or immediately on first interaction
+  const intro = document.getElementById('introScreen');
+  const hideIntro = ()=>{
+    if (!intro) return;
+    intro.classList.add('intro-hidden');
+    setTimeout(()=>{ try{ intro.remove(); }catch(e){} }, 900);
+    window.removeEventListener('pointerdown', hideIntro);
+    window.removeEventListener('keydown', hideIntro);
+  };
+  // auto-hide after 3 seconds
+  setTimeout(hideIntro, 3000);
+  // also allow immediate dismiss via pointer/keyboard
+  window.addEventListener('pointerdown', hideIntro, {once:true});
+  window.addEventListener('keydown', hideIntro, {once:true});
+});
+</script>
+</body>
+</html>
