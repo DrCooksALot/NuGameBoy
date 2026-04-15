@@ -218,9 +218,9 @@ const NPCS = [
   { x: 32, y: 7,  talk: "He really loves you, he left you something further down" },
   { x: 22, y: 28, talk: "He really loves you, he left you something further down" },
 ];
-for (const n of NPCS){ n.lastSpoken = -9999; n.hintTimer = 0; }
+for (const n of NPCS){ n.lastSpoken = -9999; }
 
-let gameState='playing', questItem=null, celebrationParticles=[];
+let questItem=null, celebrationParticles=[];
 function spawnConfetti(px, py, amount=32){
   const colors = ['#ffd77e','#ff7ab6','#7cd27f','#66a8ff','#ffb86b'];
   for (let i=0;i<amount;i++){
@@ -280,7 +280,7 @@ function placeQuestItem(){
   }
 
   // fallback to original random placement
-  for (let a=0;a<1000;a++){
+  for (let attempt=0;attempt<1000;attempt++){
     const x=Math.floor(Math.random()*width), y=Math.floor(Math.random()*height), c=cell(x,y);
     if (!c || SOLID.has(c)) continue;
     if (NPCS.some(n=>n.x===x&&n.y===y)) continue;
@@ -292,7 +292,6 @@ function placeQuestItem(){
 let player = { x:8, y:14, frame:0 };
 const canvas = document.getElementById("mainCanvas");
 const ctx = canvas.getContext("2d");
-const topBar = document.querySelector('.screen-top-bar');
 const bottomBar = document.querySelector('.screen-bottom-bar');
 let tilesetImg;
 let hasWon = false;
@@ -327,7 +326,7 @@ function spawnParticles(dt){
 }
 function updateParticles(dt){ for(const p of particles){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt; } particles=particles.filter(p=>p.y<canvas.height+6 && p.life>0); }
 function drawParticles(){ if (weather===Weather.RAIN){ ctx.strokeStyle="#b8d6ff"; ctx.globalAlpha=.85; ctx.lineWidth=2; ctx.beginPath(); for(const p of particles){ ctx.moveTo(p.x,p.y); ctx.lineTo(p.x-3,p.y-12);} ctx.stroke(); ctx.globalAlpha=1; } else if (weather===Weather.SNOW){ ctx.fillStyle="#fff"; ctx.globalAlpha=.9; for(const p of particles){ ctx.fillRect(p.x,p.y,p.s,p.s);} ctx.globalAlpha=1; } }
-function drawSkyTint(t01){ const n=nightFactor(t01); ctx.fillStyle=(n>0.15)?`rgba(20,30,60,${0.25+0.45*n})`:"rgba(255,255,220,0.05)"; ctx.fillRect(0,0,canvas.width,canvas.height); }
+
 function tileFrameFor(ch){ if (ch==="X"||ch==="x"){ const t=(Math.floor(globalSeconds*6)%2); return t? TI["X"] : TI["x"]; } return TI[ch] || TI["g"]; }
 
 function drawWorld(camX,camY,t01){
@@ -355,14 +354,12 @@ function fixNPCPositions(){
 
 /* === Input (keyboard + on-screen A + D-pad) === */
 const down=new Set(); const MOVE_COOLDOWN=110; let moveTimer=0;
-function isDown(dir){ if (dir==="up") return down.has("ArrowUp")||down.has("KeyW")||down.has("UP")||down.has("w"); if (dir==="down") return down.has("ArrowDown")||down.has("KeyS")||down.has("DOWN")||down.has("s"); if (dir==="left") return down.has("ArrowLeft")||down.has("KeyA")||down.has("LEFT")||down.has("a"); if (dir==="right") return down.has("ArrowRight")||down.has("KeyD")||down.has("RIGHT")||down.has("d"); }
-function onKeyDown(e){ const prevent=["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," ","Enter","Space","KeyW","KeyA","KeyS","KeyD","KeyM","m","M","KeyR","r"]; if (prevent.includes(e.key)||prevent.includes(e.code)) e.preventDefault(); down.add(e.key); down.add(e.code); if (e.key===" "||e.code==="Space"||e.key==="Enter") interact(); if (e.key==="m"||e.key==="M") toggleMute(); if (e.key==="r"||e.key==="R") restartGame(); }
+const DIR_KEYS = { up:["ArrowUp","KeyW","UP","w"], down:["ArrowDown","KeyS","DOWN","s"], left:["ArrowLeft","KeyA","LEFT","a"], right:["ArrowRight","KeyD","RIGHT","d"] };
+function isDown(dir){ return DIR_KEYS[dir]?.some(k=>down.has(k))??false; }
 function onKeyDown(e){ const prevent=["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," ","Enter","Space","KeyW","KeyA","KeyS","KeyD","KeyM","m","M","KeyR","r"]; if (prevent.includes(e.key)||prevent.includes(e.code)) e.preventDefault(); down.add(e.key); down.add(e.code); if (e.key===" "||e.code==="Space"||e.key==="Enter") interact(); if (e.key==="m"||e.key==="M") toggleMute(); if (e.key==="r"||e.key==="R") restartGame(); }
 function onKeyUp(e){ down.delete(e.key); down.delete(e.code); }
 window.addEventListener("keydown", onKeyDown, {passive:false});
 window.addEventListener("keyup", onKeyUp, {passive:true});
-canvas.addEventListener("keydown", onKeyDown, {passive:false});
-canvas.addEventListener("keyup", onKeyUp, {passive:true});
 canvas.addEventListener("mousedown", ()=>canvas.focus());
 window.addEventListener("load", ()=>canvas.focus());
 
@@ -429,7 +426,6 @@ function tryWinSequence(){
     const py = (questItem.y - camera.y) * TILE + TILE/2;
     spawnConfetti(px, py, 96);
     hasWon = true;
-    gameState = 'won';
     if (bottomBar) {
       bottomBar.textContent = 'You opened the present! You win!';
       bottomBar.style.visibility = 'visible';
@@ -449,7 +445,7 @@ function tryWinSequence(){
     if (winScreen) {
       winScreen.classList.remove('show-ticket');
       // ensure display applied before the class add
-      setTimeout(()=>{ try{ winScreen.classList.add('show-ticket'); }catch(e){} }, 400);
+      setTimeout(()=>{ winScreen.classList.add('show-ticket'); }, 400);
     }
   }
 }
@@ -457,9 +453,6 @@ function tryWinSequence(){
 function update(dtMs){
   globalSeconds += dtMs/1000;
   timeOfDay += (dtMs/1000) * (24*60) / DAY_LENGTH_SEC;
-  setWeather(Weather.RAIN);
-  weatherTimer = 999999;
-
   spawnParticles(dtMs/1000); updateParticles(dtMs/1000);
 
   moveTimer -= dtMs;
@@ -503,7 +496,7 @@ function update(dtMs){
   for (let i=0;i<NPCS.length;i++){
     const n = NPCS[i];
     const d = Math.abs(n.x-player.x)+Math.abs(n.y-player.y);
-    if (d<=1 && (globalSeconds - n.lastSpoken) > 2){ dialog = { text: n.talk, timer: 150, source: 'npc', npcIndex: i }; n.lastSpoken = globalSeconds; break; }
+    if (d<=1 && (globalSeconds - n.lastSpoken) > 2){ dialog = { text: n.talk, timer: 150 }; n.lastSpoken = globalSeconds; break; }
   }
 
   updateCelebration(dtMs/1000);
@@ -511,7 +504,6 @@ function update(dtMs){
 
 function restartGame(){
   hasWon = false;
-  gameState = 'playing';
   celebrationParticles = [];
   placeQuestItem();
   fixNPCPositions();
@@ -593,7 +585,7 @@ loadTileset().then(img=>{
   const hideIntro = ()=>{
     if (!intro) return;
     intro.classList.add('intro-hidden');
-    setTimeout(()=>{ try{ intro.remove(); }catch(e){} }, 900);
+    setTimeout(()=>{ if (intro.parentNode) intro.remove(); }, 900);
     window.removeEventListener('pointerdown', hideIntro);
     window.removeEventListener('keydown', hideIntro);
   };
