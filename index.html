@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <title>NuGameBoy</title>
+  <style>
+    :root { --shell:#4f50db; --shell-dark:#3d38b5; --shell-deep:#0d0e51; --ui:#2a2d33; --accent:#6b67ed; --ink:#eee; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; height:100%; background:linear-gradient(to top, #bbb 0%, #fff 100%); color:var(--ink); font:14px/1.3 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    body { display:flex; align-items:center; justify-content:center; padding:10px; -webkit-tap-highlight-color:transparent; }
+    .gameboy { position:relative; max-width:420px; width: min(calc(100% - 20px), 420px); max-height:900px; border-radius:20px; padding:16px 16px 18px; background:var(--shell);
+        box-shadow:0 -5px 0 var(--shell-deep), 0 6px 0 var(--shell-dark), 0 16px 20px rgba(0,0,0,.25); -webkit-user-select:none; user-select:none; margin:10px 0; }
+    .screen-area { position:relative; margin-bottom:14px; border-radius:12px; background:#1a1b27; padding:10px; box-shadow:inset 0 0 0 2px #10121a, inset 0 0 18px rgba(0,0,0,.6); }
+    .power { position:absolute; left:10px; top:10px; font-size:10px; letter-spacing:.4px; opacity:.9; color:#c6c9ff; z-index:2; }
+    .power .indicator { display:inline-flex; align-items:center; gap:3px; margin-right:6px; }
+    .power .indicator .led { width:8px; height:8px; border-radius:50%; background:#ca1a21; box-shadow:0 0 10px #ff552e; }
+    .display { display:block; width:100%; height:auto; background:#0a0a14; border-radius:8px; outline:1px solid #0a0a14; image-rendering:pixelated; }
+    .screen-frame { display:flex; align-items:center; justify-content:center; background:transparent; }
+    .screen-top-bar, .screen-bottom-bar { background:#000; color:#fff; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size:12px; line-height:1.2; }
+    .screen-top-bar { height:32px; min-height:28px; border-top-left-radius:10px; border-top-right-radius:10px; padding:6px 10px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .screen-top-bar .title { letter-spacing:1px; opacity:.95; }
+    .screen-top-bar .room { opacity:.85; }
+    .screen-bottom-bar { min-height:48px; max-height:30vh; border-bottom-left-radius:10px; border-bottom-right-radius:10px; padding:8px 12px; display:flex; align-items:center; justify-content:flex-start; white-space:pre-wrap; word-break:break-word; text-align:left; }
+    .controls { display:flex; justify-content:space-between; align-items:center; gap:16px; padding: 0 4px; }
+    .dpad { position:relative; width:124px; height:124px; touch-action:none; }
+    .dpad > div { position:absolute; width:36%; height:36%; background:var(--ui); border:1px solid #555; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:22px; color:#7c8499; }
+    .dpad .up    { left:32%; top:0; }
+    .dpad .down  { left:32%; bottom:0; }
+    .dpad .left  { left:0; top:32%; }
+    .dpad .right { right:0; top:32%; }
+    .dpad .middle{ left:32%; top:32%; visibility:hidden; }
+    .abrow { display:flex; gap:14px; align-items:center; }
+    .btn { border-radius:999px; background:var(--ui); border:1px solid #555; display:flex; align-items:center; justify-content:center; font-weight:bold; touch-action:none; color:#7c8499; }
+    .btn-a { width:64px; height:64px; font-size:22px; }
+    .btn-b { width:54px; height:54px; font-size:18px; }
+    .btn:active, .dpad > div.active { filter:brightness(1.3); transform:translateY(1px); }
+    .btn.active { filter:brightness(1.3); transform:translateY(1px); }
+    .smallrow { display:flex; gap:14px; justify-content:center; margin-top:12px; }
+    .pill { padding:6px 14px; background:#23252e; color:#9aa0b3; border:1px solid #555; border-radius:999px; font-size:10px; letter-spacing:1.5px; touch-action:none; }
+    .pill:active, .pill.active { filter:brightness(1.3); }
+
+    @media (max-width: 900px) and (orientation: portrait) {
+      .gameboy { height: min(820px, 98vh); display:flex; flex-direction:column; align-items:stretch; padding:12px; }
+      .screen-area { flex:1; margin-bottom: clamp(8px, 3vh, 24px); display:flex; flex-direction:column; padding:6px; min-height:0; }
+      .screen-area .screen-frame { flex: none; width:100%; aspect-ratio: 3 / 2; display:flex; align-items:center; justify-content:center; }
+      .screen-area .display { width:100%; height:auto; display:block; max-width:100%; }
+      .screen-bottom-bar { flex:1; min-height:48px; }
+      .controls { margin-top: 0; padding: 8px 14px; }
+    }
+
+    /* Boot overlay */
+    #bootScreen{ position:fixed; inset:0; z-index:120; background:#000; display:flex; align-items:center; justify-content:center; color:#fff; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+    #bootScreen .boot-text{ font-weight:700; font-size:clamp(20px,7vw,40px); text-align:center; letter-spacing:3px; }
+    #bootScreen.boot-hidden{ opacity:0; transition:opacity .9s ease; pointer-events:none; }
+    #bootScreen .sub { display:block; font-size:14px; opacity:.7; margin-top:14px; letter-spacing:2px; }
+
+    /* Modal overlay (used for room code, win screen etc) */
+    .modal { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.88); color:#fff; z-index:40; border-radius:12px; padding:14px; flex-direction:column; gap:10px; text-align:center; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+    .modal h1{ margin:0; font-size:18px; letter-spacing:1px; }
+    .modal p{ margin:0; font-size:12px; opacity:0.9; line-height:1.4; }
+    .modal .code { font-size:28px; letter-spacing:6px; margin:6px 0; color:#ffd77e; }
+    .modal input { font: inherit; font-size:22px; letter-spacing:6px; text-align:center; background:#000; color:#ffd77e; border:1px solid #ffd77e; border-radius:8px; padding:8px 10px; width:80%; max-width:240px; text-transform:uppercase; }
+    .modal button { padding:8px 14px; border-radius:8px; border:0; background:#ffd77e; color:#1a1b27; font-weight:700; font-family:inherit; cursor:pointer; }
+    .modal button.ghost { background:transparent; color:#fff; border:1px solid #555; }
+    .modal img.ticket { width:70%; max-width:340px; height:auto; transform:scale(.6); opacity:0; transition: transform .6s cubic-bezier(.2,.8,.2,1), opacity .4s ease; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.5); }
+    .modal.show-ticket img.ticket { transform:scale(1); opacity:1; }
+    .modal.show-ticket .meta { opacity:0; pointer-events:none; }
+    .modal .meta { transition: opacity .45s ease; display:flex; flex-direction:column; gap:8px; align-items:center; }
+    .modal .row { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+    .modal .small { font-size:11px; opacity:.7; }
+  </style>
+</head>
+<body>
+<div id="bootScreen">
+  <div>
+    <div class="boot-text">NU GAMEBOY</div>
+    <span class="sub">loading dream...</span>
+  </div>
+</div>
+
+<div class="gameboy" id="GameBoy">
+  <div class="screen-area">
+    <div class="power"><span class="indicator"><span class="led"></span></span>POWER</div>
+    <div class="screen-top-bar">
+      <span class="title" id="topTitle">NU GAMEBOY</span>
+      <span class="room" id="topRoom"></span>
+    </div>
+    <div class="screen-frame">
+      <canvas class="display" id="mainCanvas" width="720" height="480" tabindex="0" aria-label="Game screen"></canvas>
+    </div>
+    <div class="screen-bottom-bar" id="bottomBar" aria-live="polite"></div>
+
+    <div class="modal" id="modal" style="display:none;"></div>
+  </div>
+
+  <div class="controls">
+    <div class="dpad" id="dpad">
+      <div class="up"    data-key="UP" aria-label="Up">&#9650;</div>
+      <div class="left"  data-key="LEFT" aria-label="Left">&#9664;</div>
+      <div class="middle"></div>
+      <div class="right" data-key="RIGHT" aria-label="Right">&#9654;</div>
+      <div class="down"  data-key="DOWN" aria-label="Down">&#9660;</div>
+    </div>
+    <div class="abrow">
+      <div class="btn btn-b" data-key="B" aria-label="B">B</div>
+      <div class="btn btn-a" data-key="A" aria-label="A">A</div>
+    </div>
+  </div>
+  <div class="smallrow">
+    <div class="pill" data-key="SELECT" aria-label="Select">SELECT</div>
+    <div class="pill" data-key="START" aria-label="Start">START</div>
+  </div>
+</div>
+
+<audio id="bgm" src="assets/Boatfriend.mp3" loop preload="auto" crossorigin="anonymous"></audio>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+/* ============================================================
+   NuGameBoy Platform
+   - Engine: canvas + input + audio + DOM bridges
+   - Modes:  boot -> menu -> cartridge (Fever Dream)
+   - Net:    PeerJS-based 2-player WebRTC
+   - Store:  localStorage helpers
+   ============================================================ */
+
+/* ---------- Storage ---------- */
+const Store = {
+  K: 'nugameboy.v1',
+  load(){ try { return JSON.parse(localStorage.getItem(this.K)) || {}; } catch(e){ return {}; } },
+  save(obj){ try { localStorage.setItem(this.K, JSON.stringify(obj)); } catch(e){} },
+  get(k, dflt){ const o=this.load(); return (k in o) ? o[k] : dflt; },
+  set(k, v){ const o=this.load(); o[k]=v; this.save(o); }
+};
+
+/* ---------- Engine ---------- */
+const Engine = {
+  canvas: null, ctx: null,
+  topbar: null, bottombar: null, topRoom: null, modal: null,
+  mode: null,            // active mode object
+  modes: {},
+  held: new Set(),       // currently held actions
+  last: 0,
+  shakeT: 0, shakeMag: 0,
+
+  register(key, mode){ this.modes[key] = mode; mode.key = key; },
+  go(key, opts){
+    const prev = this.mode;
+    if (prev && prev.exit) try{ prev.exit(); }catch(e){ console.error(e); }
+    this.mode = this.modes[key];
+    if (!this.mode){ console.error('No mode', key); return; }
+    if (this.mode.enter) try{ this.mode.enter(opts||{}); }catch(e){ console.error(e); }
+  },
+
+  setTitle(t){ this.topbar.textContent = t; },
+  setRoom(t){ this.topRoom.textContent = t || ''; },
+  setBottom(t){ this.bottombar.textContent = t || ''; this.bottombar.style.visibility = t ? 'visible' : 'hidden'; },
+
+  rumble(ms=50, mag=4){
+    try{ if (navigator.vibrate) navigator.vibrate(ms); }catch(e){}
+    this.shakeT = Math.max(this.shakeT, ms/1000);
+    this.shakeMag = Math.max(this.shakeMag, mag);
+  },
+  applyShake(){
+    if (this.shakeT>0){
+      const dx=(Math.random()*2-1)*this.shakeMag, dy=(Math.random()*2-1)*this.shakeMag;
+      this.ctx.save(); this.ctx.translate(dx,dy); return true;
+    }
+    return false;
+  },
+  endShake(dt){
+    if (this.shakeT>0){
+      this.shakeT -= dt; this.shakeMag *= 0.9;
+      if (this.shakeT<=0){ this.shakeT=0; this.shakeMag=0; }
+      this.ctx.restore?.();
+    }
+  },
+
+  /* Modal helpers (DOM overlay over canvas) */
+  showModal(html){
+    this.modal.innerHTML = html;
+    this.modal.style.display = 'flex';
+    this.modal.classList.remove('show-ticket');
+  },
+  hideModal(){ this.modal.style.display='none'; this.modal.innerHTML=''; },
+
+  loop(now){
+    const dt = Math.min(100, now - Engine.last); Engine.last = now;
+    if (Engine.mode && Engine.mode.update) Engine.mode.update(dt);
+    Engine.ctx.imageSmoothingEnabled = false;
+    Engine.ctx.clearRect(0,0,Engine.canvas.width,Engine.canvas.height);
+    const shook = Engine.applyShake();
+    if (Engine.mode && Engine.mode.render) Engine.mode.render();
+    if (shook) Engine.endShake(dt/1000);
+    requestAnimationFrame(Engine.loop);
+  },
+
+  init(){
+    this.canvas = document.getElementById('mainCanvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.topbar = document.getElementById('topTitle');
+    this.topRoom = document.getElementById('topRoom');
+    this.bottombar = document.getElementById('bottomBar');
+    this.modal = document.getElementById('modal');
+    this.setBottom('');
+
+    /* Input wiring */
+    const KEYMAP = {
+      'ArrowUp':'UP','KeyW':'UP','w':'UP','W':'UP',
+      'ArrowDown':'DOWN','KeyS':'DOWN','s':'DOWN','S':'DOWN',
+      'ArrowLeft':'LEFT','KeyA':'LEFT','a':'LEFT','A':'LEFT',
+      'ArrowRight':'RIGHT','KeyD':'RIGHT','d':'RIGHT','D':'RIGHT',
+      ' ':'A','Space':'A','Enter':'A','KeyJ':'A','j':'A','J':'A',
+      'KeyK':'B','k':'B','K':'B','Backspace':'B','Escape':'B',
+      'Tab':'SELECT','KeyN':'SELECT','n':'SELECT','N':'SELECT',
+      'KeyM':'START','m':'START','M':'START'
+    };
+    const press = (action)=>{
+      if (!action) return;
+      this.held.add(action);
+      if (this.mode && this.mode.inputDown) this.mode.inputDown(action);
+    };
+    const release = (action)=>{
+      if (!action) return;
+      this.held.delete(action);
+      if (this.mode && this.mode.inputUp) this.mode.inputUp(action);
+    };
+    window.addEventListener('keydown', (e)=>{
+      const a = KEYMAP[e.key] || KEYMAP[e.code];
+      if (a){ e.preventDefault(); if (!this.held.has(a)) press(a); }
+    }, {passive:false});
+    window.addEventListener('keyup', (e)=>{
+      const a = KEYMAP[e.key] || KEYMAP[e.code];
+      if (a) release(a);
+    }, {passive:true});
+
+    /* On-screen controls */
+    const bindBtn = (el)=>{
+      if (!el) return;
+      const key = el.getAttribute('data-key');
+      const onDown = (ev)=>{ ev.preventDefault(); el.classList.add('active'); press(key); Audio.ensure(); };
+      const onUp = (ev)=>{ if (ev && ev.preventDefault) ev.preventDefault(); el.classList.remove('active'); release(key); };
+      el.addEventListener('pointerdown', onDown, {passive:false});
+      el.addEventListener('pointerup', onUp, {passive:false});
+      el.addEventListener('pointerleave', onUp, {passive:false});
+      el.addEventListener('pointercancel', onUp, {passive:false});
+      el.addEventListener('contextmenu', e=>e.preventDefault());
+    };
+    document.querySelectorAll('[data-key]').forEach(bindBtn);
+    this.canvas.addEventListener('mousedown', ()=>this.canvas.focus());
+    window.addEventListener('load', ()=>this.canvas.focus());
+
+    /* Audio unlock */
+    const unlock = ()=>{ Audio.ensure(); Audio.startBGM(); };
+    window.addEventListener('pointerdown', unlock, {once:true});
+    window.addEventListener('keydown', unlock, {once:true});
+    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && Audio.bgm && !Audio.bgm.muted) Audio.bgm.play().catch(()=>{}); });
+  }
+};
+
+/* ---------- Audio ---------- */
+const Audio = {
+  ctx: null, master: null, sfx: null, bgm: null, muted: false,
+  ensure(){
+    if (this.ctx) return;
+    try{
+      const AC = window.AudioContext||window.webkitAudioContext;
+      if (!AC) return;
+      this.ctx = new AC();
+      this.master = this.ctx.createGain(); this.master.gain.value = .9;
+      this.sfx = this.ctx.createGain(); this.sfx.gain.value = .5;
+      this.sfx.connect(this.master); this.master.connect(this.ctx.destination);
+    }catch(e){}
+  },
+  init(){
+    this.bgm = document.getElementById('bgm');
+    if (this.bgm) this.bgm.volume = 0.4;
+    this.muted = !!Store.get('muted', false);
+    if (this.bgm) this.bgm.muted = this.muted;
+  },
+  startBGM(){ if (this.bgm) this.bgm.play().catch(()=>{}); },
+  toggleMute(){
+    this.muted = !this.muted;
+    Store.set('muted', this.muted);
+    if (this.bgm) this.bgm.muted = this.muted;
+    return this.muted;
+  },
+  beep(freq=440, dur=0.1, type='square', vol=0.15){
+    if (!this.ctx) return;
+    const o=this.ctx.createOscillator(), g=this.ctx.createGain();
+    o.type=type; o.frequency.value=freq;
+    g.gain.setValueAtTime(0.0001, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(vol, this.ctx.currentTime+0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime+dur);
+    o.connect(g); g.connect(this.sfx); o.start(); o.stop(this.ctx.currentTime+dur+0.02);
+  },
+  step(){ this.beep(280 + Math.random()*30, 0.10, 'square', 0.12); },
+  pickup(){ this.beep(660, 0.07, 'square', 0.18); setTimeout(()=>this.beep(990, 0.10, 'square', 0.18), 60); },
+  cursor(){ this.beep(520, 0.05, 'square', 0.10); },
+  confirm(){ this.beep(720, 0.08, 'square', 0.15); setTimeout(()=>this.beep(960, 0.10, 'triangle', 0.15), 70); },
+  cancel(){ this.beep(220, 0.10, 'square', 0.12); },
+  win(){
+    const seq=[523,659,784,1046];
+    seq.forEach((f,i)=>setTimeout(()=>this.beep(f, 0.18, 'triangle', 0.20), i*140));
+  }
+};
+
+/* ---------- Networking (PeerJS) ---------- */
+const Net = {
+  peer: null, conn: null,
+  role: 'solo',           // 'solo'|'host'|'client'
+  id: null,               // own peer id
+  remoteId: null,         // peer id of the other player
+  open: false,
+  onMessage: null, onOpen: null, onClose: null, onError: null,
+
+  shortId(){
+    const C='BCDFGHJKMNPQRTVWXYZ23456789'; // no ambiguous chars
+    let s=''; for (let i=0;i<4;i++) s+=C[Math.floor(Math.random()*C.length)];
+    return 'FD-'+s;
+  },
+
+  cleanup(){
+    try { this.conn && this.conn.close(); } catch(e){}
+    try { this.peer && this.peer.destroy(); } catch(e){}
+    this.conn=null; this.peer=null; this.open=false; this.remoteId=null;
+  },
+
+  host(){
+    this.cleanup();
+    this.role = 'host';
+    return new Promise((res, rej)=>{
+      const id = this.shortId();
+      if (typeof Peer === 'undefined'){ rej(new Error('Peer library not loaded')); return; }
+      this.peer = new Peer(id, { debug: 1 });
+      let opened=false;
+      this.peer.on('open', (pid)=>{
+        opened=true; this.id = pid; res(pid);
+      });
+      this.peer.on('connection', (c)=>{
+        this.conn = c; this.remoteId = c.peer;
+        c.on('open', ()=>{ this.open=true; this.onOpen && this.onOpen(); });
+        c.on('data', (d)=>{ this.onMessage && this.onMessage(d); });
+        c.on('close', ()=>{ this.open=false; this.onClose && this.onClose(); });
+        c.on('error', (e)=>{ this.onError && this.onError(e); });
+      });
+      this.peer.on('error', (e)=>{
+        if (!opened) rej(e); else this.onError && this.onError(e);
+      });
+    });
+  },
+
+  join(hostId){
+    this.cleanup();
+    this.role = 'client';
+    return new Promise((res, rej)=>{
+      if (typeof Peer === 'undefined'){ rej(new Error('Peer library not loaded')); return; }
+      this.peer = new Peer(undefined, { debug: 1 });
+      let opened=false;
+      this.peer.on('open', (pid)=>{
+        opened=true; this.id = pid;
+        const c = this.peer.connect(hostId, { reliable: true });
+        this.conn = c; this.remoteId = hostId;
+        c.on('open', ()=>{ this.open=true; this.onOpen && this.onOpen(); res(); });
+        c.on('data', (d)=>{ this.onMessage && this.onMessage(d); });
+        c.on('close', ()=>{ this.open=false; this.onClose && this.onClose(); });
+        c.on('error', (e)=>{ if (!this.open) rej(e); else this.onError && this.onError(e); });
+      });
+      this.peer.on('error', (e)=>{
+        if (!opened) rej(e); else this.onError && this.onError(e);
+      });
+    });
+  },
+
+  send(msg){
+    if (this.conn && this.open){
+      try{ this.conn.send(msg); }catch(e){}
+    }
+  }
+};
+
+/* ---------- Tileset ---------- */
+const TILE_SIZE = 16, SCALE = 3, TILE = TILE_SIZE * SCALE;
+const tilesetSVG = `<?xml version="1.0" encoding="UTF-8" ?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" shape-rendering="crispEdges">
+  <defs>
+    <g id="road"><rect width="16" height="16" fill="#3a3550"/><rect y="15" width="16" height="1" fill="#2a2540"/><rect x="2" y="7" width="4" height="2" fill="#7a6abd"/><rect x="8" y="7" width="4" height="2" fill="#7a6abd"/></g>
+    <g id="cross"><rect width="16" height="16" fill="#3a3550"/><rect x="0" y="7" width="16" height="2" fill="#7a6abd"/><rect x="7" y="0" width="2" height="16" fill="#7a6abd"/></g>
+    <g id="walk"><rect width="16" height="16" fill="#3a3550"/><rect x="1" y="4" width="14" height="2" fill="#9b8dd6"/><rect x="1" y="9" width="14" height="2" fill="#9b8dd6"/></g>
+    <g id="side"><rect width="16" height="16" fill="#6e6890"/><rect y="7" width="16" height="1" fill="#5d5880"/><rect y="15" width="16" height="1" fill="#4d486e"/></g>
+    <g id="lawn"><rect width="16" height="16" fill="#3d7a55"/><rect y="0" width="16" height="1" fill="#356c4b"/><rect x="4" y="5" width="1" height="1" fill="#4a8f64"/><rect x="10" y="9" width="1" height="1" fill="#2f5d40"/></g>
+    <g id="tree">
+      <rect width="16" height="16" fill="none"/>
+      <rect x="6" y="10" width="4" height="6" fill="#3a2a1b"/>
+      <ellipse cx="8" cy="7" rx="6" ry="5" fill="#2c5a3f"/>
+      <ellipse cx="8" cy="6" rx="5" ry="4" fill="#234a33"/>
+      <ellipse cx="10" cy="5" rx="2" ry="1.5" fill="#3d7a55"/>
+      <ellipse cx="6" cy="9" rx="1.5" ry="1" fill="#1a3a25"/>
+    </g>
+    <g id="fence"><rect width="16" height="16" fill="#3d7a55"/><rect x="0" y="6" width="16" height="4" fill="#bcb6cf"/><rect x="2" y="4" width="2" height="8" fill="#8c87a0"/><rect x="7" y="4" width="2" height="8" fill="#8c87a0"/><rect x="12" y="4" width="2" height="8" fill="#8c87a0"/></g>
+    <g id="hwall"><rect width="16" height="16" fill="#8c5d8b"/><rect y="3" width="16" height="1" fill="#714672"/><rect y="8" width="16" height="1" fill="#714672"/></g>
+    <g id="hwin"><rect width="16" height="16" fill="#8c5d8b"/><rect x="3" y="4" width="4" height="4" fill="#3a4a6e"/><rect x="9" y="4" width="4" height="4" fill="#3a4a6e"/><rect x="6" y="11" width="4" height="4" fill="#3a4a6e"/></g>
+    <g id="hdoor"><rect width="16" height="16" fill="#8c5d8b"/><rect x="6" y="6" width="4" height="8" fill="#3a2418"/><rect x="7" y="10" width="2" height="2" fill="#ffd77e"/></g>
+    <g id="roof"><rect width="16" height="16" fill="#6a3f80"/><rect x="1" y="1" width="14" height="1" fill="#7d4c95"/><rect x="1" y="3" width="14" height="1" fill="#552f6a"/></g>
+    <g id="shop"><rect width="16" height="16" fill="#3a4a8a"/><rect x="1" y="1" width="14" height="5" fill="#a23838"/><rect x="1" y="6" width="14" height="1" fill="#ffe27a"/><rect x="2" y="8" width="4" height="7" fill="#5a7099"/><rect x="7" y="8" width="7" height="7" fill="#181820"/></g>
+    <g id="lamp"><rect x="7" y="2" width="2" height="12" fill="#555567"/><rect x="5" y="1" width="6" height="3" fill="#fff1a8"/></g>
+    <g id="bench"><rect x="1" y="7" width="14" height="3" fill="#5a3a26"/><rect x="1" y="11" width="14" height="2" fill="#3f291a"/><rect x="0" y="13" width="16" height="3" fill="#3d7a55"/></g>
+    <g id="sign"><rect width="16" height="16" fill="#6e6890"/><rect x="6" y="4" width="4" height="8" fill="#3a4a6e"/><rect x="7" y="12" width="2" height="1" fill="#3d7a55"/></g>
+    <g id="p1"><rect width="16" height="16" fill="none"/><rect x="5" y="2" width="6" height="5" fill="#ffe0b8"/><rect x="4" y="7" width="8" height="6" fill="#ff6a6a"/><rect x="5" y="13" width="2" height="3" fill="#5270c9"/><rect x="9" y="13" width="2" height="3" fill="#5270c9"/></g>
+    <g id="p1b"><rect width="16" height="16" fill="none"/><rect x="5" y="2" width="6" height="5" fill="#ffe0b8"/><rect x="4" y="7" width="8" height="6" fill="#ff6a6a"/><rect x="4" y="13" width="3" height="3" fill="#5270c9"/><rect x="9" y="13" width="3" height="3" fill="#5270c9"/></g>
+    <g id="p2"><rect width="16" height="16" fill="none"/><rect x="5" y="2" width="6" height="5" fill="#ffd7c0"/><rect x="4" y="7" width="8" height="6" fill="#ff7ab6"/><rect x="5" y="13" width="2" height="3" fill="#7c4ac2"/><rect x="9" y="13" width="2" height="3" fill="#7c4ac2"/></g>
+    <g id="p2b"><rect width="16" height="16" fill="none"/><rect x="5" y="2" width="6" height="5" fill="#ffd7c0"/><rect x="4" y="7" width="8" height="6" fill="#ff7ab6"/><rect x="4" y="13" width="3" height="3" fill="#7c4ac2"/><rect x="9" y="13" width="3" height="3" fill="#7c4ac2"/></g>
+    <g id="npc1"><rect width="16" height="16" fill="none"/><rect x="5" y="2" width="6" height="5" fill="#cfb98a"/><rect x="4" y="7" width="8" height="6" fill="#a09060"/><rect x="5" y="13" width="2" height="3" fill="#2a4a35"/><rect x="9" y="13" width="2" height="3" fill="#2a4a35"/></g>
+    <g id="water1"><rect width="16" height="16" fill="#2e3a6a"/><rect x="3" y="6" width="3" height="1" fill="#5a6aa0"/><rect x="9" y="10" width="3" height="1" fill="#5a6aa0"/></g>
+    <g id="water2"><rect width="16" height="16" fill="#2e3a6a"/><rect x="4" y="7" width="3" height="1" fill="#5a6aa0"/><rect x="10" y="12" width="2" height="1" fill="#5a6aa0"/></g>
+    <g id="planks"><rect width="16" height="16" fill="#7a5a3a"/><rect y="4" width="16" height="1" fill="#5a4228"/><rect y="9" width="16" height="1" fill="#5a4228"/><rect y="14" width="16" height="1" fill="#5a4228"/></g>
+    <g id="sand"><rect width="16" height="16" fill="#a8956d"/></g>
+  </defs>
+  <use href="#road" x="0" y="0"/><use href="#cross" x="16" y="0"/><use href="#walk" x="32" y="0"/><use href="#side" x="48" y="0"/><use href="#lawn" x="64" y="0"/>
+  <use href="#tree" x="80" y="0"/><use href="#fence" x="96" y="0"/><use href="#hwall" x="112" y="0"/><use href="#hwin" x="128" y="0"/><use href="#hdoor" x="144" y="0"/>
+  <use href="#roof" x="160" y="0"/><use href="#shop" x="176" y="0"/><use href="#lamp" x="192" y="0"/><use href="#bench" x="208" y="0"/><use href="#sign" x="224" y="0"/>
+  <use href="#p1" x="0" y="16"/><use href="#p1b" x="16" y="16"/><use href="#p2" x="32" y="16"/><use href="#p2b" x="48" y="16"/><use href="#npc1" x="64" y="16"/>
+  <use href="#water1" x="0" y="32"/><use href="#water2" x="16" y="32"/><use href="#planks" x="32" y="32"/><use href="#sand" x="48" y="32"/>
+</svg>`;
+
+let tilesetImg = null;
+function loadTileset(){
+  return new Promise(res=>{
+    const blob=new Blob([tilesetSVG],{type:"image/svg+xml"});
+    const url=URL.createObjectURL(blob);
+    const img=new Image();
+    img.onload=()=>{ URL.revokeObjectURL(url); res(img); };
+    img.src=url;
+  });
+}
+const TI = {
+  ".":[4,0], "+":[4,0], "w":[0,2],
+  "#":[3,0], "g":[4,0], "t":[5,0], "f":[6,0],
+  "H":[7,0], "N":[8,0], "D":[9,0], "R":[10,0], "S":[11,0], "L":[12,0], "B":[13,0], "U":[14,0],
+  "X":[0,2], "x":[1,2], "K":[2,2], "P":[2,2], "A":[3,2]
+};
+function drawTile(tx,ty,dx,dy){
+  if (!tilesetImg) return;
+  Engine.ctx.drawImage(tilesetImg, tx*16, ty*16, 16,16, dx,dy, TILE,TILE);
+}
+
+/* ============================================================
+   MODE: BOOT
+   ============================================================ */
+Engine.register('boot', {
+  t: 0,
+  enter(){
+    this.t = 0;
+    Engine.setTitle('NU GAMEBOY');
+    Engine.setRoom('');
+    Engine.setBottom('');
+  },
+  inputDown(action){
+    if (action==='A' || action==='START') Engine.go('menu');
+  },
+  update(dt){
+    this.t += dt;
+    if (this.t > 1800) Engine.go('menu');
+  },
+  render(){
+    const ctx = Engine.ctx, w = Engine.canvas.width, h = Engine.canvas.height;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0,0,w,h);
+    ctx.fillStyle = '#ffd77e'; ctx.font = 'bold 56px ui-monospace, monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('NU GAMEBOY', w/2, h/2 - 20);
+    ctx.fillStyle = '#9b8dd6'; ctx.font = '20px ui-monospace, monospace';
+    const blink = Math.floor(this.t/500)%2;
+    if (blink) ctx.fillText('press A', w/2, h/2 + 40);
+    ctx.fillStyle = '#5a5878'; ctx.font = '14px ui-monospace, monospace';
+    ctx.fillText('a couples cartridge collection', w/2, h - 30);
+  }
+});
+
+/* ============================================================
+   MODE: MENU (Cartridge select)
+   ============================================================ */
+Engine.register('menu', {
+  cursor: 0,
+  cartridges: [
+    { key:'feverDream', name:'FEVER DREAM',     desc:'escape the dream. solo or co-op.', enabled:true },
+    { key:null,         name:'COUPLE QUIZ',     desc:'coming soon.', enabled:false },
+    { key:null,         name:'DATE NIGHT CARDS',desc:'coming soon.', enabled:false },
+    { key:null,         name:'TAP DUEL',        desc:'coming soon.', enabled:false }
+  ],
+  enter(){
+    Engine.setTitle('SELECT CARTRIDGE');
+    Engine.setRoom('');
+    Engine.setBottom('D-pad: choose   A: load   M: mute');
+    this.t = 0;
+  },
+  update(dt){ this.t = (this.t||0) + dt; },
+  inputDown(action){
+    if (action==='UP'){
+      do { this.cursor = (this.cursor - 1 + this.cartridges.length) % this.cartridges.length; }
+      while (!this.cartridges[this.cursor].enabled && this.cartridges.some(c=>c.enabled));
+      Audio.cursor();
+    } else if (action==='DOWN'){
+      do { this.cursor = (this.cursor + 1) % this.cartridges.length; }
+      while (!this.cartridges[this.cursor].enabled && this.cartridges.some(c=>c.enabled));
+      Audio.cursor();
+    } else if (action==='A' || action==='START'){
+      const c = this.cartridges[this.cursor];
+      if (c.enabled && c.key){ Audio.confirm(); Engine.go(c.key); }
+      else Audio.cancel();
+    } else if (action==='SELECT'){
+      const m = Audio.toggleMute();
+      Engine.setBottom(m ? 'muted.' : 'unmuted.');
+    }
+  },
+  render(){
+    const ctx = Engine.ctx, w = Engine.canvas.width, h = Engine.canvas.height;
+    // bg gradient
+    const g = ctx.createLinearGradient(0,0,0,h);
+    g.addColorStop(0, '#0a0a14'); g.addColorStop(1, '#1a1430');
+    ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+
+    // header
+    ctx.fillStyle = '#ffd77e'; ctx.font = 'bold 38px ui-monospace, monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('CARTRIDGES', w/2, 50);
+
+    // list
+    const baseY = 110;
+    ctx.font = 'bold 22px ui-monospace, monospace'; ctx.textAlign='left';
+    for (let i=0;i<this.cartridges.length;i++){
+      const c = this.cartridges[i];
+      const y = baseY + i*68;
+      const selected = (i===this.cursor);
+      const enabled = c.enabled;
+      // card
+      ctx.fillStyle = selected ? 'rgba(255,215,126,0.10)' : 'rgba(255,255,255,0.03)';
+      ctx.fillRect(60, y-22, w-120, 58);
+      ctx.strokeStyle = selected ? '#ffd77e' : '#3a3550'; ctx.lineWidth = selected ? 2 : 1;
+      ctx.strokeRect(60, y-22, w-120, 58);
+      ctx.fillStyle = enabled ? (selected?'#ffd77e':'#eee') : '#5a5878';
+      const prefix = selected ? '> ' : '  ';
+      ctx.fillText(prefix + c.name, 80, y);
+      ctx.font = '14px ui-monospace, monospace';
+      ctx.fillStyle = enabled ? '#9b8dd6' : '#4a4868';
+      ctx.fillText(c.desc, 96, y+22);
+      ctx.font = 'bold 22px ui-monospace, monospace';
+    }
+
+    // footer
+    ctx.font = '12px ui-monospace, monospace'; ctx.textAlign='center';
+    ctx.fillStyle = '#7a6abd';
+    ctx.fillText('feeling are temporary. cartridges are forever.', w/2, h-22);
+  }
+});
+
+/* ============================================================
+   MODE: FEVER DREAM
+   ============================================================ */
+const FeverDream = (()=>{
+  /* ---- Map (recolored "dream" town) ---- */
+  const MAP_SOURCE = [
+    "gggggggggggggggggggggggggggggggggggggggg",
+    "gggg###########gggggggggggg###########gg",
+    "gggg#HHH# #HHH#gggggggggggg#HHH# #HHH#gg",
+    "gggg#NDN# #NDN#gggggggggggg#NDN# #NDN#gg",
+    "gggg#HHH# #HHH#gggggggggggg#HHH# #HHH#gg",
+    "gggg###########gggggggggggg###########gg",
+    "gggggggggggggggggggggggggggggggggggggggg",
+    "gggggttgggLgBggggggttgggggggLgBgggttgggg",
+    "gggggttggggggggggggttgggggggggggggttgggg",
+    "gggggggggggggggggggggggggggggggggggggggg",
+    "gggg#########gggggggggggggggg#########gg",
+    "gggg#UUNNUNU#ggggggggggggggg#UNNUNNUU#gg",
+    "gggg#NNUNNNU#gggggSggggggggg#NUNNNUNN#gg",
+    "gggg#########gggggggggggggggg#########gg",
+    "gggggggggggggggggggggggggggggggggggggggg",
+    "gggttggggggggggggggggggggggggggggggttggg",
+    "gggttggggggggggggggggggggggggggggggttggg",
+    "gggggggggggggggggggAAAAAAggggggggggggggg",
+    "ggggggggggggggggggAPPPPPAggggggggggggggg",
+    "ggggggggggggggggggAPPPPPAggggggggggggggg",
+    "ggggggggggggggggggAAAAAAgggggggggggggggg",
+    "gggggggggggggggggggggggggggggggggggggggg",
+    "gggg###########gggggggggggg###########gg",
+    "gggg#HHH# #HHH#gggggggggggg#HHH# #HHH#gg",
+    "gggg#NDN# #NDN#gggggggggggg#NDN# #NDN#gg",
+    "gggg#HHH# #HHH#gggggggggggg#HHH# #HHH#gg",
+    "gggg###########gggggggggggg###########gg",
+    "gggggggggggggggggggggggggggggggggggggggg",
+    "gggggLggggggggBgggggggggggBggggggggLgggg",
+    "gggggggggggggggggggggggggggggggggggggggg"
+  ];
+  // pad rows to 40 chars
+  const MAP = MAP_SOURCE.map(r => (r + 'g'.repeat(40)).slice(0,40));
+
+  const SOLID = new Set(["H","N","D","R","t","f","w","X","x","#"]);
+  const SPAWNABLE = new Set(["g","L","B","P","A","S","U"]); // tiles that can hold a key
+  const PASSABLE_OVERRIDE = new Set([".","+","S","U","P","A","L","B","g"]);
+
+  const NPCS_BASE = [
+    { x: 10, y: 12 },
+    { x: 32, y: 7  },
+    { x: 22, y: 28 }
+  ];
+
+  const NPC_LINES = [
+    "you are dreaming. probably.",
+    "five keys. five locks. one ceiling fan.",
+    "have you considered that none of this is real.",
+    "i used to be a person. now i'm dialogue.",
+    "the exit is somewhere. or it isn't.",
+    "don't look at the trees too long. they look back.",
+    "wake up. or stay. the bedroom ceiling is the same either way.",
+    "time isn't real. neither am i. the keys are, though.",
+    "existence is suffering. also there's a key under the bench.",
+    "i had dreams once. now i have dialogue.",
+    "if you find the keys you can leave. if you don't, also fine.",
+    "this town isn't a town. it's just the same house, repeating.",
+    "i'm an NPC. i don't get out much. i don't get out at all.",
+    "the dock leads nowhere. that's the point.",
+    "you came in alone. you can leave alone. or not. who's counting.",
+    "the rain is the dream sweating.",
+    "you remind me of someone. they also couldn't find the keys."
+  ];
+
+  function pickLine(seed){
+    // deterministic-ish picker
+    const i = Math.abs(Math.floor(Math.sin(seed*9999)*1000)) % NPC_LINES.length;
+    return NPC_LINES[i];
+  }
+
+  /* ---- State ---- */
+  const state = {
+    sub: 'lobby',           // 'lobby'|'connecting'|'play'|'win'
+    role: 'solo',
+    self: { x:8, y:14, frame:0, color:'p1' },
+    other: { x:-99, y:-99, frame:0, color:'p2', visible:false },
+    npcs: [],
+    keys: [],               // [{id,x,y,collected:false,by:null}]
+    exit: { x: 21, y: 19 }, // center of the dock
+    startedAt: 0, finishedAt: 0,
+    dialog: null,           // {text, ttl}
+    moveTimer: 0,
+    lobbyCursor: 0,
+    lobbyOptions: ['SOLO','HOST GAME','JOIN GAME'],
+    hostId: null,
+    joinInput: '',
+    pendingError: null,
+    weather: { particles:[], wind:{x:1.2,y:2.6} },
+    flicker: 0,
+    won: false
+  };
+
+  function rng(seed){ // simple seeded RNG
+    let s = seed|0 || 1;
+    return ()=>{ s = (s*1664525 + 1013904223)|0; return ((s>>>0)%1000000)/1000000; };
+  }
+
+  function cell(x,y){ if(y<0||y>=MAP.length) return null; const r=MAP[y]; if(x<0||x>=r.length) return null; return r[x]; }
+
+  function tileFrame(c){
+    if (c==='X'||c==='x'){ const t = Math.floor(performance.now()/180)%2; return t? TI['X'] : TI['x']; }
+    return TI[c] || TI['g'];
+  }
+
+  function passable(x,y){
+    const c = cell(x,y);
+    if (!c) return false;
+    if (PASSABLE_OVERRIDE.has(c)) return !SOLID.has(c);
+    return !SOLID.has(c);
+  }
+
+  function placeKeys(seed){
+    state.keys = [];
+    const r = rng(seed);
+    const w = MAP[0].length, h = MAP.length;
+    const taken = new Set();
+    let attempts = 0;
+    while (state.keys.length < 5 && attempts < 5000){
+      attempts++;
+      const x = Math.floor(r()*w), y = Math.floor(r()*h);
+      const c = cell(x,y);
+      if (!c || !SPAWNABLE.has(c)) continue;
+      const k = x+','+y;
+      if (taken.has(k)) continue;
+      // not too close to spawn
+      if (Math.abs(x-state.self.x)+Math.abs(y-state.self.y) < 6) continue;
+      // not on exit
+      if (x===state.exit.x && y===state.exit.y) continue;
+      // not on NPC
+      if (state.npcs.some(n=>n.x===x&&n.y===y)) continue;
+      taken.add(k);
+      state.keys.push({ id: state.keys.length, x, y, collected:false, by:null });
+    }
+  }
+
+  function placeNPCs(seed){
+    const r = rng(seed*7);
+    state.npcs = NPCS_BASE.map((p,i)=>({ x:p.x, y:p.y, lineSeed: Math.floor(r()*1e6) + i, lastSpoken:-99 }));
+    // nudge if on solid
+    for (const n of state.npcs){
+      let safety=0;
+      while ((SOLID.has(cell(n.x,n.y)||'g')) && safety<20){
+        n.x = Math.max(1, Math.min(MAP[0].length-2, n.x + (Math.random()<0.5?-1:1)));
+        n.y = Math.max(1, Math.min(MAP.length-2,  n.y + (Math.random()<0.5?-1:1)));
+        safety++;
+      }
+    }
+  }
+
+  function ensureExitWalkable(){
+    // place the exit on a plank tile near center if possible
+    const w = MAP[0].length, h = MAP.length;
+    let best = null;
+    for (let y=0;y<h;y++){
+      for (let x=0;x<w;x++){
+        if (cell(x,y)==='P'){
+          if (!best || (Math.abs(x-20)+Math.abs(y-19)) < (Math.abs(best.x-20)+Math.abs(best.y-19))) best={x,y};
+        }
+      }
+    }
+    if (best) state.exit = best;
+  }
+
+  function netSend(type, payload){
+    if (Net.open) Net.send({ t:type, p:payload });
+  }
+
+  function broadcastPos(){
+    netSend('pos', { x: state.self.x, y: state.self.y, frame: state.self.frame });
+  }
+
+  function broadcastPickup(id){
+    netSend('pickup', { id });
+  }
+
+  function broadcastSeed(seed){
+    netSend('seed', { seed, exit: state.exit });
+  }
+
+  function onNetMessage(msg){
+    if (!msg || !msg.t) return;
+    if (msg.t === 'pos'){
+      state.other.x = msg.p.x; state.other.y = msg.p.y; state.other.frame = msg.p.frame; state.other.visible = true;
+    } else if (msg.t === 'pickup'){
+      const k = state.keys.find(k=>k.id===msg.p.id);
+      if (k && !k.collected){ k.collected = true; k.by = 'other'; Audio.pickup(); }
+    } else if (msg.t === 'seed'){
+      // client receives world state from host
+      placeKeys(msg.p.seed);
+      if (msg.p.exit) state.exit = msg.p.exit;
+    } else if (msg.t === 'win'){
+      finishWin(false);
+    } else if (msg.t === 'chat'){
+      state.dialog = { text: '[partner] ' + msg.p.text, ttl: 2500 };
+    }
+  }
+
+  function startNewGame(opts){
+    const seed = opts.seed || (Date.now()&0xffffff);
+    state.self = { x:8, y:14, frame:0, color: state.role==='client' ? 'p2' : 'p1' };
+    state.other = { x:-99, y:-99, frame:0, color: state.role==='client' ? 'p1' : 'p2', visible:false };
+    state.dialog = null;
+    state.startedAt = performance.now();
+    state.finishedAt = 0;
+    state.won = false;
+    state.sub = 'play';
+    placeNPCs(seed);
+    ensureExitWalkable();
+    placeKeys(seed);
+    Engine.setTitle('FEVER DREAM');
+    if (Net.open){
+      Engine.setRoom(state.role==='host' ? 'ROOM ' + (Net.id||'') : 'JOINED');
+      if (state.role==='host') broadcastSeed(seed);
+    } else if (state.role==='solo'){
+      Engine.setRoom('SOLO');
+    } else {
+      Engine.setRoom('OFFLINE');
+    }
+    Engine.setBottom('find the 5 keys. wake up.');
+  }
+
+  function finishWin(broadcast){
+    if (state.won) return;
+    state.won = true;
+    state.finishedAt = performance.now();
+    state.sub = 'win';
+    const elapsed = (state.finishedAt - state.startedAt)/1000;
+    const best = Store.get('feverDream.bestSeconds', null);
+    if (best == null || elapsed < best) Store.set('feverDream.bestSeconds', elapsed);
+    Audio.win();
+    if (broadcast) netSend('win', { at: Date.now() });
+    showWinModal(elapsed);
+  }
+
+  function showWinModal(elapsed){
+    const best = Store.get('feverDream.bestSeconds', null);
+    Engine.showModal(`
+      <div class="meta">
+        <h1>you wake up.</h1>
+        <p>elapsed: ${elapsed.toFixed(1)}s${best!=null?` &nbsp;|&nbsp; best: ${best.toFixed(1)}s`:''}</p>
+        <p class="small">the dream forgets you. probably.</p>
+        <div class="row">
+          <button id="winAgain">again</button>
+          <button id="winMenu" class="ghost">menu</button>
+        </div>
+      </div>
+      <img class="ticket" src="Tickets.png" alt="" aria-hidden="true" />
+    `);
+    setTimeout(()=>{ try{ Engine.modal.classList.add('show-ticket'); }catch(e){} }, 800);
+    setTimeout(()=>{
+      const a = document.getElementById('winAgain');
+      const m = document.getElementById('winMenu');
+      if (a) a.addEventListener('click', ()=>{ Engine.hideModal(); startNewGame({ seed: (Date.now()&0xffffff) }); });
+      if (m) m.addEventListener('click', ()=>{ Engine.hideModal(); Net.cleanup(); Engine.go('menu'); });
+    }, 50);
+  }
+
+  function tryStep(dx,dy){
+    if (state.won) return false;
+    if (state.moveTimer > 0) return false;
+    const nx = state.self.x + dx, ny = state.self.y + dy;
+    if (!passable(nx,ny)) { Engine.rumble(30,3); return false; }
+    // can't walk into NPCs
+    if (state.npcs.some(n=>n.x===nx&&n.y===ny)) { triggerNPC(nx,ny); return false; }
+    state.self.x = nx; state.self.y = ny;
+    state.self.frame = 1 - state.self.frame;
+    state.moveTimer = 110;
+    Audio.step();
+    broadcastPos();
+    checkPickup();
+    checkExit();
+    return true;
+  }
+
+  function triggerNPC(x,y){
+    const n = state.npcs.find(n=>n.x===x&&n.y===y);
+    if (!n) return;
+    if (performance.now() - n.lastSpoken < 2000) return;
+    n.lastSpoken = performance.now();
+    state.dialog = { text: pickLine(n.lineSeed + Math.floor(performance.now()/4000)), ttl: 2400 };
+  }
+
+  function checkPickup(){
+    for (const k of state.keys){
+      if (k.collected) continue;
+      if (k.x === state.self.x && k.y === state.self.y){
+        k.collected = true; k.by = 'self';
+        Audio.pickup();
+        broadcastPickup(k.id);
+        const remaining = state.keys.filter(k=>!k.collected).length;
+        if (remaining === 0){
+          state.dialog = { text: 'all keys. find the dock. wake up.', ttl: 3000 };
+        } else {
+          state.dialog = { text: `key acquired. ${remaining} left. don't get attached.`, ttl: 1800 };
+        }
+        return;
+      }
+    }
+  }
+
+  function checkExit(){
+    const allDone = state.keys.length>0 && state.keys.every(k=>k.collected);
+    if (!allDone) return;
+    if (state.self.x === state.exit.x && state.self.y === state.exit.y){
+      finishWin(true);
+    }
+  }
+
+  function nearbyNPCDialog(){
+    for (const n of state.npcs){
+      const d = Math.abs(n.x-state.self.x)+Math.abs(n.y-state.self.y);
+      if (d<=1 && performance.now()-n.lastSpoken > 2500){
+        n.lastSpoken = performance.now();
+        state.dialog = { text: pickLine(n.lineSeed + Math.floor(performance.now()/5000)), ttl: 2400 };
+        return;
+      }
+    }
+  }
+
+  /* ---- Drawing helpers ---- */
+  function drawWorld(){
+    const ctx = Engine.ctx, cam = camera();
+    const w = MAP[0].length, h = MAP.length;
+    const VW = Math.ceil(Engine.canvas.width/TILE) + 1;
+    const VH = Math.ceil(Engine.canvas.height/TILE) + 1;
+    const sx = Math.max(0, Math.floor(cam.x)), sy = Math.max(0, Math.floor(cam.y));
+    const ex = Math.min(w, sx+VW), ey = Math.min(h, sy+VH);
+    for (let y=sy;y<ey;y++){
+      for (let x=sx;x<ex;x++){
+        const c = cell(x,y) || 'g';
+        const [tx,ty] = tileFrame(c);
+        const dx = (x - cam.x)*TILE, dy = (y - cam.y)*TILE;
+        if (c==='f'){ drawTile(...TI['g'], dx, dy); drawTile(...TI['f'], dx, dy); }
+        else drawTile(tx, ty, dx, dy);
+        if (SOLID.has(c)){
+          ctx.globalAlpha=.20; ctx.fillStyle="#1a1430";
+          ctx.fillRect(dx, dy+TILE-Math.max(2,TILE/8), TILE, Math.max(2,TILE/8));
+          ctx.fillRect(dx+TILE-Math.max(2,TILE/8), dy, Math.max(2,TILE/8), TILE);
+          ctx.globalAlpha=1;
+        }
+        // lamp glow
+        if (c==='L'){
+          const fl = 0.04 + 0.05*Math.sin(performance.now()/120 + x*.7 + y*.9);
+          ctx.globalAlpha = Math.min(0.4 + fl, 0.55);
+          ctx.fillStyle = '#fff1a8';
+          ctx.beginPath(); ctx.arc(dx+TILE/2, dy+TILE/2, TILE*1.5, 0, Math.PI*2); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
+  }
+
+  function camera(){
+    const cw = Engine.canvas.width, ch = Engine.canvas.height;
+    const maxX = Math.max(0, MAP[0].length - Math.floor(cw/TILE));
+    const maxY = Math.max(0, MAP.length    - Math.floor(ch/TILE));
+    let tx = state.self.x - Math.floor(cw/TILE)/2 + 0.5;
+    let ty = state.self.y - Math.floor(ch/TILE)/2 + 0.5;
+    tx = Math.min(Math.max(0, tx), maxX);
+    ty = Math.min(Math.max(0, ty), maxY);
+    return { x: tx, y: ty };
+  }
+
+  function drawKeys(){
+    const ctx = Engine.ctx, cam = camera();
+    for (const k of state.keys){
+      if (k.collected) continue;
+      const dx = (k.x - cam.x)*TILE, dy = (k.y - cam.y)*TILE;
+      const bob = Math.sin(performance.now()/300 + k.id) * 3;
+      // shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath(); ctx.ellipse(dx+TILE/2, dy+TILE-6, 10, 4, 0, 0, Math.PI*2); ctx.fill();
+      // key body (drawn as a small gold bow + shaft)
+      ctx.save();
+      ctx.translate(dx+TILE/2, dy+TILE/2 + bob);
+      ctx.fillStyle = '#ffd77e';
+      ctx.beginPath(); ctx.arc(-6, 0, 5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#3a2a1b'; ctx.beginPath(); ctx.arc(-6, 0, 2, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#ffd77e';
+      ctx.fillRect(-2, -2, 14, 4);
+      ctx.fillRect(8, 2, 3, 4);
+      ctx.fillRect(5, 2, 2, 3);
+      ctx.restore();
+      // sparkle
+      ctx.globalAlpha = 0.5 + 0.5*Math.sin(performance.now()/200 + k.id);
+      ctx.fillStyle = '#fffadf';
+      ctx.fillRect(dx+TILE/2+8, dy+TILE/2+bob-8, 2, 2);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawExit(){
+    const allDone = state.keys.length>0 && state.keys.every(k=>k.collected);
+    const ctx = Engine.ctx, cam = camera();
+    const dx = (state.exit.x - cam.x)*TILE, dy = (state.exit.y - cam.y)*TILE;
+    if (allDone){
+      // pulsing portal
+      const pulse = 0.6 + 0.4*Math.sin(performance.now()/180);
+      ctx.globalAlpha = pulse * 0.7;
+      ctx.fillStyle = '#ffd77e';
+      ctx.beginPath(); ctx.arc(dx+TILE/2, dy+TILE/2, TILE*0.9, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#fffadf';
+      ctx.beginPath(); ctx.arc(dx+TILE/2, dy+TILE/2, TILE*0.4, 0, Math.PI*2); ctx.fill();
+    } else {
+      // dim "locked" marker
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = '#5a5878';
+      ctx.beginPath(); ctx.arc(dx+TILE/2, dy+TILE/2, TILE*0.5, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawPlayers(){
+    const cam = camera();
+    // other (drawn first so self is on top)
+    if (state.other.visible){
+      const dx = (state.other.x - cam.x)*TILE, dy = (state.other.y - cam.y)*TILE;
+      const frame = state.other.frame ? TI['x'] : TI['X'];
+      // override: use player2 sprite
+      drawTile(2, 1, dx, dy); // player2 idle
+      // small "you" tag
+      Engine.ctx.fillStyle = '#ff7ab6'; Engine.ctx.font = 'bold 12px ui-monospace, monospace';
+      Engine.ctx.textAlign='center';
+      Engine.ctx.fillText('them', dx + TILE/2, dy - 4);
+    }
+    const dx = (state.self.x - cam.x)*TILE, dy = (state.self.y - cam.y)*TILE;
+    // alternate between idle and step
+    const fx = state.self.frame ? 1 : 0;
+    drawTile(fx, 1, dx, dy);
+  }
+
+  function drawNPCs(){
+    const cam = camera();
+    for (const n of state.npcs){
+      const dx = (n.x - cam.x)*TILE, dy = (n.y - cam.y)*TILE;
+      const bob = Math.sin(performance.now()/600 + n.x*0.3 + n.y*0.2) * 2;
+      drawTile(4, 1, dx, dy + bob); // npc1 sprite at (4,1)
+    }
+  }
+
+  function drawHUD(){
+    const ctx = Engine.ctx, w = Engine.canvas.width;
+    const collected = state.keys.filter(k=>k.collected).length;
+    const total = state.keys.length;
+    // top-right HUD: keys
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(w-150, 8, 142, 32);
+    ctx.strokeStyle = '#ffd77e'; ctx.lineWidth=1; ctx.strokeRect(w-150, 8, 142, 32);
+    ctx.fillStyle = '#ffd77e'; ctx.font = 'bold 18px ui-monospace, monospace';
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.fillText(`KEYS ${collected}/${total}`, w-138, 24);
+
+    // elapsed time
+    if (state.startedAt){
+      const t = (state.finishedAt || performance.now()) - state.startedAt;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(8, 8, 110, 32);
+      ctx.strokeStyle = '#9b8dd6'; ctx.strokeRect(8, 8, 110, 32);
+      ctx.fillStyle = '#9b8dd6'; ctx.font = 'bold 18px ui-monospace, monospace';
+      ctx.fillText((t/1000).toFixed(1)+'s', 18, 24);
+    }
+  }
+
+  function drawNightTint(){
+    const ctx = Engine.ctx;
+    ctx.fillStyle = 'rgba(20,15,40,0.35)';
+    ctx.fillRect(0,0,Engine.canvas.width,Engine.canvas.height);
+    // occasional glitch flicker
+    if (Math.random() < 0.012){
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      const fy = Math.random()*Engine.canvas.height;
+      ctx.fillRect(0, fy, Engine.canvas.width, 2);
+    }
+  }
+
+  /* ---- Weather (rain) ---- */
+  function spawnRain(dt){
+    const density = 250;
+    const toSpawn = Math.floor(density*dt*(Engine.canvas.width/720));
+    for (let i=0;i<toSpawn;i++){
+      state.weather.particles.push({
+        x: Math.random()*Engine.canvas.width,
+        y: -5,
+        vx: 60*1.2*(0.5+Math.random()*0.5),
+        vy: 60*2.6*(0.5+Math.random()*0.5),
+        life: 6
+      });
+    }
+  }
+  function updateRain(dt){
+    for (const p of state.weather.particles){
+      p.x += p.vx*dt; p.y += p.vy*dt; p.life -= dt;
+    }
+    state.weather.particles = state.weather.particles.filter(p=>p.y<Engine.canvas.height+6 && p.life>0);
+  }
+  function drawRain(){
+    const ctx = Engine.ctx;
+    ctx.strokeStyle = '#9bb6e0'; ctx.globalAlpha=.5; ctx.lineWidth=1;
+    ctx.beginPath();
+    for (const p of state.weather.particles){
+      ctx.moveTo(p.x, p.y); ctx.lineTo(p.x-3, p.y-10);
+    }
+    ctx.stroke(); ctx.globalAlpha=1;
+  }
+
+  /* ---- Lobby drawing ---- */
+  function drawLobby(){
+    const ctx = Engine.ctx, w = Engine.canvas.width, h = Engine.canvas.height;
+    const g = ctx.createLinearGradient(0,0,0,h);
+    g.addColorStop(0, '#0a0a14'); g.addColorStop(1, '#1a1430');
+    ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+
+    ctx.fillStyle = '#ffd77e'; ctx.font = 'bold 44px ui-monospace, monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('FEVER DREAM', w/2, 60);
+    ctx.fillStyle = '#9b8dd6'; ctx.font = '14px ui-monospace, monospace';
+    ctx.fillText('find the keys. wake up. or don’t.', w/2, 96);
+
+    // menu
+    const baseY = 170;
+    ctx.font = 'bold 22px ui-monospace, monospace';
+    for (let i=0;i<state.lobbyOptions.length;i++){
+      const y = baseY + i*52;
+      const selected = i===state.lobbyCursor;
+      ctx.fillStyle = selected ? '#ffd77e' : '#7a6abd';
+      const prefix = selected ? '> ' : '  ';
+      ctx.fillText(prefix + state.lobbyOptions[i], w/2, y);
+    }
+
+    // best time
+    const best = Store.get('feverDream.bestSeconds', null);
+    if (best != null){
+      ctx.fillStyle = '#5a5878'; ctx.font = '12px ui-monospace, monospace';
+      ctx.fillText(`personal best: ${best.toFixed(1)}s`, w/2, h-50);
+    }
+
+    ctx.fillStyle = '#5a5878'; ctx.font = '11px ui-monospace, monospace';
+    ctx.fillText('B: back   M: mute', w/2, h-26);
+
+    if (state.pendingError){
+      ctx.fillStyle = '#ff7ab6'; ctx.font = 'bold 14px ui-monospace, monospace';
+      ctx.fillText(state.pendingError, w/2, h-72);
+    }
+  }
+
+  /* ---- Mode lifecycle ---- */
+  return {
+    enter(){
+      state.sub = 'lobby';
+      state.lobbyCursor = 0;
+      state.role = 'solo';
+      state.pendingError = null;
+      Engine.setTitle('FEVER DREAM');
+      Engine.setRoom('');
+      Engine.setBottom('A: select   B: back to menu');
+      Net.onMessage = onNetMessage;
+      Net.onOpen = ()=>{
+        // host: when client connects, send the seed immediately
+        if (state.role === 'host'){
+          const seed = (state.lastSeed || (Date.now()&0xffffff));
+          state.lastSeed = seed;
+          broadcastSeed(seed);
+          Engine.setBottom('partner connected. wake up together.');
+        }
+        broadcastPos();
+      };
+      Net.onClose = ()=>{
+        state.other.visible = false;
+        Engine.setBottom('partner disconnected. you are alone again.');
+      };
+      Net.onError = (e)=>{ console.warn('net error', e); };
+    },
+    exit(){
+      Net.onMessage = null; Net.onOpen = null; Net.onClose = null; Net.onError = null;
+      Engine.hideModal();
+    },
+    inputDown(action){
+      if (state.sub === 'lobby'){
+        if (action==='UP'){ state.lobbyCursor = (state.lobbyCursor-1+state.lobbyOptions.length)%state.lobbyOptions.length; Audio.cursor(); }
+        else if (action==='DOWN'){ state.lobbyCursor = (state.lobbyCursor+1)%state.lobbyOptions.length; Audio.cursor(); }
+        else if (action==='A' || action==='START'){
+          const opt = state.lobbyOptions[state.lobbyCursor];
+          if (opt === 'SOLO'){
+            state.role = 'solo';
+            Audio.confirm();
+            startNewGame({});
+          } else if (opt === 'HOST GAME'){
+            Audio.confirm();
+            startHosting();
+          } else if (opt === 'JOIN GAME'){
+            Audio.confirm();
+            promptJoin();
+          }
+        } else if (action==='B'){
+          Audio.cancel();
+          Net.cleanup();
+          Engine.go('menu');
+        } else if (action==='SELECT'){
+          const m = Audio.toggleMute();
+          Engine.setBottom(m? 'muted.' : 'unmuted.');
+        }
+      } else if (state.sub === 'play'){
+        if (action==='B' || action==='START'){
+          Audio.cancel();
+          Net.cleanup();
+          state.sub='lobby';
+          Engine.setBottom('back to lobby.');
+          Engine.setRoom('');
+        } else if (action==='A'){
+          // poke nearby NPC
+          nearbyNPCDialog();
+          Audio.beep(400,0.05,'square',0.08);
+        } else if (action==='SELECT'){
+          const m = Audio.toggleMute();
+          Engine.setBottom(m? 'muted.' : 'unmuted.');
+        }
+      } else if (state.sub === 'win'){
+        if (action==='B'){
+          Engine.hideModal();
+          Net.cleanup();
+          Engine.go('menu');
+        } else if (action==='A' || action==='START'){
+          Engine.hideModal();
+          startNewGame({ seed: (Date.now()&0xffffff) });
+        }
+      }
+    },
+    update(dt){
+      if (state.sub !== 'play') return;
+      // movement (continuous while held)
+      state.moveTimer = Math.max(0, state.moveTimer - dt);
+      if (state.moveTimer <= 0){
+        if (Engine.held.has('UP')) tryStep(0,-1);
+        else if (Engine.held.has('DOWN')) tryStep(0,1);
+        else if (Engine.held.has('LEFT')) tryStep(-1,0);
+        else if (Engine.held.has('RIGHT')) tryStep(1,0);
+      }
+      // weather
+      spawnRain(dt/1000); updateRain(dt/1000);
+      // dialog
+      if (state.dialog){
+        state.dialog.ttl -= dt;
+        if (state.dialog.ttl <= 0) state.dialog = null;
+        Engine.setBottom(state.dialog ? state.dialog.text : '');
+      } else if (Engine.bottombar.textContent && Engine.bottombar.textContent !== 'find the 5 keys. wake up.'){
+        // periodically remind
+      }
+    },
+    render(){
+      const ctx = Engine.ctx, w = Engine.canvas.width, h = Engine.canvas.height;
+      if (state.sub === 'lobby'){
+        drawLobby();
+        return;
+      }
+      if (state.sub === 'connecting'){
+        ctx.fillStyle='#0a0a14'; ctx.fillRect(0,0,w,h);
+        ctx.fillStyle='#ffd77e'; ctx.font='bold 28px ui-monospace, monospace';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText('connecting...', w/2, h/2);
+        return;
+      }
+      // play / win
+      ctx.fillStyle = '#0a0a14'; ctx.fillRect(0,0,w,h);
+      drawWorld();
+      drawExit();
+      drawKeys();
+      drawNPCs();
+      drawPlayers();
+      drawNightTint();
+      drawRain();
+      drawHUD();
+    }
+  };
+
+  /* ---- Host/Join flows ---- */
+  function startHosting(){
+    if (typeof Peer === 'undefined'){
+      state.pendingError = 'multiplayer offline (peerjs failed to load)';
+      return;
+    }
+    state.role = 'host';
+    state.sub = 'connecting';
+    Engine.setBottom('opening room...');
+    Net.host().then(id=>{
+      state.hostId = id;
+      state.lastSeed = (Date.now()&0xffffff);
+      Engine.showModal(`
+        <div class="meta">
+          <h1>your room is open</h1>
+          <p>have your partner enter this code on their phone:</p>
+          <div class="code">${id.replace(/^FD-/,'')}</div>
+          <p class="small">full code: ${id}</p>
+          <p class="small">waiting for them to join...</p>
+          <div class="row">
+            <button id="hostStartSolo">start solo now</button>
+            <button id="hostCancel" class="ghost">cancel</button>
+          </div>
+        </div>
+      `);
+      setTimeout(()=>{
+        const a = document.getElementById('hostStartSolo');
+        const c = document.getElementById('hostCancel');
+        if (a) a.addEventListener('click', ()=>{ Engine.hideModal(); startNewGame({ seed: state.lastSeed }); });
+        if (c) c.addEventListener('click', ()=>{ Engine.hideModal(); Net.cleanup(); state.sub='lobby'; });
+      }, 50);
+      // Auto-transition to play state when partner connects
+      const prevOpen = Net.onOpen;
+      Net.onOpen = ()=>{
+        Engine.hideModal();
+        startNewGame({ seed: state.lastSeed });
+        if (prevOpen) prevOpen();
+      };
+    }).catch(err=>{
+      console.warn(err);
+      state.pendingError = 'could not open room';
+      state.sub = 'lobby';
+    });
+  }
+
+  function promptJoin(){
+    if (typeof Peer === 'undefined'){
+      state.pendingError = 'multiplayer offline (peerjs failed to load)';
+      return;
+    }
+    const lastCode = Store.get('feverDream.lastRoom', '');
+    Engine.showModal(`
+      <div class="meta">
+        <h1>join a dream</h1>
+        <p>enter your partner's 4-char code:</p>
+        <input id="joinCode" maxlength="4" placeholder="ABCD" value="${(lastCode||'').replace(/^FD-/,'')}" />
+        <div class="row">
+          <button id="joinGo">join</button>
+          <button id="joinCancel" class="ghost">cancel</button>
+        </div>
+        <p class="small" id="joinStatus"></p>
+      </div>
+    `);
+    setTimeout(()=>{
+      const input = document.getElementById('joinCode');
+      const go = document.getElementById('joinGo');
+      const cancel = document.getElementById('joinCancel');
+      const status = document.getElementById('joinStatus');
+      if (input) { input.focus(); input.select(); input.addEventListener('keydown', (e)=>{ if (e.key==='Enter') go.click(); }); }
+      if (cancel) cancel.addEventListener('click', ()=>{ Engine.hideModal(); state.sub='lobby'; });
+      if (go) go.addEventListener('click', ()=>{
+        const code = (input.value||'').trim().toUpperCase();
+        if (!/^[A-Z0-9]{4}$/.test(code)) { status.textContent='need 4 letters/digits.'; return; }
+        const hostId = 'FD-' + code;
+        status.textContent = 'connecting...';
+        state.role = 'client';
+        Net.join(hostId).then(()=>{
+          Store.set('feverDream.lastRoom', code);
+          Engine.hideModal();
+          // wait for host to send seed; meanwhile show a brief "connected" message
+          state.sub = 'connecting';
+          Engine.setBottom('joined. waiting on host...');
+          // fall back to a default world after 1.5s if host didn't send seed
+          setTimeout(()=>{ if (state.sub === 'connecting') startNewGame({ seed: 1 }); }, 2000);
+          // start the game as soon as we have something
+          startNewGame({ seed: 1 });
+        }).catch(err=>{
+          console.warn(err);
+          status.textContent = 'could not connect. wrong code, or partner not hosting.';
+        });
+      });
+    }, 50);
+  }
+})();
+Engine.register('feverDream', FeverDream);
+
+/* ============================================================
+   Bootstrap
+   ============================================================ */
+(async function main(){
+  Audio.init();
+  Engine.init();
+  tilesetImg = await loadTileset();
+  Engine.last = performance.now();
+  Engine.go('boot');
+  requestAnimationFrame(Engine.loop);
+
+  // hide HTML boot overlay
+  const boot = document.getElementById('bootScreen');
+  setTimeout(()=>{ boot && boot.classList.add('boot-hidden'); setTimeout(()=>boot && boot.remove(), 900); }, 1200);
+})();
+</script>
+</body>
+</html>
