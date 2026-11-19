@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#4f50db" />
+  <title>NuGameBoy — Three Years</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="modulepreload" href="./vendor/three/three.module.min.js" />
+  <link rel="modulepreload" href="./vendor/three/three.core.min.js" />
+  <script type="importmap">
+  { "imports": {
+      "three": "./vendor/three/three.module.min.js",
+      "three/addons/": "./vendor/three/addons/"
+  } }
+  </script>
+  <style>
+    :root {
+      --shell:#4f50db; --shell-dark:#3d38b5; --shell-deep:#0d0e51; --ui:#23252e; --ui-hi:#343846;
+      --ink:#f3efe6; --gold:#ffd77e; --rose:#ff7ab6; --dim:#9b8dd6;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
+      --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px);
+    }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html, body { margin:0; height:100%; overflow:hidden; background:#0b0b18; color:var(--ink);
+      font:14px/1.35 var(--mono); overscroll-behavior:none; touch-action:none;
+      -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+
+    /* ---------- shell ---------- */
+    .gameboy { position:fixed; inset:0; margin:auto; width:min(100vw, 520px); height:100dvh; max-height:1000px;
+      display:flex; flex-direction:column; background:linear-gradient(160deg, #5a5be6, var(--shell) 40%, var(--shell-dark));
+      padding:calc(10px + var(--sat)) 12px calc(10px + var(--sab)); }
+    @media (min-width:560px) and (min-height:700px) {
+      .gameboy { border-radius:26px; height:min(96dvh, 1000px);
+        box-shadow:0 -5px 0 var(--shell-deep) inset, 0 20px 60px rgba(0,0,0,.6); }
+    }
+    .screen-area { position:relative; flex:0 0 auto; border-radius:14px 14px 30px 14px; background:#15162a; padding:9px 9px 6px;
+      box-shadow:inset 0 0 0 2px #0c0d1c, inset 0 0 18px rgba(0,0,0,.6); }
+    #screen { position:relative; width:100%; overflow:hidden; border-radius:7px; background:#000;
+      height:clamp(210px, calc(100dvh - 350px - var(--sat) - var(--sab)), calc(min(100vw, 520px) - 42px)); }
+    #gl { position:absolute; inset:0; width:100%; height:100%; display:block; }
+    .badge { display:flex; justify-content:space-between; align-items:center; padding:5px 4px 0; font-size:9px; letter-spacing:2px; color:#8f93d8; }
+    .badge .led { display:inline-block; width:7px; height:7px; border-radius:50%; background:#ca1a21; box-shadow:0 0 8px #ff552e; margin-right:6px; vertical-align:middle; }
+    .badge b { color:#c6c9ff; font-weight:600; }
+
+    /* ---------- controls ---------- */
+    .controls { position:relative; flex:1 1 auto; min-height:190px; display:flex; align-items:center; justify-content:space-between; padding:0 4px; }
+    #stick { position:relative; width:min(44vw, 176px); aspect-ratio:1; border-radius:50%; touch-action:none; flex:0 0 auto;
+      background:radial-gradient(circle at 50% 45%, #2b2e3b 0 58%, #1c1e28 60% 100%); box-shadow:0 5px 0 var(--shell-deep), inset 0 2px 5px rgba(255,255,255,.08); }
+    #stick::before { content:"▲\A◀　　▶\A▼"; white-space:pre; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+      text-align:center; font-size:14px; line-height:2.5; color:#565b70; pointer-events:none; }
+    #knob { position:absolute; left:50%; top:50%; width:44%; height:44%; margin:-22% 0 0 -22%; border-radius:50%; pointer-events:none;
+      background:radial-gradient(circle at 40% 35%, #5d6278, #2c2f3d 70%); box-shadow:0 4px 10px rgba(0,0,0,.5), inset 0 1px 2px rgba(255,255,255,.2);
+      transition:transform .12s ease-out; will-change:transform; }
+    #stick.live #knob { transition:none; }
+    .ab { position:relative; width:min(44vw, 176px); aspect-ratio:1; flex:0 0 auto; }
+    .btn { position:absolute; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; touch-action:none;
+      color:#f6d9e6; background:radial-gradient(circle at 40% 30%, #d5417f, #8e1d52 75%); box-shadow:0 5px 0 #4a0d2b, inset 0 2px 3px rgba(255,255,255,.25); }
+    .btn::after { content:""; position:absolute; inset:-12px; border-radius:50%; } /* fat-finger halo */
+    .btn-a { width:52%; height:52%; right:0; top:6%; font-size:26px; }
+    .btn-b { width:44%; height:44%; left:0; bottom:6%; font-size:21px; }
+    .btn.active { transform:translateY(4px); box-shadow:0 1px 0 #4a0d2b, inset 0 2px 3px rgba(255,255,255,.25); filter:brightness(1.15); }
+    .pills { position:absolute; left:0; right:0; bottom:2px; display:flex; gap:18px; justify-content:center; pointer-events:none; }
+    .pill { pointer-events:auto; position:relative; padding:7px 16px; background:var(--ui); color:#9aa0b3; border-radius:999px; font-size:9px; letter-spacing:2px;
+      touch-action:none; box-shadow:0 3px 0 var(--shell-deep); transform:rotate(-12deg); }
+    .pill::after { content:""; position:absolute; inset:-10px -6px; }
+    .pill.active { transform:rotate(-12deg) translateY(2px); filter:brightness(1.4); }
+    .speaker { position:absolute; right:10px; bottom:calc(6px + var(--sab)); width:54px; height:34px; opacity:.35; transform:rotate(-24deg); pointer-events:none;
+      background:repeating-linear-gradient(90deg, var(--shell-deep) 0 4px, transparent 4px 10px); border-radius:6px; }
+
+    /* landscape phones: screen in the middle, thumbs on both sides */
+    @media (orientation:landscape) and (max-height:540px) {
+      .gameboy { width:100vw; max-height:none; flex-direction:row; align-items:center; border-radius:0;
+        padding:6px calc(8px + var(--sar)) 6px calc(8px + var(--sal)); }
+      .screen-area { order:2; flex:0 0 auto; padding:6px; border-radius:12px; }
+      .badge { display:none; }
+      #screen { height:calc(100dvh - 24px); width:min(calc((100dvh - 24px) * 1.6), calc(100vw - 2 * min(26vw, 190px) - 60px - var(--sal) - var(--sar))); }
+      .controls { display:contents; }
+      #stick { order:1; margin:auto; width:min(26vw, 170px); }
+      .ab { order:3; margin:auto; width:min(26vw, 170px); }
+      .pills { left:auto; right:calc(10px + var(--sar)); bottom:8px; gap:10px; }
+      .speaker { display:none; }
+    }
+
+    /* ---------- in-screen overlays ---------- */
+    #screen .layer { position:absolute; inset:0; pointer-events:none; }
+    .bar { position:absolute; left:0; right:0; height:0; background:#000; transition:height .7s cubic-bezier(.6,0,.2,1); z-index:3; }
+    .bar.t { top:0; } .bar.b { bottom:0; }
+    #screen.cine .bar { height:11%; }
+
+    #hud { z-index:4; display:flex; justify-content:space-between; align-items:flex-start; padding:8px 10px; font-size:12px; letter-spacing:1px;
+      text-shadow:0 1px 3px rgba(0,0,0,.9); opacity:0; transition:opacity .4s; }
+    #hud.on { opacity:1; }
+    #hud .pillbox { background:rgba(8,8,20,.55); border:1px solid rgba(255,255,255,.14); border-radius:999px; padding:3px 10px; backdrop-filter:blur(4px); }
+    #hudTitle { max-width:52%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #hudScore b { color:var(--gold); font-size:14px; }
+    #hudScore em { font-style:normal; color:var(--rose); font-weight:700; }
+    #hudTime.low { color:#ff8a8a; }
+    #hudNote { position:absolute; left:0; right:0; bottom:10%; text-align:center; font-size:13px; letter-spacing:1px; text-shadow:0 1px 4px #000; color:#fff; }
+    #pop { position:absolute; left:0; right:0; top:26%; text-align:center; font:italic 700 30px var(--serif); color:var(--gold); text-shadow:0 2px 12px rgba(0,0,0,.8);
+      opacity:0; transform:scale(.7); z-index:5; }
+    #pop.go { animation:pop .7s ease-out; }
+    @keyframes pop { 0%{opacity:0; transform:scale(.6)} 20%{opacity:1; transform:scale(1.1)} 70%{opacity:1; transform:scale(1)} 100%{opacity:0; transform:scale(1.05) translateY(-8px)} }
+
+    #card { background:radial-gradient(ellipse 70% 45% at center, rgba(6,6,18,.55), rgba(6,6,18,0) 75%); z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:14% 8%; opacity:0;
+      transition:opacity .9s ease; }
+    #card.on { opacity:1; }
+    #card .kicker { font-size:10px; letter-spacing:3px; color:var(--gold); text-transform:uppercase; text-shadow:0 1px 5px #000, 0 0 2px #000; }
+    #card h1 { font:italic 700 clamp(26px, 9vmin, 46px)/1.05 var(--serif); margin:8px 0 6px; letter-spacing:.5px; text-shadow:0 2px 18px rgba(0,0,0,.75), 0 0 2px #000; }
+    #card .sub { font-size:11px; letter-spacing:2px; color:#e8e2ff; text-shadow:0 1px 6px #000; max-width:34ch; }
+    #card .rule { width:40px; height:1px; background:var(--gold); margin:8px auto; opacity:.8; }
+
+    #dialog { z-index:6; display:none; align-items:flex-end; padding:8px; }
+    #dialog.on { display:flex; }
+    #dialog .box { width:100%; background:rgba(8,8,20,.86); border:1px solid rgba(255,215,126,.5); border-radius:8px; padding:8px 10px 9px; font-size:12px; min-height:52px; }
+    #dialog .who { color:var(--gold); font-size:9px; letter-spacing:2px; margin-bottom:3px; text-transform:uppercase; }
+    #dialog .more { float:right; color:var(--gold); animation:blink 1s steps(2) infinite; }
+    @keyframes blink { 50% { opacity:0; } }
+
+    #panel { z-index:7; display:none; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:10px 12px; pointer-events:auto;
+      background:radial-gradient(ellipse at center, rgba(8,8,22,.5), rgba(8,8,22,.86)); text-align:center; }
+    #panel.on { display:flex; }
+    #panel.dark { background:rgba(8,8,22,.9); }
+    #panel.clear { background:linear-gradient(to top, rgba(8,8,22,.82), rgba(8,8,22,0) 70%); justify-content:flex-end; }
+    #panel h2 { font:italic 700 clamp(20px, 6.5vmin, 32px)/1.1 var(--serif); margin:0; text-shadow:0 2px 10px #000; }
+    #panel .kicker { font-size:9px; letter-spacing:3px; color:var(--gold); text-transform:uppercase; }
+    #panel p { margin:0; font-size:11px; color:#d9d4f0; max-width:40ch; line-height:1.45; text-shadow:0 1px 3px #000; }
+    #panel .list { display:flex; flex-direction:column; gap:4px; width:min(100%, 330px); max-height:62%; overflow:hidden; margin-top:4px; }
+    #panel .item { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 10px; border-radius:6px; font-size:12px; letter-spacing:1px;
+      border:1px solid rgba(255,255,255,.12); background:rgba(10,10,26,.55); text-align:left; }
+    #panel .item small { color:var(--dim); font-size:9px; letter-spacing:1px; white-space:nowrap; }
+    #panel .item.sel { border-color:var(--gold); color:var(--gold); background:rgba(255,215,126,.12); }
+    #panel .item.off { opacity:.4; }
+    #panel .code { font-size:30px; letter-spacing:8px; color:var(--gold); font-weight:700; }
+    #panel input { font:700 24px var(--mono); letter-spacing:8px; text-align:center; text-transform:uppercase; width:200px; padding:6px; border-radius:8px;
+      background:#000; color:var(--gold); border:1px solid var(--gold); -webkit-user-select:text; user-select:text; }
+    #panel .stars { font-size:26px; letter-spacing:6px; color:var(--gold); text-shadow:0 0 14px rgba(255,215,126,.7); }
+    #panel .stars i { font-style:normal; opacity:.22; }
+    #panel .hint { font-size:9px; letter-spacing:2px; color:var(--dim); }
+    .polaroid { background:#f6f1e7; padding:6px 6px 4px; border-radius:2px; box-shadow:0 10px 26px rgba(0,0,0,.6); transform:rotate(-3deg) scale(.4); opacity:0;
+      transition:transform .7s cubic-bezier(.2,1.3,.3,1), opacity .4s; width:min(56%, 220px); }
+    .polaroid.on { transform:rotate(-3deg) scale(1); opacity:1; }
+    .polaroid img { display:block; width:100%; aspect-ratio:4/3; object-fit:cover; background:#222; filter:brightness(2.4) saturate(.1) blur(3px); transition:filter 2.4s ease-out .3s; }
+    .polaroid.on img { filter:none; }
+    .polaroid span { display:block; font:italic 12px var(--serif); color:#2b2540; padding:4px 2px 2px; text-align:center; }
+    .row { display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap; }
+    #toast { position:absolute; left:50%; top:8px; transform:translate(-50%,-150%); background:rgba(8,8,20,.9); border:1px solid rgba(255,255,255,.2); border-radius:999px;
+      padding:4px 12px; font-size:10px; letter-spacing:1px; transition:transform .35s; z-index:9; white-space:nowrap; }
+    #toast.on { transform:translate(-50%,0); }
+    #boot { position:absolute; inset:0; background:#05050c; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+      transition:opacity .8s; font-size:10px; letter-spacing:4px; color:var(--dim); }
+    #boot.off { opacity:0; pointer-events:none; }
+    #boot b { font:700 22px var(--mono); letter-spacing:6px; color:var(--gold); }
+    #lanes { z-index:4; display:none; }
+
+    /* ===== 16-bit RPG chrome: blue gradient windows, white border, chunky type ===== */
+    #screen { font:700 12px/1.5 "Courier New", ui-monospace, monospace; }
+    .bar { display:none; }
+    #panel > .win, #dialog .box, #card, #hud .pillbox, #toast { background:linear-gradient(#3a52c8, #1a2470); border:2px solid #fff; border-radius:7px;
+      box-shadow:0 0 0 2px #14143a, 0 3px 0 2px rgba(0,0,0,.35); color:#fff; text-shadow:1px 1px 0 #101040; backdrop-filter:none; }
+    #screen #card { inset:auto; left:50%; top:9%; right:auto; bottom:auto; width:max-content; max-width:90%; padding:7px 16px 8px; display:block; transform:translate(-50%, -12px); transition:opacity .35s, transform .35s; }
+    #screen #card.on { transform:translate(-50%, 0); }
+    #card .kicker { color:#ffe27a; font-size:9px; letter-spacing:2px; text-shadow:1px 1px 0 #101040; }
+    #card h1 { font:700 clamp(15px, 5.2vmin, 22px)/1.2 "Courier New", monospace; letter-spacing:1px; margin:2px 0; text-shadow:2px 2px 0 #101040; }
+    #card .rule { display:none; } #card .sub { font-size:10px; letter-spacing:0; color:#cfd6ff; text-shadow:1px 1px 0 #101040; }
+    #hud { font-size:11px; padding:6px; text-shadow:none; } #hud .pillbox { padding:1px 8px; border-radius:6px; }
+    #hudNote { font-size:13px; text-shadow:1px 1px 0 #14143a, -1px -1px 0 #14143a, 1px -1px 0 #14143a, -1px 1px 0 #14143a; }
+    #pop { font:700 28px "Courier New", monospace; color:#ffe27a; text-shadow:2px 2px 0 #14143a, -2px -2px 0 #14143a, 2px -2px 0 #14143a, -2px 2px 0 #14143a; }
+    #dialog .box { padding:6px 10px 8px; font-size:12px; } #dialog .who { color:#ffe27a; font-size:11px; letter-spacing:1px; }
+    #panel { background:rgba(12,14,48,.38); padding:8px; }
+    #panel.dark { background:rgba(12,14,48,.6); } #panel.clear { background:none; justify-content:flex-end; }
+    #panel > .win { display:flex; flex-direction:column; align-items:center; gap:5px; padding:9px 12px 10px; width:min(100%, 350px); max-height:100%; text-align:center; }
+    #panel h2 { font:700 clamp(15px, 5vmin, 20px)/1.2 "Courier New", monospace; color:#ffe27a; text-shadow:2px 2px 0 #101040; letter-spacing:1px; }
+    #panel p { color:#fff; font-size:11px; text-shadow:1px 1px 0 #101040; } #panel .kicker { color:#9fb4ff; } #panel .hint { color:#9fb4ff; }
+    #panel .list { width:100%; max-height:none; } #panel .item { background:transparent; border:2px solid transparent; border-radius:5px; padding:3px 8px; }
+    #panel .item small { color:#9fb4ff; } #panel .item.sel { border-color:#ffe27a; background:rgba(255,255,255,.14); color:#ffe27a; }
+    #panel .stars { text-shadow:1px 1px 0 #101040; } #panel .code { text-shadow:2px 2px 0 #101040; }
+    .polaroid span { font:700 11px "Courier New", monospace; color:#2b2540; text-shadow:none; }
+    #toast { top:6px; }
+  </style>
+</head>
+<body>
+<div class="gameboy" id="GameBoy">
+  <div class="screen-area">
+    <div id="screen">
+      <canvas id="gl" aria-label="Game screen"></canvas>
+      <div class="bar t"></div><div class="bar b"></div>
+      <div class="layer" id="hud">
+        <span class="pillbox" id="hudTitle"></span>
+        <span class="pillbox" id="hudTime"></span>
+        <span class="pillbox" id="hudScore"></span>
+        <div id="hudNote"></div>
+      </div>
+      <div id="pop"></div>
+      <div class="layer" id="card"><div class="kicker"></div><h1></h1><div class="rule"></div><div class="sub"></div></div>
+      <div class="layer" id="dialog"><div class="box"><div class="who"></div><span class="txt"></span><span class="more">▼</span></div></div>
+      <div class="layer" id="panel"></div>
+      <div id="toast"></div>
+      <div id="boot"><b>NU GAMEBOY</b><span>loading memories…</span></div>
+    </div>
+    <div class="badge"><span><span class="led"></span><b>NU GAMEBOY</b> · THREE YEARS</span><span id="netBadge">SOLO</span></div>
+  </div>
+
+  <div class="controls">
+    <div id="stick" aria-label="Directional stick"><div id="knob"></div></div>
+    <div class="ab">
+      <div class="btn btn-b" data-key="B" aria-label="B">B</div>
+      <div class="btn btn-a" data-key="A" aria-label="A">A</div>
+    </div>
+    <div class="pills">
+      <div class="pill" data-key="SELECT" aria-label="Select">SELECT</div>
+      <div class="pill" data-key="START" aria-label="Start">START</div>
+    </div>
+    <div class="speaker"></div>
+  </div>
+</div>
+
+<audio id="bgm" src="../assets/Boatfriend.mp3" loop preload="none"></audio>
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
