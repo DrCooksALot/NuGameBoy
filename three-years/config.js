@@ -21,7 +21,7 @@ export const CONFIG = {
   },
 
   // Real photos shown as a polaroid roll at the very end. Missing files are skipped.
-  gallery: ['photos/us-1.jpg', 'photos/us-2.jpg', 'photos/us-3.jpg', 'photos/us-4.jpg', 'photos/us-5.jpg', 'photos/us-6.jpg', 'photos/us-7.jpg', 'photos/jitney.jpg'],
+  gallery: [],
 
   // Per-level overrides: caption under the polaroid, and a real photo.
   // Drop a file at three-years/photos/<level id>.jpg and it replaces the in-game snapshot automatically.
