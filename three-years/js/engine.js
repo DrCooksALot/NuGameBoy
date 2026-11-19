@@ -29,13 +29,15 @@ const canvas = $('#gl');
 export const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, stencil: false, powerPreference: 'high-performance' });
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;   // static worlds: bake once per level
+export const bakeShadows = () => { renderer.shadowMap.needsUpdate = true; };
 export const scene = new THREE.Scene();
 export const camera = new THREE.PerspectiveCamera(45, 4 / 3, 0.5, 400);
 export const world = new THREE.Group(); world.name = 'world';
 scene.add(world);
 
 const FilmShader = {
-  uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uFade: { value: 0 }, uVig: { value: .85 }, uGrain: { value: .035 } },
+  uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uFade: { value: 0 }, uVig: { value: 0 }, uGrain: { value: 0 } },
   vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
   fragmentShader: `precision mediump float; uniform sampler2D tDiffuse; uniform float uTime,uFade,uVig,uGrain; varying vec2 vUv;
     void main(){ vec4 c=texture2D(tDiffuse,vUv); float v=smoothstep(.95,.3,length(vUv-.5));
@@ -45,7 +47,7 @@ const FilmShader = {
 const rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: isMobile ? 2 : 4 });
 const composer = new EffectComposer(renderer, rt);
 composer.addPass(new RenderPass(scene, camera));
-export const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), .55, .6, .85);
+export const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), .3, .5, .92);
 composer.addPass(bloom);
 const film = new ShaderPass(FilmShader);
 composer.addPass(film);
@@ -241,7 +243,7 @@ export const UI = {
   pop(t) { const p = $('#pop'); p.textContent = t; p.classList.remove('go'); void p.offsetWidth; p.classList.add('go'); },
   toast(t) { const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(this._toastT); this._toastT = setTimeout(() => e.classList.remove('on'), 2200); },
   say(who, text) { const d = $('#dialog'); if (!text) { d.classList.remove('on'); return; } d.querySelector('.who').textContent = who || ''; d.querySelector('.txt').textContent = text; d.classList.add('on'); },
-  panel(html, clear = false) { const p = $('#panel'); this._menu = null; if (html == null) { p.classList.remove('on'); p.innerHTML = ''; return p; } p.innerHTML = html; p.classList.remove('dark'); p.classList.toggle('clear', clear); p.classList.add('on'); return p; },
+  panel(html, clear = false) { const p = $('#panel'); this._menu = null; if (html == null) { p.classList.remove('on'); p.innerHTML = ''; return p; } p.innerHTML = `<div class="win">${html}</div>`; p.classList.remove('dark'); p.classList.toggle('clear', clear); p.classList.add('on'); return p; },
   // d-pad + tap navigable list. items: [{label, hint, off, fn}]
   menu({ kicker = '', title = '', text = '', items, back, clear = false, sel = 0 }) {
     const p = this.panel(`${kicker ? `<div class="kicker">${esc(kicker)}</div>` : ''}${title ? `<h2>${esc(title)}</h2>` : ''}${text ? `<p>${esc(text)}</p>` : ''}<div class="list"></div>`, clear);

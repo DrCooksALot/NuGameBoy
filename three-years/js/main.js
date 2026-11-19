@@ -1,5 +1,5 @@
 // Three Years — flow: title → menu → (lobby) → level intro → play → memory card → finale.
-import { THREE, $, world, renderer, clearWorld, killTweens, tween, wait, fade, Cam, Input, Sfx, Net, UI, Store, App, setMode, start, snapshot, flash, rng, params, lerp } from './engine.js';
+import { THREE, $, world, renderer, clearWorld, killTweens, tween, wait, fade, Cam, Input, Sfx, Net, UI, Store, App, setMode, start, snapshot, flash, bakeShadows, rng, params, lerp } from './engine.js';
 import { Batch, makeChar, FX, prop } from './kit.js';
 import { LEVELS, titleScene } from './levels.js';
 import * as GAMES from './games.js';
@@ -18,7 +18,7 @@ function reset() { S.run++; killTweens(); if (S.game && S.game.dispose) S.game.d
 /* ───────── title ───────── */
 async function title(first) {
   const tok = reset(); S.story = false;
-  const sc = titleScene(CONFIG.her.look, CONFIG.him.look); S.amb = [sc.amb];
+  const sc = titleScene(CONFIG.her.look, CONFIG.him.look); S.amb = [sc.amb]; bakeShadows();
   Cam.k = 2; let a = .6;
   setMode({ update(dt, t) { common(dt, t); a += dt * .12; Cam.set(Math.sin(a) * 13, 4.6 + Math.sin(a * .7), Math.cos(a) * 13, 0, 1.4, 0); for (const c of sc.chars) c.anim(dt, 0); },
     down(k) { if ((k === 'A' || k === 'START') && UI.tapA) { Sfx.ok(); menu(); } else if (k === 'B' && bFn && !UI._menu) { Sfx.back(); bFn(); } } });
@@ -98,16 +98,17 @@ async function play(i, seed) {
     finish() { if (!ctx.done) { ctx.done = true; outro(tok, i, mine); } } };
   Net.on('pos', (d) => { Object.assign(net, d); net.has = true; }); Net.on('score', (n) => { S.theirs = n; UI.score(mine + S.theirs, L.icon, ctx.mult); });
   Net.on('ready', () => { S.theirReady = true; });
-  const b = new Batch(); L.build(b, ctx); b.build(); S.amb = ctx.amb;
+  const b = new Batch(); L.build(b, ctx); b.build(); S.amb = ctx.amb; bakeShadows();
   me.g.position.set(ctx.spawn.x, 0, ctx.spawn.z); pal.g.position.set(ctx.spawn.x + 1.2, 0, ctx.spawn.z + .6); me.face = pal.face = Math.PI; world.add(me.g, pal.g);
   const game = S.game = GAMES[L.game](ctx);
 
-  /* cinematic intro: letterbox, title card, orbit down into the play camera */
-  game.cam(); Cam.k = 5; center.set(0, 1.2, L.game === 'runner' || L.game === 'rhythm' ? -8 : 0);
+  /* intro: area-name banner, a gentle push-in to the play camera */
+  game.cam(); const ep = Cam.tp.clone(), el = Cam.tl.clone();
+  Cam.pos.set(ep.x, ep.y + 5, ep.z + 7); Cam.look.copy(el); Cam.k = 1.5;
   S.idle = (dt) => { me.anim(dt, 0); pal.anim(dt, 0); };
   setMode({ update(dt, t) { common(dt, t); S.idle(dt, t); } });
-  UI.cine(true); UI.card(L.kicker, L.title, L.sub); fade(1, .9);
-  await Cam.orbit(5.2, center, 24, 11, -1.1, .35);
+  UI.card(L.kicker, L.title, L.sub); fade(1, .6);
+  await wait(2.6);
   if (tok !== S.run) return;
   UI.card(); UI.cine(false);
   UI.panel(`<div class="kicker">${L.icon} how to play</div><p>${L.how.replace(/\n/g, '<br>')}</p><div class="hint">${two ? 'both players press A' : 'press A or tap'}</div>`, true);
@@ -166,15 +167,15 @@ async function outro(tok, i, mine) {
 async function photo(tok, L, ctx) {
   const me = ctx.me, pal = ctx.pal, her = S.who === 'her' ? me : pal, him = her === me ? pal : me;
   const [cx, cz] = L.shot || [me.g.position.x, me.g.position.z];
-  her.g.position.set(cx - .43, 0, cz); him.g.position.set(cx + .43, 0, cz);
-  for (const c of [her, him]) { c.y = 0; c.cheer = 0; c.body.position.y = 0; c.body.rotation.y = c.face = c === her ? .14 : -.14; }
-  her.body.rotation.z = -.07; him.body.rotation.z = .07;
+  her.g.position.set(cx - .52, 0, cz); him.g.position.set(cx + .52, 0, cz);
+  for (const c of [her, him]) { c.y = 0; c.cheer = 0; c.body.position.y = 0; c.face = 0; c.body.rotation.z = 0; }
   her.hold = [[0, .12], [-1.45, -.22]]; him.hold = [[-1.45, .22], [0, -.12]];
-  const fl = new THREE.PointLight(0xfff4e0, 8, 9, 1.6); fl.position.set(cx + .2, 1.9, cz + 2.2); world.add(fl);
-  const pr = prop(L.prop); pr.position.set(cx, .88, cz + .5); world.add(pr);
+  
+  const pr = prop(L.prop); pr.scale.setScalar(1.5); pr.position.set(cx, .62, cz + .25); world.add(pr);
+  FX.burst(cx, 2.1, cz, [0xff7ab6, 0xff9ab8, 0xffffff], 10, 1.6, 1.5, 1.6, 1.4);
   S.idle = (dt) => { her.anim(0, 0); him.anim(0, 0); };
   setMode({ update(dt, t) { common(dt, t); S.idle(dt, t); } });
-  UI.cine(false); Cam.k = 60; Cam.set(cx + .2, 1.5, cz + 2.5, cx, 1.02, cz + .1); Cam.snap();
+  Cam.k = 60; Cam.set(cx, 2.3, cz + 3.6, cx, 1.0, cz); Cam.snap();
   await wait(.9); if (tok !== S.run) return '';
   const snap = snapshot(); Sfx.noise(.07, .35); Sfx.beep(1800, .05, 'square', .08); flash();
   await wait(.75); return snap;
@@ -189,7 +190,7 @@ async function finale(tok, snap) {
     FX.burst(g.x + (Math.random() - .5) * 14, 6 + Math.random() * 5, g.z - 3 - Math.random() * 6, c, 34, 7, 3.5, 1.5, 3); Sfx.noise(.25, .05); Sfx.beep(500 + Math.random() * 500, .25, 'sine', .04, 0, -200); };
   UI.card(B.kicker, B.heading, ''); await wait(4); if (tok !== S.run) return; UI.card();
   for (const para of B.message) {
-    UI.panel(`<p style="font:italic 17px/1.5 var(--serif);color:#fff;max-width:30ch">${para}</p><div class="hint">A</div>`, true);
+    UI.panel(`<p style="font-size:14px;line-height:1.6;max-width:28ch">${para}</p><div class="hint">▼ A</div>`, true);
     await wait(.7); await pressA(tok); if (tok !== S.run) return;
   }
   UI.panel(`<div class="polaroid" id="pol"><img alt="" src="${snap}"/><span>${LEVELS[LEVELS.length - 1].caption}</span></div><h2 style="font-size:clamp(17px,5.4vmin,26px)">${B.heading}</h2><p>${B.signoff}</p><div class="hint">A · back to title</div>`).classList.add('dark');

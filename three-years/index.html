@@ -157,6 +157,31 @@
     #boot.off { opacity:0; pointer-events:none; }
     #boot b { font:700 22px var(--mono); letter-spacing:6px; color:var(--gold); }
     #lanes { z-index:4; display:none; }
+
+    /* ===== 16-bit RPG chrome: blue gradient windows, white border, chunky type ===== */
+    #screen { font:700 12px/1.5 "Courier New", ui-monospace, monospace; }
+    .bar { display:none; }
+    #panel > .win, #dialog .box, #card, #hud .pillbox, #toast { background:linear-gradient(#3a52c8, #1a2470); border:2px solid #fff; border-radius:7px;
+      box-shadow:0 0 0 2px #14143a, 0 3px 0 2px rgba(0,0,0,.35); color:#fff; text-shadow:1px 1px 0 #101040; backdrop-filter:none; }
+    #screen #card { inset:auto; left:50%; top:9%; right:auto; bottom:auto; width:max-content; max-width:90%; padding:7px 16px 8px; display:block; transform:translate(-50%, -12px); transition:opacity .35s, transform .35s; }
+    #screen #card.on { transform:translate(-50%, 0); }
+    #card .kicker { color:#ffe27a; font-size:9px; letter-spacing:2px; text-shadow:1px 1px 0 #101040; }
+    #card h1 { font:700 clamp(15px, 5.2vmin, 22px)/1.2 "Courier New", monospace; letter-spacing:1px; margin:2px 0; text-shadow:2px 2px 0 #101040; }
+    #card .rule { display:none; } #card .sub { font-size:10px; letter-spacing:0; color:#cfd6ff; text-shadow:1px 1px 0 #101040; }
+    #hud { font-size:11px; padding:6px; text-shadow:none; } #hud .pillbox { padding:1px 8px; border-radius:6px; }
+    #hudNote { font-size:13px; text-shadow:1px 1px 0 #14143a, -1px -1px 0 #14143a, 1px -1px 0 #14143a, -1px 1px 0 #14143a; }
+    #pop { font:700 28px "Courier New", monospace; color:#ffe27a; text-shadow:2px 2px 0 #14143a, -2px -2px 0 #14143a, 2px -2px 0 #14143a, -2px 2px 0 #14143a; }
+    #dialog .box { padding:6px 10px 8px; font-size:12px; } #dialog .who { color:#ffe27a; font-size:11px; letter-spacing:1px; }
+    #panel { background:rgba(12,14,48,.38); padding:8px; }
+    #panel.dark { background:rgba(12,14,48,.6); } #panel.clear { background:none; justify-content:flex-end; }
+    #panel > .win { display:flex; flex-direction:column; align-items:center; gap:5px; padding:9px 12px 10px; width:min(100%, 350px); max-height:100%; text-align:center; }
+    #panel h2 { font:700 clamp(15px, 5vmin, 20px)/1.2 "Courier New", monospace; color:#ffe27a; text-shadow:2px 2px 0 #101040; letter-spacing:1px; }
+    #panel p { color:#fff; font-size:11px; text-shadow:1px 1px 0 #101040; } #panel .kicker { color:#9fb4ff; } #panel .hint { color:#9fb4ff; }
+    #panel .list { width:100%; max-height:none; } #panel .item { background:transparent; border:2px solid transparent; border-radius:5px; padding:3px 8px; }
+    #panel .item small { color:#9fb4ff; } #panel .item.sel { border-color:#ffe27a; background:rgba(255,255,255,.14); color:#ffe27a; }
+    #panel .stars { text-shadow:1px 1px 0 #101040; } #panel .code { text-shadow:2px 2px 0 #101040; }
+    .polaroid span { font:700 11px "Courier New", monospace; color:#2b2540; text-shadow:none; }
+    #toast { top:6px; }
   </style>
 </head>
 <body>
