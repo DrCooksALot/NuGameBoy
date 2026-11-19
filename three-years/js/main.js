@@ -153,7 +153,8 @@ async function outro(tok, i, mine) {
 
 async function finale(tok, snap) {
   const B = CONFIG.birthday, ctx = S.ctx, g = ctx.P.goal;
-  Cam.k = 1.6; Cam.set(g.x + 2.2, 3.4, g.z + 9.5, g.x, 2.4, g.z - 1); FX.confetti(g.x, 1.6, g.z - 1.3, 90);
+  ctx.me.g.position.set(g.x - 1.3, 0, g.z + .6); ctx.pal.g.position.set(g.x + 1.3, 0, g.z + .6); ctx.me.face = .5; ctx.pal.face = -.5;
+  Cam.k = 1.6; Cam.set(g.x, 3, g.z + 7.6, g.x, 2.3, g.z - 1); FX.confetti(g.x, 1.6, g.z - 1.3, 90);
   let ft = 0;
   const cheer = (dt) => { ctx.me.cheer = ctx.pal.cheer = .2; ctx.me.anim(dt, 0); ctx.pal.anim(dt, 0); };
   S.idle = (dt) => { cheer(dt); ft -= dt; if (ft > 0) return; ft = .35 + Math.random() * .5; const c = [0xffd77e, 0xff7ab6, 0x7ad7ff, 0x9bff9b, 0xffffff][(Math.random() * 5) | 0];
@@ -164,6 +165,15 @@ async function finale(tok, snap) {
   if (B.giftImage || B.giftText) {
     UI.panel(`<div class="kicker">one more thing</div>${B.giftImage ? `<div class="polaroid" id="pol" style="width:min(58%,240px)"><img alt="" style="aspect-ratio:auto" src="${B.giftImage}"/><span>${B.giftText || ''}</span></div>` : `<h2>${B.giftText}</h2>`}<div class="hint">A · continue</div>`);
     requestAnimationFrame(() => { const e = $('#pol'); e && e.classList.add('on'); }); Sfx.big(); await wait(1); await pressA(tok);
+  }
+  const pics = (await Promise.all((CONFIG.gallery || []).map((src) => new Promise((res) => { const im = new Image(); im.onload = () => res(src); im.onerror = () => res(null); im.src = src; })))).filter(Boolean);
+  if (tok !== S.run) return;
+  if (pics.length) {
+    UI.panel(`<div class="kicker">the real ones</div><div class="polaroid" id="pol" style="width:min(50%,210px)"><img alt="" style="aspect-ratio:1/1" src="${pics[0]}"/><span>1 / ${pics.length}</span></div><div class="hint">A · skip</div>`);
+    let k = 0; const show = () => { const e = $('#pol'); if (!e) return; e.classList.remove('on'); e.style.transform = `rotate(${(k % 2 ? 3 : -3)}deg) scale(.5)`; e.querySelector('img').src = pics[k]; e.querySelector('span').textContent = `${k + 1} / ${pics.length}`;
+      requestAnimationFrame(() => requestAnimationFrame(() => { e.style.transform = `rotate(${(k % 2 ? 3 : -3)}deg) scale(1)`; e.classList.add('on'); })); Sfx.pick(); };
+    show(); const iv = setInterval(() => { k++; if (k >= pics.length || tok !== S.run || !$('#pol')) return clearInterval(iv); show(); }, 2600);
+    await Promise.race([pressA(tok), new Promise((r) => setTimeout(r, pics.length * 2600 + 1500))]); clearInterval(iv); if (tok !== S.run) return;
   }
   UI.panel(`<div class="kicker">the end · for now</div><div class="polaroid on" style="transition:none"><img alt="" src="${snap}"/><span>${CONFIG.captions.birthday || LEVELS[LEVELS.length - 1].caption}</span></div><p>made by ${CONFIG.him.name}, with love.<br>year four loads automatically.</p><div class="hint">A · back to title</div>`);
   await wait(.8); await pressA(tok); Net.send('menu'); title(false);

@@ -84,6 +84,10 @@ export function makeChar(o = {}) {
   b.ball(0, 1.34, -.03, .3, hair, 0, .82);                      // hair cap
   if (style === 'long') { b.box(0, .78, -.2, .5, .56, .16, hair); b.box(-.25, .95, -.05, .1, .34, .2, hair); b.box(.25, .95, -.05, .1, .34, .2, hair); }
   if (style === 'bun') b.ball(0, 1.66, -.1, .13, hair);
+  if (style === 'curly') { for (let i = 0; i < 9; i++) { const an = i / 9 * 6.283; b.ball(Math.sin(an) * .27, 1.3 + Math.cos(i * 2.4) * .07, -.06 + Math.cos(an) * .2, .15, hair); }
+    b.ball(-.3, 1.12, -.05, .14, hair); b.ball(.3, 1.12, -.05, .14, hair); b.ball(0, 1.05, -.27, .2, hair); b.ball(0, 1.56, -.02, .17, hair); }
+  if (o.beard) { b.ball(0, 1.14, .13, .2, o.beard, 0, .62); }
+  if (o.cap) { b.ball(0, 1.42, -.02, .31, o.cap, 0, .55); b.box(0, 1.4, .26, .36, .04, .24, o.cap); }
   b.ball(-.1, 1.27, .25, .035, 0x1a1420); b.ball(.1, 1.27, .25, .035, 0x1a1420);
   b.build(body);
   const L = [], A = [];

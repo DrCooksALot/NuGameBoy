@@ -3,8 +3,9 @@
 //  Edit freely; no build step. Reload the page to see changes.
 // ─────────────────────────────────────────────────────────────
 export const CONFIG = {
-  her: { name: 'AHANU', look: { skin: 0xc68a5e, hair: 0x1c1412, top: 0xff7ab6, legs: 0x5a3f8a, style: 'long' } },
-  him: { name: 'TEK',   look: { skin: 0xd9a577, hair: 0x1d1a22, top: 0x4f50db, legs: 0x23252e, style: 'short' } },
+  // style: 'short' | 'long' | 'bun' | 'curly'. Optional: beard: <colour>, cap: <colour>.
+  her: { name: 'AHANU', look: { skin: 0xd9a47c, hair: 0x6b3a24, top: 0x7a2238, legs: 0x23252e, style: 'curly' } },
+  him: { name: 'TEK',   look: { skin: 0xdcae8c, hair: 0x1c1816, top: 0x2b2b30, legs: 0x3b4a6a, style: 'short', beard: 0x2a211c } },
 
   title: 'Three Years',
   tagline: 'a cartridge for Ahanu',
@@ -18,6 +19,9 @@ export const CONFIG = {
     giftImage: '',          // e.g. 'photos/gift.jpg'
     giftText: '',           // e.g. 'Pack a bag. We leave Friday.'
   },
+
+  // Real photos shown as a polaroid roll at the very end. Missing files are skipped.
+  gallery: ['photos/us-1.jpg', 'photos/us-2.jpg', 'photos/us-3.jpg', 'photos/us-4.jpg', 'photos/us-5.jpg', 'photos/us-6.jpg', 'photos/us-7.jpg', 'photos/jitney.jpg'],
 
   // Per-level overrides: caption under the polaroid, and a real photo.
   // Drop a file at three-years/photos/<level id>.jpg and it replaces the in-game snapshot automatically.
