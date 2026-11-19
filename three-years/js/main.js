@@ -184,11 +184,11 @@ async function photo(tok, L, ctx) {
 async function finale(tok, snap) {
   const B = CONFIG.birthday, ctx = S.ctx, g = ctx.P.goal;
   UI.cine(true);
-  Cam.k = 1.6; Cam.set(g.x, 3, g.z + 7.6, g.x, 2.3, g.z - 1); FX.confetti(g.x, 1.6, g.z - 1.3, 90);
+  Cam.k = 1.6; Cam.set(g.x, 3.4, g.z + 9.2, g.x, .1, g.z + 3.2); FX.confetti(g.x, 1.6, g.z - 1.3, 90);
   let ft = 0;
   S.idle = (dt) => { ctx.me.anim(0, 0); ctx.pal.anim(0, 0); ft -= dt; if (ft > 0) return; ft = .35 + Math.random() * .5; const c = [0xffd77e, 0xff7ab6, 0x7ad7ff, 0x9bff9b, 0xffffff][(Math.random() * 5) | 0];
-    FX.burst(g.x + (Math.random() - .5) * 14, 6 + Math.random() * 5, g.z - 3 - Math.random() * 6, c, 34, 7, 3.5, 1.5, 3); Sfx.noise(.25, .05); Sfx.beep(500 + Math.random() * 500, .25, 'sine', .04, 0, -200); };
-  UI.card(B.kicker, B.heading, ''); await wait(4); if (tok !== S.run) return; UI.card();
+    FX.burst(g.x + (Math.random() - .5) * 13, 3.6 + Math.random() * 3.2, g.z - 2 - Math.random() * 5, c, 34, 6, 3.5, 1.5, 3); Sfx.noise(.25, .05); Sfx.beep(500 + Math.random() * 500, .25, 'sine', .04, 0, -200); };
+  UI.panel(`<div class="kicker">${B.kicker}</div><h2>${B.heading}</h2>`, true); await wait(4); if (tok !== S.run) return;
   for (const para of B.message) {
     UI.panel(`<p style="font-size:14px;line-height:1.6;max-width:28ch">${para}</p><div class="hint">▼ A</div>`, true);
     await wait(.7); await pressA(tok); if (tok !== S.run) return;

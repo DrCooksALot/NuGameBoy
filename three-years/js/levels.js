@@ -152,8 +152,8 @@ export const LEVELS = [
       sky(0x1c2470, 0x6a66d0, 0x3f48a8, 600); lights(0xb4bcff, 0x4a8a70, 2.6, 0xe4e0ff, 2.2, -4, 9, 5); fog(0x4a52b8, 30, 90); orb(40, 50, -100, 6, 0xfff0d0, 1.7);
       island(b, 12, 0x4aa870, 0x8a6a4a);
       b.box(0, 0, 0, 2, .04, 14, 0x6e6890); b.box(0, 0, 1, 15, .04, 2, 0x6e6890);                                    // crossing paths
-      const hs = [[-6, -3.5, 0x8c5d8b], [6, -5, 0x5d6f9c], [-6.5, 5, 0x9c6a5d], [6.2, 5.2, 0x8c5d8b]];
-      hs.forEach(([x, z, col], i) => { house(b, x, z, 3.2, 2.4, 2.8, col, 0x6a3f80, x < 0 ? .25 : -.25); b.cone(x, 2.58, z, 2.5, 1.3, 0x55306a, 4); c.colliders.push({ x, z, r: 2.1 }); });
+      const hs = [[-6, -3.5, 0xf6e6c8], [6, -5, 0xc8e0f6], [-6.5, 5, 0xf6d0d8], [6.2, 5.2, 0xf6e6c8]];
+      hs.forEach(([x, z, col], i) => { house(b, x, z, 3.2, 2.4, 2.8, col, 0xd8584a, x < 0 ? .25 : -.25); b.cone(x, 2.58, z, 2.5, 1.3, 0xe0685a, 4); c.colliders.push({ x, z, r: 2.1 }); });
       ring(8, 10.6, (x, z, a, i) => { if (Math.abs(x) < 2.4 && z < 0) return; (i % 2 ? tree : pine)(b, x, z, 1.2); c.colliders.push({ x, z, r: .5 }); }, .2);
       for (const [x, z] of [[-1.6, 3], [1.6, -2.5], [-3.4, -7.4], [1.6, 6]]) { lamp(b, x, z); c.colliders.push({ x, z, r: .2 }); }
       b.box(0, -.1, -10.4, 3, .2, 4.4, 0x7a5a3a); for (const x of [-1.4, 1.4]) for (const z of [-9, -12.2]) b.cyl(x, -1.4, z, .12, 1.6, 0x5a4228, 1, 5);   // the dock
@@ -170,7 +170,7 @@ export function titleScene(look1, look2) {
   sky(0x1c2470, 0x6a66d0, 0x3f48a8, 700); lights(0xb4bcff, 0x4a8a70, 2.6, 0xffe0c0, 2.2, 4, 8, 6); fog(0x4a52b8, 34, 100); orb(-26, 22, -60, 5, 0xfff0d0, 1.7);
   const b = new Batch();
   island(b, 6, 0x4aa870, 0x8a6a4a);
-  house(b, -1.8, -1.6, 3, 2.3, 2.6, 0x8c5d8b, 0x6a3f80, .3); b.cone(-1.8, 2.48, -1.6, 2.4, 1.3, 0x55306a, 4);
+  house(b, -1.8, -1.6, 3, 2.3, 2.6, 0xf6e6c8, 0xd8584a, .3); b.cone(-1.8, 2.48, -1.6, 2.4, 1.3, 0xe0685a, 4);
   tree(b, 3.2, -1.4, 1.5); pine(b, -4.2, 1.2, 1.2); pine(b, 4.2, 2.2, .9); lamp(b, 1.2, 1.8);
   stringLights(b, -1.8, -.2, 3.2, -1.4, 2.7, PARTY, 12, .7);
   b.box(.6, 0, 2.6, 1.6, .45, .5, 0x5a3a26);

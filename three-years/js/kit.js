@@ -62,7 +62,7 @@ export function island(b, R, top = 0x4f8a5b, side = 0x5b4a3e, thick = .7) {
 export function tree(b, x, z, s = 1, col = 0x3fa052) { b.cyl(x, 0, z, .14 * s, .9 * s, 0x8a5a36, .7, 6); b.ball(x, 1.5 * s, z, .8 * s, col, 0, 1.1); b.ball(x + .3 * s, 1.95 * s, z + .1, .5 * s, col); }
 export function pine(b, x, z, s = 1, col = 0x2f9a5c) { b.cyl(x, 0, z, .12 * s, .5 * s, 0x8a5a36, 1, 6); b.cone(x, .4 * s, z, .8 * s, 1.1 * s, col); b.cone(x, 1.05 * s, z, .6 * s, 1 * s, col); b.cone(x, 1.7 * s, z, .38 * s, .8 * s, col); }
 export function lamp(b, x, z, col = 0xffd9a0, h = 2.2) { b.cyl(x, 0, z, .07, h, 0x2b2b3a, 1, 6); b.ball(x, h + .15, z, .2, col, 3); }
-export function house(b, x, z, w, h, d, col, roof = 0x6a3f80, ry = 0, lit = 0xffd27a) {
+export function house(b, x, z, w, h, d, col, roof = 0xd8584a, ry = 0, lit = 0xffd27a) {
   b.box(x, 0, z, w, h, d, col, ry); b.box(x, h, z, w * 1.08, .18, d * 1.08, roof, ry);
   const c = Math.cos(ry), s = Math.sin(ry), f = d / 2 + .02;
   for (let i = -1; i <= 1; i += 2) for (let fl = .55; fl < h - .5; fl += 1.1)
