@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Three Years — style mockups</title>
+<script type="importmap">{ "imports": { "three": "./vendor/three/three.module.min.js" } }</script>
+<style>
+  body { margin:0; background:#101018; color:#f3efe6; font:13px ui-monospace,Menlo,Consolas,monospace; padding:22px; }
+  h1 { font-size:18px; letter-spacing:2px; margin:0 0 4px; } .sub { color:#9b8dd6; margin-bottom:18px; }
+  .grid { display:flex; flex-wrap:wrap; gap:22px; }
+  .m { width:480px; } .m h2 { font-size:13px; letter-spacing:2px; color:#ffd77e; margin:0 0 3px; } .m p { margin:0 0 8px; color:#bdb6d8; font-size:11px; line-height:1.45; min-height:32px; }
+  .scr { position:relative; width:480px; height:360px; overflow:hidden; border-radius:6px; background:#000; }
+  .scr canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .px canvas { image-rendering:pixelated; }
+  /* 16-bit RPG window chrome */
+  .win { position:absolute; background:linear-gradient(#3a52c8,#1a2470); border:2px solid #fff; border-radius:7px; box-shadow:0 0 0 2px #14143a, 0 3px 0 2px rgba(0,0,0,.35);
+    color:#fff; font:700 12px/1.5 "Courier New",monospace; padding:5px 9px; text-shadow:1px 1px 0 #101040; letter-spacing:.5px; }
+  .win.tl { left:8px; top:8px; } .win.tr { right:8px; top:8px; } .win.b { left:8px; right:8px; bottom:8px; min-height:44px; }
+  .win i { font-style:normal; color:#ff8fb3; } .win b { color:#ffe27a; } .win u { text-decoration:none; float:right; color:#ffe27a; }
+</style></head>
+<body>
+<h1>STYLE MOCKUPS</h1><div class="sub">same Pow Wow scene, three ways. all real three.js renders. no letterbox, no vignette, no grain, nothing cropped.</div>
+<div class="grid" id="grid"></div>
+<script type="module">
+import * as THREE from 'three';
+
+const STYLES = [
+  { id: 'mana', name: 'A · 16-BIT WORLD', px: 240, blurb: 'Pixel-art sprites for the two of you and the trees, standing in a 3D world rendered at SNES resolution. Closest to Secret of Mana.' },
+  { id: 'toy', name: 'B · TOY DIORAMA', px: 0, blurb: 'Smooth, rounded, big-headed chibi models with soft shadows, like a little tabletop set. Full resolution.' },
+  { id: 'pix3d', name: 'C · CHUNKY PIXEL 3D', px: 240, blurb: 'The same chibi 3D models, but cel-shaded with dark outlines and rendered at low resolution so they read like sprites.' },
+];
+const HER = { skin: '#f0c09a', hair: '#8a4526', hair2: '#b8642f', top: '#8f2440', topD: '#6e1a31', eye: '#2a1820' };
+const HIM = { skin: '#f2c8a4', hair: '#231d1c', hair2: '#3a302c', top: '#34343e', topD: '#25252d', legs: '#3f5a94', beard: '#3b2c26', eye: '#2a1820' };
+const NPC = { skin: '#d59a70', hair: '#1a1412', hair2: '#2a201c', top: '#d8443c', topD: '#a8322c', eye: '#2a1820' };
+
+/* ---------- pixel sprites, drawn procedurally then outlined ---------- */
+function sprite(W, H, draw) {
+  const g = Array.from({ length: H }, () => Array(W).fill(null));
+  const put = (x, y, c) => { x |= 0; y |= 0; if (x >= 0 && y >= 0 && x < W && y < H) g[y][x] = c; };
+  const ell = (cx, cy, rx, ry, c) => { for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) if (((x + .5 - cx) / rx) ** 2 + ((y + .5 - cy) / ry) ** 2 <= 1) put(x, y, c); };
+  const rect = (x, y, w, h, c) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) put(x + i, y + j, c); };
+  draw({ put, ell, rect });
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const cx = cv.getContext('2d');
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let c = g[y][x];
+    if (!c && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => g[y + b] && g[y + b][x + a])) c = '#2a1a2c';
+    if (c) { cx.fillStyle = c; cx.fillRect(x, y, 1, 1); }
+  }
+  const t = new THREE.CanvasTexture(cv); t.magFilter = t.minFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const charSprite = (P, kind) => sprite(24, 30, ({ put, ell, rect }) => {
+  // feet + legs
+  rect(8, 26, 3, 2, kind === 'her' ? '#3a2430' : '#2a2a34'); rect(13, 26, 3, 2, kind === 'her' ? '#3a2430' : '#2a2a34');
+  if (kind !== 'her') { rect(8, 23, 3, 3, P.legs || '#3b3b48'); rect(13, 23, 3, 3, P.legs || '#3b3b48'); }
+  // body
+  if (kind === 'her') { for (let y = 17; y < 26; y++) { const w = 4 + Math.floor((y - 17) * .55); rect(12 - w, y, w * 2, 1, y > 23 ? P.topD : P.top); } rect(11, 20, 1, 1, '#ffd77e'); rect(13, 22, 1, 1, '#ffd77e'); }
+  else { rect(7, 17, 10, 7, P.top); rect(7, 22, 10, 2, P.topD); }
+  rect(5, 18, 2, 5, P.top); rect(17, 18, 2, 5, P.top); rect(5, 23, 2, 1, P.skin); rect(17, 23, 2, 1, P.skin);
+  // hair behind head
+  if (kind === 'her') { ell(12, 9, 10.5, 9.5, P.hair); for (const [x, y] of [[3, 6], [5, 2.5], [9, 1], [14, 1], [18.5, 2.5], [21, 6], [2.5, 11], [21.5, 11], [4, 15], [20, 15]]) ell(x, y, 2.6, 2.6, P.hair); }
+  else ell(12, 8, 7.5, 7, P.hair);
+  // face
+  ell(12, 10.5, 6.6, 6.2, P.skin);
+  // hair over forehead
+  if (kind === 'her') { for (const [x, y, c] of [[7, 5, P.hair2], [10.5, 4, P.hair], [14, 4, P.hair2], [17, 5, P.hair], [5.5, 8, P.hair], [18.5, 8, P.hair2]]) ell(x, y, 2.3, 2.1, c); for (const [x, y] of [[4, 4], [9, 1], [19, 3], [3, 10], [20, 13]]) put(x, y, P.hair2), put(x + 1, y, P.hair2); }
+  else { rect(6, 3, 12, 3, P.hair); rect(5, 5, 3, 3, P.hair); rect(16, 5, 3, 3, P.hair); rect(8, 3, 5, 1, P.hair2); if (kind === 'npc') { rect(4, 6, 2, 12, P.hair); rect(18, 6, 2, 12, P.hair); } }
+  // eyes, blush, mouth
+  rect(8, 10, 2, 3, P.eye); rect(14, 10, 2, 3, P.eye); put(8, 10, '#fff'); put(14, 10, '#fff');
+  rect(6, 13, 2, 1, '#f58f8a'); rect(16, 13, 2, 1, '#f58f8a');
+  if (P.beard) { for (let y = 13; y <= 16; y++) for (let x = 6; x <= 17; x++) if (((x + .5 - 12) / 6.4) ** 2 + ((y + .5 - 10.5) / 6.2) ** 2 <= 1 && (y > 13 || x < 8 || x > 15)) put(x, y, P.beard); rect(10, 14, 4, 1, '#f6dccb'); }
+  else rect(11, 14, 2, 1, '#b4483f');
+});
+const treeSprite = () => sprite(32, 40, ({ ell, rect, put }) => { rect(14, 28, 4, 10, '#6b4226'); rect(14, 28, 1, 10, '#845432'); ell(16, 16, 13, 13, '#2f7d43'); ell(13, 12, 9, 8, '#41994f'); ell(11, 9, 5, 4, '#62b85e');
+  for (const [x, y] of [[20, 20], [8, 20], [23, 13], [15, 24], [6, 14]]) { put(x, y, '#1f5f35'); put(x + 1, y, '#1f5f35'); } });
+const pineSprite = () => sprite(26, 40, ({ rect, put }) => { rect(11, 32, 4, 7, '#6b4226'); for (let t = 0; t < 3; t++) for (let y = 0; y < 13; y++) { const w = 1 + Math.floor(y * (.75 + t * .12)); rect(13 - w, 2 + t * 9 + y, w * 2, 1, y > 10 ? '#1c5a3c' : (y < 4 ? '#3f9a5c' : '#2b7a4a')); } });
+
+/* ---------- textures ---------- */
+function groundTex(pixel) {
+  const S = 64, cv = document.createElement('canvas'); cv.width = cv.height = S; const c = cv.getContext('2d');
+  for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) { c.fillStyle = (x + y) & 1 ? '#6fc25a' : '#66b852'; c.fillRect(x * 32, y * 32, 32, 32); }
+  if (pixel) { let s = 7; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 46; i++) { const x = (r() * S) | 0, y = (r() * S) | 0; c.fillStyle = i % 3 ? '#4d9a44' : '#8ed46e'; c.fillRect(x, y, 1, 2); c.fillRect(x + 2, y + 1, 1, 1); }
+    for (let i = 0; i < 5; i++) { const x = (r() * 60) | 0, y = (r() * 60) | 0; c.fillStyle = ['#fff', '#ffe27a', '#ff9ab8'][i % 3]; c.fillRect(x, y, 2, 2); c.fillStyle = '#ffd23a'; c.fillRect(x, y, 1, 1); } }
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(9, 7); t.colorSpace = THREE.SRGBColorSpace;
+  if (pixel) t.magFilter = t.minFilter = THREE.NearestFilter; return t;
+}
+const ramp = (() => { const d = new Uint8Array([165, 225, 255]); const t = new THREE.DataTexture(d, 3, 1, THREE.RedFormat); t.magFilter = t.minFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
+
+/* ---------- scene ---------- */
+function build(style) {
+  const scene = new THREE.Scene(), sprites = style === 'mana', toy = style === 'toy', pix = style === 'pix3d';
+  scene.background = new THREE.Color(toy ? '#bfe6ff' : '#8fd0f0');
+  const M = (c) => sprites ? new THREE.MeshBasicMaterial({ color: c }) : toy ? new THREE.MeshStandardMaterial({ color: c, roughness: .62 }) : new THREE.MeshToonMaterial({ color: c, gradientMap: ramp });
+  const outl = new THREE.MeshBasicMaterial({ color: '#2a1a2c', side: THREE.BackSide });
+  const add = (geo, col, x, y, z, parent = scene, hull = 1.045) => { const m = new THREE.Mesh(geo, M(col)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = toy; parent.add(m);
+    if (pix && hull) { const o = new THREE.Mesh(geo, outl); o.scale.setScalar(hull); m.add(o); } return m; };
+  const box = (w, h, d) => new THREE.BoxGeometry(w, h, d), sph = (r, a = 20, b = 14) => new THREE.SphereGeometry(r, toy ? a : 10, toy ? b : 7), cyl = (a, b, h, s = 14) => new THREE.CylinderGeometry(a, b, h, toy ? s : 8);
+
+  const gt = groundTex(!toy); const gm = sprites ? new THREE.MeshBasicMaterial({ map: gt }) : toy ? new THREE.MeshStandardMaterial({ map: gt, roughness: .9 }) : new THREE.MeshToonMaterial({ map: gt, gradientMap: ramp });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(18, 14), gm); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = toy; scene.add(ground);
+  // dirt paths, pond
+  add(box(1.6, .04, 14), '#e2c48a', 0, .02, 0, scene, 0); add(box(18, .04, 1.4), '#e2c48a', 0, .021, 2.2, scene, 0);
+  add(cyl(2.1, 2.1, .06, 24), '#e2c48a', 4.6, .02, -1.6, scene, 0); add(cyl(1.8, 1.8, .08, 24), '#5fb4ea', 4.6, .03, -1.6, scene, 0); add(cyl(1.3, 1.3, .09, 20), '#8fd2f6', 4.4, .035, -1.75, scene, 0);
+  add(cyl(.28, .28, .1, 10), '#3f9a4c', 5.4, .06, -1.1, scene, 0); add(sph(.1), '#ff9ab8', 5.4, .16, -1.1, scene, 0);
+  // trees
+  const T = [[-6.5, -4.6, 0], [-4.2, -5.4, 1], [-1.9, -5, 0], [2.4, -5.5, 1], [6.9, -4.7, 0], [-7.2, -.6, 1], [7.4, 1, 0], [-7, 4.4, 0], [6.6, 4.6, 1]];
+  const tT = sprites && treeSprite(), pT = sprites && pineSprite();
+  for (const [x, z, k] of T) {
+    if (sprites) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: k ? pT : tT })); s.center.set(.5, 0); s.scale.set(k ? 1.95 : 2.4, 3, 1); s.position.set(x, 0, z); scene.add(s); }
+    else if (k) { add(cyl(.16, .2, .7), '#7a4a2a', x, .35, z); add(new THREE.ConeGeometry(.95, 1.2, toy ? 14 : 7), '#2f8a52', x, 1.15, z); add(new THREE.ConeGeometry(.75, 1.1, toy ? 14 : 7), '#3aa35e', x, 1.85, z); add(new THREE.ConeGeometry(.5, .9, toy ? 14 : 7), '#4fbf6c', x, 2.5, z); }
+    else { add(cyl(.18, .24, .9), '#7a4a2a', x, .45, z); add(sph(1), '#2f8f4a', x, 1.7, z); add(sph(.7), '#48ad58', x - .35, 2.2, z + .3); add(sph(.45), '#6cc868', x - .55, 2.55, z + .5); }
+    add(cyl(.7, .7, .02, 16), '#4a9a44', x, .03, z + .1, scene, 0);
+  }
+  // bushes + flowers
+  for (const [x, z] of [[-3.2, -2.6], [3, 4.6], [-5.4, 2.9], [1.8, -3.4]]) { const b = add(sph(.5), '#3fa052', x, .3, z); b.scale.y = .75; add(sph(.09), '#ff9ab8', x - .2, .62, z + .3, scene, 0); add(sph(.09), '#fff', x + .22, .55, z + .34, scene, 0); }
+  for (const [x, z, c] of [[-2.2, 1.2, '#fff'], [-2.6, 1.5, '#ffe27a'], [2.4, .6, '#ff9ab8'], [2.9, .9, '#fff'], [-4.4, -1.5, '#ff9ab8'], [1.6, 4, '#ffe27a'], [-1.5, 4.6, '#fff']]) { add(cyl(.02, .02, .2, 5), '#3f9a4c', x, .1, z, scene, 0); add(sph(.1), c, x, .24, z, scene, 0); }
+  // fry bread stall with striped awning
+  const sx = -3.4, sz = -1.2; add(box(2.4, .8, .9), '#b0763e', sx, .4, sz); add(box(2.5, .1, 1), '#d99c5a', sx, .85, sz);
+  for (const dx of [-1.15, 1.15]) for (const dz of [-.45, .45]) add(cyl(.05, .05, 2), '#7a4a2a', sx + dx, 1, sz + dz, scene, 0);
+  for (let i = 0; i < 6; i++) add(box(.42, .12, 1.3), i % 2 ? '#e8463c' : '#fff6e6', sx - 1.05 + i * .42, 2.06, sz, scene, 0).rotation.x = .12;
+  for (const dx of [-.6, 0, .6]) { add(cyl(.2, .2, .07, 12), '#f0b24a', sx + dx, .94, sz + .05, scene, 0); add(cyl(.18, .18, .07, 12), '#f7c96a', sx + dx, 1.01, sz + .05, scene, 0); }
+  // fence
+  for (let i = 0; i < 9; i++) add(box(.12, .6, .12), '#fff6e6', -8 + i * .9, .3, 5.6, scene, i % 3 ? 0 : 1.07); add(box(7.4, .1, .06), '#fff6e6', -4.4, .42, 5.6, scene, 0); add(box(7.4, .1, .06), '#fff6e6', -4.4, .2, 5.6, scene, 0);
+  // signpost
+  add(cyl(.06, .06, 1.1), '#7a4a2a', 1.3, .55, 3.4); add(box(.9, .5, .08), '#d99c5a', 1.3, 1.1, 3.4);
+  // pickups: fry bread coins with sparkles
+  for (const [x, z] of [[-1.2, .2], [1.9, 1.4], [3.2, 2.5], [-4.6, 3.6], [.1, -2.6]]) { const c = add(cyl(.26, .26, .09, 14), '#ffcf4a', x, .7, z); c.rotation.x = Math.PI / 2; c.rotation.z = x; add(cyl(.14, .14, .1, 12), '#fff0a8', x, .7, z, scene, 0).rotation.x = Math.PI / 2;
+    add(box(.05, .26, .05), '#fff', x + .32, 1.06, z, scene, 0); add(box(.26, .05, .05), '#fff', x + .32, 1.06, z, scene, 0); add(cyl(.22, .22, .02, 12), '#4a9a44', x, .03, z, scene, 0); }
+  // gull
+  const gl = add(sph(.22), '#fff', 2.6, 1.9, -.4); gl.scale.set(1, .8, 1.5); add(box(.9, .05, .3), '#e6e8ee', 2.6, 1.95, -.4).rotation.z = .2; add(new THREE.ConeGeometry(.06, .2, 6), '#ffa53a', 2.6, 1.9, -.02, scene, 0).rotation.x = Math.PI / 2; add(cyl(.3, .3, .02, 12), '#4a9a44', 2.6, .03, -.3, scene, 0);
+
+  /* characters */
+  const chars = [[HER, 'her', -.55, 2.3], [HIM, 'him', .6, 2.45], [NPC, 'npc', sx + .1, sz - .95]];
+  for (const [P, kind, x, z] of chars) {
+    add(cyl(.36, .36, .02, 16), '#4a9a44', x, .035, z + .04, scene, 0);
+    if (sprites) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: charSprite(P, kind) })); s.center.set(.5, 0); s.scale.set(1.36, 1.7, 1); s.position.set(x, 0, z); scene.add(s); continue; }
+    const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g); if (kind === 'npc') g.scale.setScalar(.95);
+    for (const s of [-1, 1]) { add(cyl(.085, .085, .2), kind === 'her' ? P.skin : (P.legs || '#3b3b48'), s * .12, .16, 0, g); const f = add(sph(.11), kind === 'her' ? '#3a2430' : '#2a2a34', s * .12, .07, .04, g); f.scale.set(1, .7, 1.3); }
+    if (kind === 'her') add(cyl(.17, .34, .5), P.top, 0, .5, 0, g); else add(new THREE.CapsuleGeometry(.22, .2, 4, toy ? 14 : 8), P.top, 0, .5, 0, g);
+    for (const s of [-1, 1]) { const a = add(new THREE.CapsuleGeometry(.07, .2, 3, 8), P.top, s * .3, .52, 0, g); a.rotation.z = s * .35; add(sph(.075), P.skin, s * .37, .36, 0, g, 0); }
+    const h = add(sph(.42, 28, 20), P.skin, 0, 1.08, 0, g); h.scale.y = .93;
+    for (const s of [-1, 1]) { const e = add(sph(.06), P.eye, s * .15, 1.07, .37, g, 0); e.scale.set(1, 1.45, .5); add(sph(.022), '#fff', s * .15 + .02, 1.11, .4, g, 0); const b = add(sph(.065), '#f58f8a', s * .27, .95, .3, g, 0); b.scale.set(1, .6, .4); }
+    if (P.beard) { add(new THREE.SphereGeometry(.435, toy ? 28 : 12, toy ? 16 : 8, 0, Math.PI * 2, Math.PI * .6, Math.PI * .4), P.beard, 0, 1.085, .01, g, 0).scale.y = .93; const m = add(sph(.05), '#f6dccb', 0, .93, .385, g, 0); m.scale.set(1.5, .5, .4); }
+    else { const m = add(sph(.04), '#b4483f', 0, .93, .39, g, 0); m.scale.set(1.3, .6, .4); }
+    if (kind === 'her') { const cs = [[0, 1.42, -.1, .26], [-.3, 1.36, 0, .22], [.3, 1.36, 0, .22], [-.44, 1.14, -.05, .21], [.44, 1.14, -.05, .21], [-.42, .88, -.08, .18], [.42, .88, -.08, .18], [0, 1.18, -.36, .3], [-.25, .98, -.32, .22], [.25, .98, -.32, .22], [-.16, 1.5, .14, .17], [.16, 1.5, .14, .17], [0, 1.56, .02, .18], [-.36, 1.3, .2, .14], [.36, 1.3, .2, .14]];
+      cs.forEach(([a, b, c, r], i) => add(sph(r, 14, 10), i % 3 ? P.hair : P.hair2, a, b, c, g, 0)); }
+    else { add(new THREE.SphereGeometry(.44, toy ? 28 : 12, toy ? 16 : 8, 0, Math.PI * 2, 0, Math.PI * .36), P.hair, 0, 1.09, -.04, g, 0).scale.y = .95; add(box(.46, .1, .12), P.hair, 0, 1.4, .2, g, 0).rotation.x = .9;
+      if (kind === 'npc') for (const s of [-1, 1]) add(box(.12, .7, .2), P.hair, s * .4, .95, -.08, g, 0); }
+    g.rotation.y = kind === 'her' ? .2 : kind === 'him' ? -.2 : 0;
+  }
+
+  /* lights + camera */
+  if (!sprites) { scene.add(new THREE.HemisphereLight('#fff8e8', '#7fbf6a', toy ? 1.5 : 1.9)); const d = new THREE.DirectionalLight('#fff2d6', toy ? 2.4 : 1.6); d.position.set(-5, 10, 6); scene.add(d);
+    if (toy) { d.castShadow = true; d.shadow.mapSize.set(2048, 2048); const c = d.shadow.camera; c.left = -10; c.right = 10; c.top = 9; c.bottom = -9; c.far = 30; d.shadow.bias = -.0005; d.shadow.radius = 5; } }
+  let camera; const asp = 4 / 3;
+  if (toy) { camera = new THREE.PerspectiveCamera(24, asp, 1, 100); camera.position.set(0, 13.5, 16.5); camera.lookAt(0, .4, .2); }
+  else { const hh = 4.6; camera = new THREE.OrthographicCamera(-hh * asp, hh * asp, hh, -hh, .1, 100); camera.position.set(0, 10, 10); camera.lookAt(0, 0, .5); }
+  return { scene, camera };
+}
+
+for (const S of STYLES) {
+  const el = document.createElement('div'); el.className = 'm';
+  el.innerHTML = `<h2>${S.name}</h2><p>${S.blurb}</p><div class="scr ${S.px ? 'px' : ''}" id="s-${S.id}"><canvas></canvas>
+    <div class="win tl">AHANU <i>♥♥♥</i></div><div class="win tr">FRY BREAD <b>×07</b></div>
+    <div class="win b"><b>COUSIN</b><br>Get it while it's still crispy!<u>▼</u></div></div>`;
+  document.getElementById('grid').appendChild(el);
+  const cv = el.querySelector('canvas'), r = new THREE.WebGLRenderer({ canvas: cv, antialias: !S.px });
+  r.setPixelRatio(S.px ? 1 : 2); r.setSize(S.px || 480, S.px ? S.px * .75 : 360, false);
+  if (S.id === 'toy') { r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05; }
+  const { scene, camera } = build(S.id); r.render(scene, camera);
+}
+document.title = 'ready';
+</script></body></html>
