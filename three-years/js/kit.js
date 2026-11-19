@@ -5,6 +5,7 @@ const keep = (x) => { x.userData.keep = true; return x; };
 const G = {
   box: keep(new THREE.BoxGeometry(1, 1, 1).toNonIndexed()),
   ball: keep(new THREE.SphereGeometry(1, 14, 10).toNonIndexed()),
+  ballLo: keep(new THREE.SphereGeometry(1, 8, 6).toNonIndexed()),      // small props and pickups
   cyl: new Map(),
   getCyl(top, segs) { if (segs > 4) segs = Math.max(12, segs * 2); const k = top.toFixed(2) + ':' + segs; let g = this.cyl.get(k); if (!g) { g = keep(new THREE.CylinderGeometry(top, 1, 1, segs).toNonIndexed()); this.cyl.set(k, g); } return g; },
 };
@@ -29,7 +30,9 @@ export class Batch {
   box(x, y, z, w, h, d, col, ry = 0, glow = 0, rx = 0, rz = 0) { this._mat(x, y + h / 2, z, w, h, d, rx, ry, rz); return this.add(G.box, col, glow); }
   cyl(x, y, z, r, h, col, top = 1, segs = 8, glow = 0) { this._mat(x, y + h / 2, z, r, h, r, 0, 0, 0); return this.add(G.getCyl(top, segs), col, glow); }
   cone(x, y, z, r, h, col, segs = 6, glow = 0) { return this.cyl(x, y, z, r, h, col, 0.001, segs, glow); }
-  ball(x, y, z, r, col, glow = 0, sy = 1) { this._mat(x, y, z, r, r * sy, r, 0, 0, 0); return this.add(G.ball, col, glow); }
+  ball(x, y, z, r, col, glow = 0, sy = 1) { this._mat(x, y, z, r, r * sy, r, 0, 0, 0); return this.add(this.lo || r < .2 ? G.ballLo : G.ball, col, glow); }
+  dot(x, y, z, r, col, glow = 1.2) { this._mat(x, y, z, r * 2, r * 2, r * 2, .6, .6, 0); return this.add(G.box, col, glow); }   // 12 triangles: for strings of fairy lights
+  geo() { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(this.p, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(this.n, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(this.c, 3)); return g; }
   build(parent = world) {
     const out = new THREE.Group();
     if (this.p.length) { const g = new THREE.BufferGeometry();
@@ -54,10 +57,19 @@ export function turf(w, d, col, x = 0, z = 0, round = 0) {
   const m = new THREE.Mesh(round ? new THREE.CircleGeometry(round, 40) : new THREE.PlaneGeometry(w, d), new THREE.MeshLambertMaterial({ color: col, map: t }));
   m.rotation.x = -Math.PI / 2; m.position.set(x, .012, z); m.receiveShadow = true; world.add(m); return m;
 }
-export function island(b, R, top = 0x4f8a5b, side = 0x5b4a3e, thick = .7) {
-  b.cyl(0, -thick, 0, R, thick, top, 1, 20); turf(R * 2, R * 2, top, 0, 0, R - .02);
-  b.cyl(0, -thick - R * .75, 0, R * .18, R * .75, side, 5.2, 9);
-  b.cyl(R * .3, -thick - R * .95, -R * .2, R * .08, R * .5, side, 3, 6);
+export function island(b, R, top = 0x4f8a5b, o = {}) {
+  const { edge = 'none', woods = 0x3f9a52, hills = 0x3f8a5a, big = 150 } = o;
+  turf(big, big, top);
+  const n = Math.round(R * 4.4);
+  for (let i = 0; i < n; i++) { const a = i / n * 6.283, x = Math.cos(a) * (R + .35), z = Math.sin(a) * (R + .35);
+    if (edge === 'hedge') b.ball(x, .32, z, .52, 0x2f8a4f, 0, .8);
+    else if (edge === 'rope') { if (i % 2 === 0) { b.cyl(x, 0, z, .05, .75, 0x8a5a36, 1, 5); } b.box(x, .6, z, .05, .04, 6.283 * (R + .35) / n + .05, 0xf2e6c8, -a); }
+    else if (edge === 'fence') { b.box(x, 0, z, .1, .62, .1, 0xfff6e6, -a); b.box(x, .4, z, .05, .08, 6.283 * (R + .35) / n + .05, 0xfff6e6, -a); b.box(x, .18, z, .05, .08, 6.283 * (R + .35) / n + .05, 0xfff6e6, -a); }
+    else if (edge === 'lights') { b.cyl(x, 0, z, .04, .28, 0x3b3b4a, 1, 5); b.dot(x, .34, z, .07, 0xffe9b0, 1.25); } }
+  if (woods) { let s = 9; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;         // trees beyond the edge, kept out from between the camera and the play area
+    for (let i = 0; i < 46; i++) { const a = Math.PI * (1.02 + r() * .96) + (r() < .4 ? 0 : 0), d = R + 3 + r() * 20, x = Math.cos(a) * d * (1 + r() * .3), z = Math.sin(a) * d; (i % 3 ? tree : pine)(b, x, z, 1.4 + r() * 1.2, woods); }
+    for (const sx of [-1, 1]) for (let i = 0; i < 7; i++) (i % 2 ? tree : pine)(b, sx * (R + 5 + r() * 9), -4 + i * 4.5 + r() * 2, 1.5 + r(), woods); }
+  if (hills) for (const [x, z, r2] of [[-48, -70, 26], [-8, -82, 34], [40, -74, 28], [-80, -50, 22], [78, -52, 24]]) b.ball(x, -6, z, r2, hills, 0, .5);
 }
 export function tree(b, x, z, s = 1, col = 0x3fa052) { b.cyl(x, 0, z, .14 * s, .9 * s, 0x8a5a36, .7, 6); b.ball(x, 1.5 * s, z, .8 * s, col, 0, 1.1); b.ball(x + .3 * s, 1.95 * s, z + .1, .5 * s, col); }
 export function pine(b, x, z, s = 1, col = 0x2f9a5c) { b.cyl(x, 0, z, .12 * s, .5 * s, 0x8a5a36, 1, 6); b.cone(x, .4 * s, z, .8 * s, 1.1 * s, col); b.cone(x, 1.05 * s, z, .6 * s, 1 * s, col); b.cone(x, 1.7 * s, z, .38 * s, .8 * s, col); }
@@ -174,6 +186,8 @@ export function critter(kind) {
   const g = new THREE.Group(), b = new Batch();
   if (kind === 'gull') { b.ball(0, 1.3, 0, .26, 0xf4f4f0, 0, .8); b.ball(0, 1.42, .28, .16, 0xf4f4f0); b.cone(0, 1.36, .4, .06, .2, 0xffa53a, 4);
     b.box(-.5, 1.32, 0, .7, .05, .3, 0xd8dade, 0, 0, 0, .25); b.box(.5, 1.32, 0, .7, .05, .3, 0xd8dade, 0, 0, 0, -.25); b.box(0, 1.28, -.3, .2, .04, .3, 0x8a8f9a); }
+  else if (kind === 'squirrel') { b.ball(0, .3, 0, .24, 0xb0703a, 0, .9); b.ball(0, .52, .22, .17, 0xb87a40); b.ball(-.08, .68, .2, .05, 0x8a5226); b.ball(.08, .68, .2, .05, 0x8a5226); b.ball(-.06, .55, .36, .03, 0x1a1420); b.ball(.06, .55, .36, .03, 0x1a1420);
+    b.ball(0, .5, -.3, .2, 0xc88a4a, 0, 1.5); b.ball(0, .8, -.36, .16, 0xd69a58); b.ball(0, .22, .26, .09, 0xf0c070); }
   else { b.ball(0, 1, 0, .34, 0x7ad7ff, 3); b.ball(0, 1, -.4, .2, 0x7ad7ff, 2); b.ball(0, 1, -.7, .12, 0x7ad7ff, 1.4); }
   b.build(g); const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.position.y = .03; g.add(sh); return g;
 }
@@ -234,13 +248,49 @@ export const FX = {
 };
 
 /* ---------- instanced collectibles ---------- */
+const MODELS = {
+  car(b) { b.box(0, .26, 0, 1.56, .52, 3.1, 0xffffff); b.box(0, .78, -.1, 1.36, .5, 1.7, 0xffffff); b.box(0, .84, -.1, 1.4, .34, 1.4, 0x26304a); b.box(0, .84, -.1, 1.16, .34, 1.74, 0x26304a);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.ball(sx * .74, .3, sz * 1.02, .3, 0x18181e); b.box(-.5, .48, 1.56, .34, .14, .04, 0xff3a30); b.box(.5, .48, 1.56, .34, .14, .04, 0xff3a30); b.box(0, .3, 1.56, .5, .16, .04, 0xf2efe6); },
+  barrier(b) { for (const sx of [-1, 1]) { b.box(sx * .62, 0, 0, .09, .72, .09, 0xd8d8de); b.box(sx * .62, 0, 0, .09, .06, .5, 0xd8d8de); } b.box(0, .4, 0, 1.5, .3, .07, 0xff8a2a); for (const x of [-.5, 0, .5]) b.box(x, .4, .04, .2, .3, .02, 0xffffff, 0, 0, 0, .5); },
+  croissant(b) { for (let i = 0; i < 5; i++) { const a = (i - 2) * .5; b.ball(Math.sin(a) * .3, -.05 + Math.cos(a) * .2 - .1, 0, .14 - Math.abs(i - 2) * .025, i % 2 ? 0xd99a4a : 0xe8b060); } },
+  frybread(b) { b.cyl(0, -.06, 0, .34, .1, 0xe0a850, .9, 9); for (const [x, z] of [[.1, .08], [-.14, -.04], [.02, -.16], [-.06, .14]]) b.ball(x, .06, z, .1, 0xf0c070, 0, .5); },
+  lantern(b) { b.ball(0, 0, 0, .24, 0xffffff, 0, 1.15); b.cyl(0, .24, 0, .1, .06, 0x55402a, 1, 6); b.cyl(0, -.32, 0, .1, .06, 0x55402a, 1, 6); b.box(0, .3, 0, .02, .16, .02, 0x55402a); },
+  beignet(b) { b.box(0, -.14, 0, .36, .22, .36, 0xf0c888, .3); b.box(0, .08, 0, .3, .06, .3, 0xffffff, .3); },
+  beads(b) { for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283; b.ball(Math.cos(a) * .26, Math.sin(a) * .26, 0, .07, [0xb04ad9, 0x4fae6a, 0xffd27a][i % 3]); } },
+  petal(b) { b.ball(0, 0, 0, .2, 0xff9ab8, 0, .4); b.ball(.06, .03, 0, .1, 0xffc4d6, 0, .4); },
+  bouquet(b) { for (const [x, y, z, c] of [[0, .12, 0, 0xffffff], [-.14, .04, .04, 0xff9ab8], [.14, .04, -.04, 0xffd27a], [0, .02, .14, 0xff7ab6], [0, .02, -.14, 0xffffff]]) b.ball(x, y, z, .13, c); b.cyl(0, -.34, 0, .05, .3, 0x4fae6a, 2.4, 6); },
+  drop(b) { b.ball(0, -.08, 0, .15, 0x7ab8f0); b.cone(0, 0, 0, .12, .26, 0x7ab8f0, 8); },
+  bee(b) { b.ball(0, 0, 0, .18, 0xffd23a, 0, .85); b.box(-.05, -.14, 0, .05, .28, .3, 0x2a2420); b.box(.07, -.13, 0, .05, .26, .28, 0x2a2420); b.ball(.19, .02, 0, .1, 0x2a2420); b.ball(0, .2, .1, .12, 0xffffff, 0, .25); b.ball(0, .2, -.1, .12, 0xffffff, 0, .25); },
+  ticket(b) { b.box(0, -.16, 0, .56, .32, .05, 0xffd77e); b.box(0, -.16, .03, .4, .06, .01, 0xa8742a); b.box(0, -.04, .03, .4, .1, .01, 0xffffff); },
+  puck(b) { b.cyl(0, 0, 0, .42, .16, 0xffffff, 1, 10); b.cyl(0, .16, 0, .26, .04, 0xfff6c8, 1, 10); },
+  key(b) { for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; b.ball(Math.cos(a) * .15, .16 + Math.sin(a) * .15, 0, .06, 0xffd77e); } b.box(0, -.34, 0, .07, .36, .07, 0xffd77e); b.box(.08, -.3, 0, .1, .06, .06, 0xffd77e); b.box(.08, -.18, 0, .1, .06, .06, 0xffd77e); },
+  pine(b) { pine(b, 0, 0, 1); },
+  lamp(b) { b.cyl(0, 0, 0, .07, 3, 0x3b3b4a, 1, 6); b.box(-.4, 2.9, 0, .9, .07, .07, 0x3b3b4a); b.box(-.8, 2.74, 0, .34, .14, .2, 0xffe9a0); },
+};
+const UNLIT = new Set(['lantern', 'beads', 'ticket', 'puck', 'key']), TINT = new Set(['car', 'puck']), modelGeo = new Map();
+function modelGeometry(shape) { let g = modelGeo.get(shape); if (!g) { const b = new Batch(); b.lo = true; MODELS[shape](b); g = keep(b.geo()); modelGeo.set(shape, g); } return g; }
+
 export function items(n, shape = 'coin', col = 0xffd77e, k = 2) {
-  const geo = shape === 'heart' ? new THREE.OctahedronGeometry(.3) : shape === 'ball' ? new THREE.IcosahedronGeometry(.26, 1) : shape === 'box' ? new THREE.BoxGeometry(.42, .42, .42)
+  const model = !!MODELS[shape];
+  const geo = model ? modelGeometry(shape) : shape === 'heart' ? new THREE.OctahedronGeometry(.3) : shape === 'ball' ? new THREE.IcosahedronGeometry(.26, 1) : shape === 'box' ? new THREE.BoxGeometry(.42, .42, .42)
     : shape === 'ring' ? new THREE.TorusGeometry(.26, .08, 6, 12) : new THREE.CylinderGeometry(.3, .3, .1, 10).rotateX(Math.PI / 2);
-  const m = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ fog: false }), n); m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  const cols = Array.isArray(col) ? col : [col];
-  k = Math.min(k, 1.25);
-  for (let i = 0; i < n; i++) m.setColorAt(i, _c.set(cols[i % cols.length]).multiplyScalar(k));
+  const mat = model ? (UNLIT.has(shape) ? new THREE.MeshBasicMaterial({ vertexColors: true, fog: false }) : new THREE.MeshLambertMaterial({ vertexColors: true })) : new THREE.MeshBasicMaterial({ fog: false });
+  const m = new THREE.InstancedMesh(geo, mat, n); m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  const cols = model && !TINT.has(shape) ? [0xffffff] : (Array.isArray(col) ? col : [col]);
+  k = model ? 1 : Math.min(k, 1.25); _m.makeScale(0, 0, 0);
+  for (let i = 0; i < n; i++) { m.setColorAt(i, _c.set(cols[i % cols.length]).multiplyScalar(k)); m.setMatrixAt(i, _m); }
   world.add(m);
   return { m, set(i, x, y, z, s = 1, ry = 0) { _m.makeRotationY(ry).scale(_s.set(s, s, s)).setPosition(x, y, z); m.setMatrixAt(i, _m); }, color(i, c, kk = k) { m.setColorAt(i, _c.set(c).multiplyScalar(Math.min(kk, 1.25))); m.instanceColor.needsUpdate = true; }, flush() { m.instanceMatrix.needsUpdate = true; } };
+}
+
+/* a flat sign with real lettering (canvas texture): highway signs, marquees, stall banners */
+export function sign(text, x, y, z, w, h, o = {}) {
+  const { bg = '#1f7a45', fg = '#ffffff', ry = 0, border = fg, font = 'bold', glow = false } = o;
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = Math.max(32, Math.round(256 * h / w)); const c = cv.getContext('2d');
+  c.fillStyle = bg; c.fillRect(0, 0, cv.width, cv.height); c.strokeStyle = border; c.lineWidth = 6; c.strokeRect(5, 5, cv.width - 10, cv.height - 10);
+  const lines = text.split('\n'); let fs = Math.floor((cv.height - 24) / lines.length * .82); c.font = `${font} ${fs}px Arial, Helvetica, sans-serif`;
+  const widest = Math.max(...lines.map((l) => c.measureText(l).width)); if (widest > cv.width - 30) { fs = Math.floor(fs * (cv.width - 30) / widest); c.font = `${font} ${fs}px Arial, Helvetica, sans-serif`; }
+  c.fillStyle = fg; c.textAlign = 'center'; c.textBaseline = 'middle'; lines.forEach((l, i) => c.fillText(l, cv.width / 2, cv.height / 2 + (i - (lines.length - 1) / 2) * fs * 1.12));
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), glow ? new THREE.MeshBasicMaterial({ map: t, fog: false }) : new THREE.MeshLambertMaterial({ map: t })); m.position.set(x, y, z); m.rotation.y = ry; world.add(m); return m;
 }

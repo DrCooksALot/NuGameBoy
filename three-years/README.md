@@ -44,4 +44,6 @@ Dev: add `?net=local` to test with two tabs in one browser, `?all` to unlock eve
 - `js/games.js` the four mechanics · `js/levels.js` the seven dioramas · `js/main.js` flow
 - `vendor/` three.js r182 and PeerJS, vendored so nothing loads from a CDN
 
+Levels sit on a ground that runs to the horizon (no floating islands) and are dressed with things from the real place: the Winter Cathedral, Sea of Light and Supernova at Brooklyn Botanic Garden; an L.I.E. exit gantry; the Hudson Theatre marquee. Static scenery is baked into one mesh per level and pickups/obstacles are pooled instanced models, which keeps every level under about 50 draw calls and 45k triangles.
+
 Rendering goes straight to the canvas with no post-processing or float render targets, to stay safe on phone GPUs. All music and sound is synthesized with Web Audio; there are no audio files.
