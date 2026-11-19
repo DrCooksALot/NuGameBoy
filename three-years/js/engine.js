@@ -19,33 +19,56 @@ export const Store = {
 
 /* ---------- renderer + post ---------- */
 const screenEl = $('#screen');
-const canvas = $('#gl');
-export const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, stencil: false, powerPreference: 'high-performance' });
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;   // static worlds: bake once per level
-export const bakeShadows = () => { renderer.shadowMap.needsUpdate = true; };
+let canvas = $('#gl');
+// Deliberately plain: no shadow maps, no post-processing, default power preference. Phone GPU drivers are the thing that
+// kills WebGL contexts, so the fewer exotic features the better. `safe` drops resolution and MSAA after a crash.
+let safe = 0;
+function makeRenderer(cv) {
+  const r = new THREE.WebGLRenderer({ canvas: cv, antialias: safe < 1, stencil: false, alpha: false });
+  r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.15; r.shadowMap.enabled = false;
+  return r;
+}
+export let renderer = makeRenderer(canvas);
+export const bakeShadows = () => {};
 export const scene = new THREE.Scene();
 export const camera = new THREE.PerspectiveCamera(45, 4 / 3, 0.5, 400);
 export const world = new THREE.Group(); world.name = 'world';
 scene.add(world);
 
 const fadeEl = $('#fade'); let fadeV = 0;
-const pr = Math.min(devicePixelRatio || 1, 2);
-function resize() {
+let lastW = 0, lastH = 0;
+function resize(force) {
   const w = screenEl.clientWidth, h = screenEl.clientHeight;
-  if (!w || !h) return;
-  renderer.setPixelRatio(pr); renderer.setSize(w, h, false);
+  if (!w || !h || (!force && w === lastW && h === lastH)) return;                 // never reallocate the canvas for a no-op resize
+  lastW = w; lastH = h;
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, safe ? 1 : isMobile ? 1.5 : 2)); renderer.setSize(w, h, false);
   camera.aspect = w / h; camera.fov = camera.aspect < 1.2 ? 54 : 44; camera.updateProjectionMatrix();
 }
-new ResizeObserver(resize).observe(screenEl);
-resize();
-canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); UI.toast('graphics paused…'); });
-canvas.addEventListener('webglcontextrestored', () => { UI.toast('and we are back'); resize(); renderer.shadowMap.needsUpdate = true; });
+new ResizeObserver(() => resize()).observe(screenEl);
+resize(true);
+
+/* If the browser takes the graphics context away, get it back. First wait for the browser to restore it;
+   if it does not, throw the canvas away and build a fresh renderer on a new one (the scene itself is untouched). */
+let lost = false, rebuilds = 0, loop = null;
+function watch(cv) {
+  cv.addEventListener('webglcontextlost', (e) => { e.preventDefault(); if (lost) return; lost = true; UI.toast('graphics hiccup, recovering…'); setTimeout(() => { if (lost) rebuild(); }, 1200); });
+  cv.addEventListener('webglcontextrestored', () => { if (!lost) return; lost = false; resize(true); UI.toast('and we are back'); });
+}
+function rebuild() {
+  if (++rebuilds > 6) { UI.toast('graphics keep failing: reload the page'); return; }
+  safe = rebuilds >= 2 ? 1 : 0;                                                    // second crash: lower resolution, no MSAA
+  try { renderer.setAnimationLoop(null); renderer.dispose(); } catch (e) {}
+  const fresh = document.createElement('canvas'); fresh.id = 'gl'; fresh.setAttribute('aria-label', 'Game screen'); canvas.replaceWith(fresh); canvas = fresh;
+  try { renderer = makeRenderer(canvas); } catch (e) { UI.toast('this browser will not start WebGL'); return; }
+  watch(canvas); lost = false; resize(true); if (loop) renderer.setAnimationLoop(loop); UI.toast('graphics restarted');
+}
+watch(canvas);
+export const _gfx = { get lost() { return lost; }, get rebuilds() { return rebuilds; }, get safe() { return safe; } };
 
 /* recursive disposal; geometries/materials flagged keep are shared caches */
 export function disposeTree(obj) {
   obj.traverse((o) => {
+    if (o.isInstancedMesh) o.dispose();
     if (o.geometry && !o.geometry.userData.keep) o.geometry.dispose();
     const m = o.material;
     if (m) for (const x of (Array.isArray(m) ? m : [m])) if (!x.userData.keep) { x.map && !x.map.userData.keep && x.map.dispose(); x.dispose(); }
@@ -201,7 +224,8 @@ export const Music = {
 
 /* ---------- networking: 2 phones, one room code ---------- */
 export const Net = {
-  role: 'solo', open: false, code: null, h: new Map(), onOpen: null, onClose: null, _t: null,
+  role: 'solo', open: false, code: null, h: new Map(), onOpen: null, onClose: null, onStatus: null, _t: null,
+  status(t) { this.onStatus && this.onStatus(t); },
   get two() { return this.open; }, get isHost() { return this.role !== 'client'; },
   on(t, fn) { this.h.set(t, fn); }, off(t) { this.h.delete(t); },
   send(t, d) { if (this.open && this._t) try { this._t.send({ t, d }); } catch (e) {} },
@@ -222,15 +246,25 @@ async function makeTransport(net, hosting, code) {
     if (!hosting) ch.postMessage({ t: '_hi' });
     return { send: (m) => ch.postMessage(m), close: () => { ch.postMessage({ t: '_bye' }); ch.close(); } };
   }
+  net.status('loading…');
   await loadPeer();
+  net.status('reaching the matchmaking server…');
+  const WHY = { 'peer-unavailable': 'no room with that code', 'unavailable-id': 'that code is taken, try again', network: 'lost the matchmaking server', 'server-error': 'matchmaking server is down', 'socket-error': 'matchmaking server is down', 'socket-closed': 'matchmaking server closed', 'browser-incompatible': 'this browser cannot do peer-to-peer', webrtc: 'the two phones could not reach each other' };
   return new Promise((res, rej) => {
     const peer = hosting ? new window.Peer('nugb-ty-' + code) : new window.Peer(); let conn = null, done = false;
-    const wire = (c) => { conn = c; c.on('open', () => net._up()); c.on('data', (m) => net._recv(m)); c.on('close', () => net._down()); c.on('error', () => net._down()); };
+    const wire = (c) => { conn = c;
+      c.on('open', () => { net.status('connected'); net._up(); }); c.on('data', (m) => net._recv(typeof m === 'string' ? JSON.parse(m) : m));
+      c.on('close', () => net._down()); c.on('error', (e) => { net.status(WHY[e && e.type] || 'connection error'); net._down(); });
+      c.on('iceStateChanged', (st) => { if (st === 'checking') net.status('linking the two phones…'); else if (st === 'failed') net.status(WHY.webrtc); else if (st === 'disconnected') net.status('link dropped, retrying…'); }); };
     const api = { send: (m) => conn && conn.open && conn.send(m), close: () => { try { peer.destroy(); } catch (e) {} } };
-    peer.on('open', () => { done = true; if (!hosting) wire(peer.connect('nugb-ty-' + code, { reliable: true })); res(api); });
-    peer.on('connection', (c) => { if (hosting && !conn) wire(c); });
-    peer.on('error', (e) => { if (!done) rej(e); else if (!net.open) UI.toast('could not reach that room'); });
-    peer.on('disconnected', () => { try { peer.reconnect(); } catch (e) {} });
+    peer.on('open', () => { done = true;
+      if (hosting) net.status('room is open · waiting for player 2');
+      else { net.status('found the server · knocking on room ' + code + '…'); wire(peer.connect('nugb-ty-' + code, { reliable: true, serialization: 'json' })); }
+      res(api); });
+    peer.on('connection', (c) => { if (hosting && !conn) { net.status('player 2 found · linking…'); wire(c); } });
+    peer.on('error', (e) => { const why = WHY[e && e.type] || ('error: ' + (e && e.type || e)); net.status(why); if (!done) rej(new Error(why)); else if (!net.open) UI.toast(why); });
+    peer.on('disconnected', () => { if (!net.open) net.status('reconnecting to the server…'); try { peer.reconnect(); } catch (e) {} });
+    setTimeout(() => { if (!done) { net.status('matchmaking server did not answer'); rej(new Error('matchmaking server did not answer')); try { peer.destroy(); } catch (e) {} } }, 20000);
   });
 }
 
@@ -280,7 +314,7 @@ let last = 0, errShown = 0;
 function report(e) { console.error('[three-years]', e); if (errShown++ < 3) UI.toast('oops: ' + String(e && e.message || e).slice(0, 60)); }
 addEventListener('error', (e) => report(e.error || e.message)); addEventListener('unhandledrejection', (e) => report(e.reason));
 export function start() {
-  renderer.setAnimationLoop((ms) => {
+  loop = (ms) => {
     const dt = Math.min(.05, (ms - last) / 1000 || .016); last = ms; App.t += dt;
     Input.refreshAxis();
     // one bad frame must never freeze the game: catch, report on screen, keep drawing
@@ -289,9 +323,10 @@ export function start() {
       App.mode && App.mode.update && App.mode.update(dt, App.t);
     } catch (e) { report(e); }
     Cam.update(dt);
-    renderer.render(scene, camera);
+    if (!lost) { try { renderer.render(scene, camera); } catch (e) { report(e); } }
     Input.just.clear();
-  });
+  };
+  renderer.setAnimationLoop(loop);
 }
-export function snapshot() { renderer.render(scene, camera); try { return canvas.toDataURL('image/jpeg', .86); } catch (e) { return ''; } }
+export function snapshot() { try { renderer.render(scene, camera); return canvas.toDataURL('image/jpeg', .86); } catch (e) { return ''; } }
 export { THREE };
