@@ -4,27 +4,19 @@
 // ─────────────────────────────────────────────────────────────
 export const CONFIG = {
   // style: 'short' | 'long' | 'bun' | 'curly'. Optional: beard: <colour>, cap: <colour>.
-  her: { name: 'AHANU', look: { skin: 0xd9a47c, hair: 0x6b3a24, top: 0x7a2238, legs: 0x23252e, style: 'curly' } },
+  her: { name: 'AHANU', look: { skin: 0xd9a47c, hair: 0x6b3a24, hair2: 0x9a5a30, top: 0x7a2238, legs: 0x23252e, style: 'curly' } },
   him: { name: 'TEK',   look: { skin: 0xdcae8c, hair: 0x1c1816, top: 0x2b2b30, legs: 0x3b4a6a, style: 'short', beard: 0x2a211c } },
 
   title: 'Three Years',
   tagline: 'a cartridge for Ahanu',
 
-  // Shown after the last level.
+  // The ending. Shown after the last level, one paragraph per screen.
   birthday: {
-    heading: 'Happy Birthday, Nunu',
-    message: 'Three years of jitneys, weddings, fry bread and thunderstorms. Every level in here was a real day, and I would replay all of them. I love you more than pizza.',
-    // Optional surprise revealed after the message. Put an image in three-years/photos/ and name it here,
-    // and/or write a line of text. Leave both empty to skip the reveal.
-    giftImage: '',          // e.g. 'photos/gift.jpg'
-    giftText: '',           // e.g. 'Pack a bag. We leave Friday.'
+    kicker: 'November 19',
+    heading: 'Happy Birthday to my only one',
+    message: [
+      "I don't have the words to tell you how much I love you.",
+    ],
+    signoff: 'made for Ahanu, by TEK.',
   },
-
-  // Real photos shown as a polaroid roll at the very end. Missing files are skipped.
-  gallery: [],
-
-  // Per-level overrides: caption under the polaroid, and a real photo.
-  // Drop a file at three-years/photos/<level id>.jpg and it replaces the in-game snapshot automatically.
-  // Level ids: lightscape, jitney, powwow, wedding, nola, godot, birthday
-  captions: {},
 };

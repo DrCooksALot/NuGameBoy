@@ -1,6 +1,6 @@
 // Seven memories. Each level = a diorama (build) + one mechanic from games.js (game + P).
 import { THREE, scene, world } from './engine.js';
-import { island, tree, pine, lamp, house, stringLights, stall, sky, lights, orb, ambient, makeChar, Batch } from './kit.js';
+import { island, tree, pine, lamp, house, stringLights, stall, sky, lights, orb, ambient, makeChar, critter, Batch } from './kit.js';
 
 const fog = (c, a, b) => { scene.fog = new THREE.Fog(c, a, b); };
 const ring = (n, r, fn, off = 0) => { for (let i = 0; i < n; i++) { const a = off + i / n * Math.PI * 2; fn(Math.cos(a) * r, Math.sin(a) * r, a, i); } };
@@ -11,11 +11,10 @@ function road(b, col, edge, w = 7.4) { b.box(0, -.3, -38, w, .3, 100, col); b.bo
 
 export const LEVELS = [
   /* ───────────── 1 · LIGHTSCAPE ───────────── */
-  { id: 'lightscape', kicker: 'December 2023 · Brooklyn Botanic Garden', title: 'Lightscape', sub: 'the garden, lit up. so were we.',
-    game: 'collect', R: 11, icon: '✦', stars: [6, 10, 12],
-    how: 'Walk the light trail and gather every lantern.\nSTICK move · A dash',
-    caption: 'the night the garden glowed',
-    P: { count: 12, time: 50, shape: 'ball', col: [0xff7ab6, 0x7ad7ff, 0xffd77e], note: '' },
+  { id: 'lightscape', shot: [-3.5, 6.2], prop: 'lantern', caption: 'the night the garden glowed', kicker: 'December 2023 · Brooklyn Botanic Garden', title: 'Lightscape', sub: 'the garden, lit up. so were we.',
+    game: 'collect', R: 11, icon: '✦', stars: [25, 60, 100],
+    how: 'Gather the lanterns. Clear them all and a new round lights up.\nThe blue wisps break your streak — dash (A) straight through them.',
+    P: { count: 10, time: 60, waves: true, shape: 'ball', col: [0xff7ab6, 0xffd77e, 0xff9a62], hazards: 3, hazard: () => critter('wisp'), hazPop: 'wisp!', note: '' },
     build(b, c) {
       sky(0x070b24, 0x1b1d4d, 0x05060f, 500); lights(0x7f8fe8, 0x2a4a44, 2.6, 0xc9d2ff, 1.9, -4, 9, 5); fog(0x0c0f2c, 16, 46); orb(-40, 46, -90, 5, 0xdfe6ff, 1.6);
       island(b, 11, 0x1f4a3a, 0x2c2a3f);
@@ -32,10 +31,9 @@ export const LEVELS = [
     } },
 
   /* ───────────── 2 · THE JITNEY ───────────── */
-  { id: 'jitney', kicker: '2024 · Brooklyn ⇄ the East End', title: 'The Jitney Years', sub: 'two tickets. every time.',
-    game: 'runner', icon: '➤', stars: [15, 28, 38],
+  { id: 'jitney', shot: [0, 0], prop: 'croissant', caption: 'the 5:41 out east', kicker: '2024 · Brooklyn ⇄ the East End', title: 'The Jitney Years', sub: 'two tickets. every time.',
+    game: 'runner', icon: '➤', stars: [30, 70, 110],
     how: 'Get out east. Grab the croissants.\n◀ ▶ change lane · A jump the low ones',
-    caption: 'a relationship measured in bus receipts',
     P: { time: 38, col: 0xffc65c, obsCol: [0xe5484d, 0x3d8bd9, 0xf2efe6], hitPop: 'traffic', note: '', postCol: 0xffd9a0 },
     build(b, c) {
       sky(0x2a1f5c, 0xff9a62, 0x40224a, 120); lights(0xffb38a, 0x4a3a5a, 2.0, 0xffc890, 2.2, -6, 5, -10); fog(0xd98a72, 28, 95); orb(0, 9, -150, 16, 0xffb060, 1.8);
@@ -46,12 +44,32 @@ export const LEVELS = [
       b.box(-5.6, 0, -16, .15, 3, .15, 0x3b3b4a); b.box(-5.6, 2.2, -16, 2.6, 1.2, .1, 0x2f7a4a); b.box(-5.6, 2.55, -15.94, 2, .16, .05, 0xffffff, 0, 1.6);   // exit sign
     } },
 
-  /* ───────────── 3 · POW WOW ───────────── */
-  { id: 'powwow', kicker: 'Labor Day 2024 · Shinnecock', title: 'Pow Wow', sub: 'the last day was the best day.',
-    game: 'collect', R: 12, icon: '☀', stars: [6, 10, 12],
-    how: 'Do a lap of the vendors while the drum keeps time.\nCollect the fry bread. A near someone to talk.',
-    caption: 'crispy fry bread, bells and jingles',
-    P: { count: 12, time: 55, shape: 'coin', col: 0xffc65c, note: '',
+  /* ───────────── 3 · METAH'S WEDDING ───────────── */
+  { id: 'metah', shot: [0, .4], prop: 'toast', caption: 'dressed up, glass up',
+    outfit: { him: { top: 0x2a2a33, legs: 0x2a2a33, tie: 0xc9b6e6 }, her: { top: 0xf2c9c2, dots: 0xd9628a } },
+    kicker: 'August 24, 2024 · Portland, Oregon', title: "Metah's Wedding", sub: 'a hectic week. one perfect afternoon.',
+    game: 'catcher', icon: '❀', stars: [40, 80, 120],
+    how: 'Petals are coming down over the garden.\nCatch them, and the bouquet for +3. It is Portland: dodge the rain.\nSTICK move · A dash',
+    P: { time: 38, every: .55, width: 6, shape: 'heart', col: 0xff9ab8, gold: 0xffffff, badCol: 0x6f8fb0, bad: .2, badPop: 'portland rain', goldPop: 'bouquet! +3', note: '' },
+    build(b, c) {
+      sky(0x6fb2e8, 0xfff0d0, 0xa8c8a0); lights(0xdfeeff, 0x7a9a5a, 1.7, 0xfff2d0, 2.2, -5, 10, 7); fog(0xfff0d8, 30, 110); orb(-50, 44, -120, 10, 0xfff6c8, 2);
+      b.box(0, -.4, 0, 40, .4, 16, 0x7fb86a); b.box(0, 0, 1, 3, .03, 9, 0xf2e6d0);                                          // lawn + aisle
+      b.cone(-26, 0, -90, 26, 30, 0x7f95b8, 6); b.cone(-26, 19, -90, 9.6, 11.2, 0xffffff, 6);                                // Mt. Hood
+      for (let i = 0; i < 9; i++) { const x = -16 + i * 4; b.box(x, 0, -4.6, 3.9, 1.5 + (i % 2) * .3, 1.2, i % 2 ? 0x4f8f52 : 0x5a9a58);
+        for (let k = 0; k < 5; k++) b.ball(x - 1.6 + k * .8, 1.3 + ((i + k) % 3) * .22, -3.95, .16, [0xff9ab8, 0xffffff, 0xffd27a, 0xd9628a][(i + k) % 4]); }
+      b.box(-1.7, 0, -3.4, .2, 3.4, .2, 0xffffff); b.box(1.7, 0, -3.4, .2, 3.4, .2, 0xffffff); b.box(0, 3.4, -3.4, 3.9, .24, .24, 0xffffff);            // the arch
+      for (let i = 0; i < 11; i++) b.ball(-1.75 + i * .35, 3.6 + Math.sin(i * 1.3) * .14, -3.3, .26, [0xff9ab8, 0xffffff, 0xd9628a, 0x8fbf7a][i % 4]);
+      for (const s of [-1, 1]) for (let r = 0; r < 2; r++) for (let k = 0; k < 4; k++) { const x = s * (3 + k * 1.1), z = -1.6 - r * 1.2; b.box(x, 0, z, .5, .5, .5, 0xffffff); b.box(x, .5, z - .22, .5, .6, .06, 0xffffff); }
+      for (const [x, z, sc] of [[-9, -7, 2], [9, -7.5, 2.3], [-14, -8, 1.8], [14, -7, 1.9], [0, -9, 2.4]]) tree(b, x, z, sc, 0x4f9a5a);
+      stringLights(b, -9, -3.6, 9, -3.6, 4.4, [0xffd27a, 0xffffff], 18, 1);
+      c.amb.push(ambient({ n: 70, col: 0xffb3d1, size: .12, area: 11, h: 9, vy: -.7, add: false, opacity: .85 }));
+    } },
+
+  /* ───────────── 4 · POW WOW ───────────── */
+  { id: 'powwow', shot: [0, 6.6], prop: 'frybread', caption: 'crispy fry bread, last day', kicker: 'Labor Day 2024 · Shinnecock', title: 'Pow Wow', sub: 'the last day was the best day.',
+    game: 'collect', R: 12, icon: '☀', stars: [20, 45, 75],
+    how: 'Collect the fry bread, round after round.\nThe gulls want it too — dash (A) past them. A near her cousin to talk.',
+    P: { count: 10, time: 60, waves: true, shape: 'coin', col: 0xffc65c, hazards: 3, hazard: () => critter('gull'), hazPop: 'gull!', hazSpeed: 1.2, note: '',
       npcs: [{ x: 3.4, z: 1.6, name: 'her cousin', look: { skin: 0xb9794f, hair: 0x15100e, top: 0xe5484d, legs: 0x2b2b3a, style: 'long' },
         lines: ['you came on the right day. the last day is the good one.', 'he said my dance looked like praising the sun. i am choosing to take that well.', 'get the fry bread while it is still crispy.'] }] },
     build(b, c) {
@@ -68,10 +86,9 @@ export const LEVELS = [
     } },
 
   /* ───────────── 4 · THE WEDDING ───────────── */
-  { id: 'wedding', kicker: 'September 7, 2024', title: "Anthony & Nicka's Wedding", sub: 'red pants. rain jacket. no regrets.',
-    game: 'rhythm', icon: '♪', stars: [35, 75, 110],
+  { id: 'wedding', shot: [0, 1.2], prop: 'toast', caption: 'we closed the dance floor', outfit: { him: { top: 0x2a2a33, tie: 0x8a2a3a, legs: 0xc2313a } }, kicker: 'September 7, 2024', title: "Anthony & Nicka's Wedding", sub: 'red pants. rain jacket. no regrets.',
+    game: 'rhythm', icon: '♪', stars: [80, 200, 320],
     how: 'Own the dance floor.\n◀ and ▶ on the stick, A in the middle — hit them on the line.',
-    caption: 'we closed the dance floor',
     P: { time: 36, bpm: 112, bass: [110, 130.8, 146.8, 98] },
     build(b, c) {
       sky(0x0a0820, 0x2a1548, 0x05040c, 400); lights(0xa99af0, 0x3a2a55, 2.4, 0xffc8a0, 2.0, 3, 8, 6); fog(0x140c2c, 18, 55);
@@ -88,10 +105,9 @@ export const LEVELS = [
     } },
 
   /* ───────────── 5 · NEW ORLEANS ───────────── */
-  { id: 'nola', kicker: 'April 2025 · French Quarter', title: 'New Orleans', sub: 'a wedding, a steamboat, a thunderstorm.',
-    game: 'catcher', icon: '⚜', stars: [20, 34, 46],
+  { id: 'nola', shot: [0, .4], prop: 'beignet', caption: 'powdered sugar in a thunderstorm', kicker: 'April 2025 · French Quarter', title: 'New Orleans', sub: 'a wedding, a steamboat, a thunderstorm.',
+    game: 'catcher', icon: '⚜', stars: [40, 80, 120],
     how: 'Frenchmen Street in the rain.\nCatch beignets and beads. Dodge the timeshare pitch.\nSTICK move · A dash',
-    caption: 'powdered sugar in a thunderstorm',
     P: { time: 40, every: .58, width: 6, shape: 'ball', col: 0xfff1d6, gold: 0xb04ad9, badCol: 0x8a8f9a, bad: .2, badPop: 'timeshare pitch!', goldPop: 'beads! +3', note: '' },
     build(b, c) {
       sky(0x1a1436, 0x4a2a5a, 0x0a0816); lights(0xa8a0f0, 0x3a3048, 2.5, 0xffc890, 2.0, -3, 8, 8); fog(0x241a3c, 16, 50);
@@ -108,10 +124,9 @@ export const LEVELS = [
     } },
 
   /* ───────────── 6 · WAITING FOR GODOT ───────────── */
-  { id: 'godot', kicker: 'October 22, 2025 · Hudson Theatre', title: 'Waiting for Godot', sub: 'he never shows. we did, barely.',
-    game: 'runner', icon: '★', stars: [15, 28, 38],
+  { id: 'godot', shot: [0, 0], prop: 'playbill', caption: 'nothing happens, twice. we loved it.', kicker: 'October 22, 2025 · Hudson Theatre', title: 'Waiting for Godot', sub: 'he never shows. we did, barely.',
+    game: 'runner', icon: '★', stars: [30, 70, 110],
     how: 'Curtain is at 2:00. Midtown is in the way.\n◀ ▶ change lane · A jump the low ones',
-    caption: 'nothing happens, twice. we loved it.',
     P: { time: 38, col: 0xffd77e, shape: 'heart', obsCol: [0xffd23a, 0x8a8f9a, 0xff7ab6], hitPop: 'tourists', note: '', postCol: 0xff7ab6 },
     build(b, c) {
       sky(0x0a0a22, 0x3a1a4a, 0x05050c, 200); lights(0xb0a2f0, 0x3a2a55, 2.5, 0xff9ad0, 2.0, 4, 8, 6); fog(0x1c1030, 22, 85);
@@ -125,15 +140,14 @@ export const LEVELS = [
     } },
 
   /* ───────────── 7 · NOVEMBER 19 ───────────── */
-  { id: 'birthday', kicker: 'November 19 · today', title: 'Happy Birthday', sub: 'one key for every year.',
+  { id: 'birthday', shot: [0, -8.1], prop: 'cake', caption: 'my only one', kicker: 'November 19 · today', title: 'Happy Birthday', sub: 'one key for every year.',
     game: 'collect', R: 12, icon: '♥', stars: [1, 2, 3], finale: true,
-    how: 'The old town again, a little less bleak.\nFind the three keys, then open your present on the dock.',
-    caption: 'year three. still playing.',
-    P: { count: 3, shape: 'ring', col: 0xffd77e, goal: { x: 0, z: -9.3 }, goalNote: 'three keys. go open your present. (A)',
+    how: 'The old town again, a little less bleak.\nFind the three keys, then open the box on the dock.',
+    P: { count: 3, shape: 'ring', col: 0xffd77e, goal: { x: 0, z: -9.3 }, goalNote: 'three keys. go open the box. (A)',
       npcs: [
         { x: -4.5, z: 2.5, name: 'npc', look: { skin: 0xcfb98a, hair: 0x555060, top: 0xa09060, legs: 0x2a4a35 }, lines: ['you are dreaming. probably. happy birthday anyway.', 'five keys last time. three now. inflation, but backwards.', 'i used to be a person. now i am dialogue. she still looks great though.'] },
         { x: 5, z: -1.5, name: 'npc', look: { skin: 0xe0b890, hair: 0x7a4a2a, top: 0x6a7ac8, legs: 0x3b3030, style: 'bun' }, lines: ['he loves you more than pizza.', 'i am told you love pizza more. this is fine.', 'saw seven blue jays today. felt like a sign.'] },
-        { x: -1.6, z: -5.6, name: 'npc', look: { skin: 0xb9794f, hair: 0x15100e, top: 0x4fae6a, legs: 0x2b2b3a }, lines: ['the dock used to lead nowhere. now there is a box on it.', 'time is not real. three years is, though.'] }] },
+        { x: -4.2, z: -6.2, name: 'npc', look: { skin: 0xb9794f, hair: 0x15100e, top: 0x4fae6a, legs: 0x2b2b3a }, lines: ['the dock used to lead nowhere. now there is a box on it.', 'time is not real. three years is, though.'] }] },
     build(b, c) {
       sky(0x0b0a24, 0x2c1f55, 0x05050f, 600); lights(0x9aa2f0, 0x2a4a44, 2.6, 0xd9d4ff, 1.9, -4, 9, 5); fog(0x12102e, 18, 52); orb(40, 50, -100, 6, 0xfff0d0, 1.7);
       island(b, 12, 0x2f6a4a, 0x2c2a3f);

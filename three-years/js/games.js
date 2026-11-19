@@ -23,14 +23,16 @@ function follow(ch, tx, tz, dt, gap = 1.3, speed = 4.6) {
 /* ============ COLLECT: roam a diorama, grab everything, dodge hazards ============ */
 export function collect(ctx) {
   const P = ctx.P, n = P.count, me = ctx.me, pal = ctx.pal, R = ctx.R;
-  const spots = []; let guard = 0;
-  while (spots.length < n && guard++ < 4000) {
-    const a = ctx.rnd() * 6.283, r = 1.5 + Math.sqrt(ctx.rnd()) * (R - 2.6), x = Math.cos(a) * r, z = Math.sin(a) * r;
-    if (Math.hypot(x - ctx.spawn.x, z - ctx.spawn.z) < 2.5) continue;
-    if (ctx.colliders.some((c) => Math.hypot(x - c.x, z - c.z) < c.r + .7)) continue;
-    if (spots.some((s) => Math.hypot(x - s.x, z - s.z) < 1.6)) continue;
-    spots.push({ x, z, on: true });
-  }
+  const spots = [];
+  const place = () => { spots.length = 0; let guard = 0;
+    while (spots.length < n && guard++ < 4000) {
+      const a = ctx.rnd() * 6.283, r = 1.5 + Math.sqrt(ctx.rnd()) * (R - 2.6), x = Math.cos(a) * r, z = Math.sin(a) * r;
+      if (wave === 1 && Math.hypot(x - ctx.spawn.x, z - ctx.spawn.z) < 2.5) continue;
+      if (ctx.colliders.some((c) => Math.hypot(x - c.x, z - c.z) < c.r + .7)) continue;
+      if (spots.some((s) => Math.hypot(x - s.x, z - s.z) < 1.6)) continue;
+      spots.push({ x, z, on: true });
+    } };
+  let wave = 1; place(); ctx.spots = spots;
   const it = items(spots.length, P.shape || 'coin', P.col || 0xffd77e);
   const haz = [];
   for (let i = 0; i < (P.hazards || 0); i++) { const h = P.hazard(i); world.add(h); haz.push({ o: h, r: 2.5 + ctx.rnd() * (R - 4), a: ctx.rnd() * 6.283, w: (ctx.rnd() < .5 ? -1 : 1) * (.35 + ctx.rnd() * .35) * (P.hazSpeed || 1) }); }
@@ -38,7 +40,7 @@ export function collect(ctx) {
   let T = P.time || 0, left = spots.length, dash = 0, cd = 0, stun = 0, talking = null, goal = null, beacon = null;
   const pick = (i, mine) => { const s = spots[i]; if (!s || !s.on) return; s.on = false; left--;
     if (mine) { ctx.add(1, s.x, .8, s.z); ctx.send('pick', i); me.cheer = .35; } else { FX.burst(s.x, .8, s.z, P.col || 0xffd77e, 8); Sfx.pick(); }
-    if (!left) { if (P.goal) { goal = P.goal; UI.note(P.goalNote || ''); Sfx.big(); beacon = items(1, 'ring', 0xffd77e, 3); } else ctx.finish(); } };
+    if (!left) { if (P.waves) { wave++; place(); left = spots.length; for (const h of haz) h.w *= 1.22; UI.pop('ROUND ' + wave); Sfx.big(); ctx.add(wave * 2); } else if (P.goal) { goal = P.goal; UI.note(P.goalNote || ''); Sfx.big(); beacon = items(1, 'ring', 0xffd77e, 3); } else ctx.finish(); } };
   ctx.on('pick', (i) => pick(i, false));
   UI.note(P.note || '');
   return {
@@ -64,7 +66,7 @@ export function collect(ctx) {
         if (s.on && Math.hypot(s.x - p.x, s.z - p.z) < .95) pick(i, true);
         it.set(i, s.x, .8 + Math.sin(t * 3 + i) * .15, s.z, s.on ? 1 : 0, t * 2 + i); }
       it.flush();
-      for (const h of haz) { h.a += h.w * dt; const x = Math.cos(h.a) * h.r, z = Math.sin(h.a) * h.r; h.o.position.set(x, 0, z); h.o.rotation.y = -h.a + (h.w > 0 ? Math.PI : 0);
+      for (const h of haz) { h.a += h.w * dt; const x = Math.cos(h.a) * h.r, z = Math.sin(h.a) * h.r; h.o.position.set(x, 0, z); h.o.rotation.y = -h.a + (h.w > 0 ? Math.PI : 0); h.o.position.y = Math.sin(t * 3 + h.r) * .15;
         if (stun <= 0 && dash <= 0 && Math.hypot(x - p.x, z - p.z) < (P.hazR || .9)) { stun = .7; ctx.add(-1); rumble(80, .4); Sfx.bad(); UI.pop(P.hazPop || 'oof'); } }
       if (beacon) { beacon.set(0, goal.x, 2.4 + Math.sin(t * 3) * .2, goal.z, 1.6, t * 2); beacon.flush(); }
       if (P.time) { T -= dt; UI.time(T); if (T <= 0) ctx.finish(); }
@@ -98,7 +100,7 @@ export function catcher(ctx) {
       else { palT -= dt; if (palT <= 0) { palT = 1 + Math.random() * 2; palX = (Math.random() * 2 - 1) * W; } const q = pal.g.position, d = palX - q.x; if (Math.abs(d) > .2) { q.x += Math.sign(d) * 3 * dt; pal.face = Math.sign(d) * 1.2; pal.anim(dt, .7); } else { pal.face = 0; pal.anim(dt, 0); } }
       for (let i = 0; i < sched.length; i++) { const s = sched[i];
         if (s.on !== 1) { it.set(i, 0, -5, 0, 0); continue; }
-        s.y -= (P.fall || 4.6) * dt;
+        s.y -= (P.fall || 4.6) * (1 + T / P.time * .7) * dt;
         if (s.y < 1.7 && s.y > .2 && Math.abs(s.x - p.x) < .85) { s.on = 2; ctx.send('pick', i);
           if (s.kind === 2) { ctx.add(-1); rumble(70, .35); Sfx.bad(); UI.pop(P.badPop || 'nope'); } else { ctx.add(s.kind ? 3 : 1, s.x, 1.4, 0); me.cheer = .3; if (s.kind) UI.pop(P.goldPop || '+3'); } }
         else if (s.y < 0) { s.on = 2; FX.burst(s.x, .1, 0, KC[s.kind], 4, 1.5, 4, .4, 1); }
@@ -124,7 +126,7 @@ export function runner(ctx) {
   return {
     cam() { Cam.set(0, 4.4, 8, 0, 1.2, -7); },
     update(dt, t) {
-      T += dt; const v = (stun > 0 ? 5 : 10 + T * .12); dist += v * dt; stun -= dt;
+      T += dt; const v = (stun > 0 ? 5 : 10 + T * .16); dist += v * dt; stun -= dt;
       if (Input.just.has('LEFT') && lane > 0) { lane--; Sfx.move(); } if (Input.just.has('RIGHT') && lane < 2) { lane++; Sfx.move(); }
       if ((Input.just.has('A') || Input.just.has('UP')) && me.y <= 0) { me.vy = 8.5; Sfx.jump(); }
       me.vy -= 24 * dt; me.y = Math.max(0, me.y + me.vy * dt); if (me.y <= 0) me.vy = 0;
@@ -177,9 +179,9 @@ export function rhythm(ctx) {
         for (const n of notes) if (!n.st && n.l === l) { const d = Math.abs(n.t - now); if (d < bd) { bd = d; best = n; } }
         if (best) { best.st = 1; combo++; const perfect = bd < .08; ctx.add(perfect ? 3 : 1, LX[l], .8, Z1); ctx.send('hit', l); me.cheer = .25; me.face += 1.57;
           UI.pop(perfect ? (combo > 7 ? `PERFECT ×${combo}` : 'PERFECT') : 'good'); }
-        else { combo = 0; Sfx.beep(140, .05, 'square', .05); } }
+        else { combo = 0; ctx.miss(); Sfx.beep(140, .05, 'square', .05); } }
       notes.forEach((n, i) => { const k = 1 - (n.t - now) / TRAVEL;
-        if (n.st || k < 0 || k > 1.12) { if (!n.st && k > 1.12) { n.st = 2; combo = 0; } it.set(i, 0, -9, 0, 0); return; }
+        if (n.st || k < 0 || k > 1.12) { if (!n.st && k > 1.12) { n.st = 2; combo = 0; ctx.miss(); } it.set(i, 0, -9, 0, 0); return; }
         it.set(i, LX[n.l], .4, lerp(Z0, Z1, k), 1.7 + Math.max(0, k - .9) * 3, 0); });
       for (let l = 0; l < 3; l++) { flash[l] = Math.max(0, flash[l] - dt * 5); pads.set(l, LX[l], .08, Z1, 1.9 + flash[l] * .8, 0); pads.m.setMatrixAt(l, _dash.makeRotationX(Math.PI / 2).scale(_sc.setScalar(1.9 + flash[l] * .8)).setPosition(LX[l], .08, Z1)); }
       it.flush(); pads.flush();

@@ -1,6 +1,6 @@
 // Three Years — flow: title → menu → (lobby) → level intro → play → memory card → finale.
-import { THREE, $, world, renderer, clearWorld, killTweens, tween, wait, fade, Cam, Input, Sfx, Net, UI, Store, App, setMode, start, snapshot, rng, params, lerp } from './engine.js';
-import { Batch, makeChar, FX } from './kit.js';
+import { THREE, $, world, renderer, clearWorld, killTweens, tween, wait, fade, Cam, Input, Sfx, Net, UI, Store, App, setMode, start, snapshot, flash, rng, params, lerp } from './engine.js';
+import { Batch, makeChar, FX, prop } from './kit.js';
 import { LEVELS, titleScene } from './levels.js';
 import * as GAMES from './games.js';
 import { CONFIG } from '../config.js';
@@ -41,7 +41,7 @@ function menu() {
 let bFn = null; const setB = (f) => { bFn = f; };
 function select() {
   const st = stars(), open = Object.keys(st).length;
-  UI.menu({ kicker: 'memories', title: 'Three years, in order', back: menu, items: LEVELS.map((l, i) => ({ label: `${l.icon} ${l.title}`, hint: l.id in st ? starStr(st[l.id]) : (i <= open ? 'new' : 'locked'), off: i > open && !params.has('all'), fn: () => { S.story = false; go(i); } })) });
+  UI.menu({ kicker: 'memories', title: 'Three years, in order', back: menu, items: LEVELS.map((l, i) => ({ label: `${l.icon} ${l.title}`, hint: l.id in st ? `${starStr(st[l.id])} ${Store.get('best', {})[l.id] || 0}` : (i <= open ? 'new' : 'locked'), off: i > open && !params.has('all'), fn: () => { S.story = false; go(i); } })) });
 }
 
 /* ───────── two player lobby ───────── */
@@ -79,17 +79,24 @@ const pressA = (tok) => new Promise((res) => { UI.tapA = true; const m = { updat
 async function play(i, seed) {
   await fade(0, .45);
   const tok = reset(), L = LEVELS[i], two = Net.open;
-  const meLook = CONFIG[S.who].look, palLook = CONFIG[S.who === 'her' ? 'him' : 'her'].look;
+  const other = S.who === 'her' ? 'him' : 'her', fit = L.outfit || {};
+  const meLook = { ...CONFIG[S.who].look, ...fit[S.who] }, palLook = { ...CONFIG[other].look, ...fit[other] };
   const me = makeChar(meLook), pal = makeChar(palLook);
   let mine = 0; S.theirs = 0; S.theirReady = false;
   const net = { x: 0, z: 0, f: 0, y: 0, s: 0, has: false };
   const ctx = S.ctx = { L, P: L.P, R: L.R || 12, rnd: rng(seed), me, pal, colliders: [], amb: [], spawn: { x: 0, z: 4 }, storm: false, done: false,
     get twoP() { return Net.open; },
     send(k, d) { Net.send(k, d); }, on(k, fn) { Net.on(k, fn); },
-    add(n, x, y, z) { mine = Math.max(0, mine + n); UI.score(mine + S.theirs, L.icon); Net.send('score', mine); if (n > 0) { Sfx.pick(); if (x != null) FX.burst(x, y, z, L.P.col || 0xffd77e, 10); } },
+    // every good thing in a row builds a streak; every 5 raises the multiplier (max x4). getting hit resets it.
+    streak: 0, get mult() { return Math.min(4, 1 + Math.floor(this.streak / 5)); },
+    add(n, x, y, z) {
+      if (n > 0) { const m0 = this.mult; this.streak++; n *= m0; if (this.mult > m0) { UI.pop('×' + this.mult); Sfx.big(); } else Sfx.pick(); if (x != null) FX.burst(x, y, z, L.P.col || 0xffd77e, 8 + m0 * 3); }
+      else this.streak = 0;
+      mine = Math.max(0, mine + n); UI.score(mine + S.theirs, L.icon, this.mult); Net.send('score', mine); },
+    miss() { this.streak = 0; UI.score(mine + S.theirs, L.icon, 1); },
     palNet(dt) { if (!net.has) { pal.anim(dt, 0); return; } const p = pal.g.position, k = 1 - Math.exp(-14 * dt); p.x = lerp(p.x, net.x, k); p.z = lerp(p.z, net.z, k); pal.y = net.y; pal.face = net.f; pal.anim(dt, net.s); },
     finish() { if (!ctx.done) { ctx.done = true; outro(tok, i, mine); } } };
-  Net.on('pos', (d) => { Object.assign(net, d); net.has = true; }); Net.on('score', (n) => { S.theirs = n; UI.score(mine + S.theirs, L.icon); });
+  Net.on('pos', (d) => { Object.assign(net, d); net.has = true; }); Net.on('score', (n) => { S.theirs = n; UI.score(mine + S.theirs, L.icon, ctx.mult); });
   Net.on('ready', () => { S.theirReady = true; });
   const b = new Batch(); L.build(b, ctx); b.build(); S.amb = ctx.amb;
   me.g.position.set(ctx.spawn.x, 0, ctx.spawn.z); pal.g.position.set(ctx.spawn.x + 1.2, 0, ctx.spawn.z + .6); me.face = pal.face = Math.PI; world.add(me.g, pal.g);
@@ -110,7 +117,10 @@ async function play(i, seed) {
     if (Net.isHost) { while (!S.theirReady && Net.open && tok === S.run) await wait(.1); Net.send('start'); }
     else await new Promise((res) => { Net.on('start', res); const iv = setInterval(() => { if (!Net.open || tok !== S.run) { clearInterval(iv); res(); } }, 300); }); }
   if (tok !== S.run) return;
-  UI.panel(null); UI.hud(true, L.title); UI.score(0, L.icon); UI.time(L.P.time || null); UI.pop('GO'); Sfx.big(); Cam.k = 4.5;
+  UI.panel(null); UI.hud(true, L.title); UI.score(0, L.icon, 1); UI.time(L.P.time || null); Cam.k = 4.5;
+  setMode({ update(dt, t) { common(dt, t); S.idle(dt, t); game.cam(); } });
+  for (const n of ['3', '2', '1']) { UI.pop(n); Sfx.beep(440, .12, 'square', .14); await wait(.6); if (tok !== S.run) return; }
+  UI.pop('GO'); Sfx.beep(880, .3, 'square', .16);
   let acc = 0;
   setMode({ update(dt, t) { common(dt, t); if (ctx.done) return; game.update(dt, t);
       acc += dt; if (Net.open && acc > .07) { acc = 0; const p = me.g.position; Net.send('pos', { x: +p.x.toFixed(2), z: +p.z.toFixed(2), f: +me.face.toFixed(2), y: +me.y.toFixed(2), s: Math.min(1.2, Math.hypot(Input.axis.x, Input.axis.y) + (L.game === 'runner' ? 1 : 0)) }); } },
@@ -124,58 +134,66 @@ function pause(tok) {
   UI.menu({ kicker: 'paused', title: 'Take a breath', back: resume, items: [{ label: 'RESUME', fn: resume }, { label: 'QUIT TO MENU', fn: () => title(false) }] });
 }
 
-/* ───────── outro: the memory card ───────── */
+/* ───────── outro: score card ───────── */
 async function outro(tok, i, mine) {
   const L = LEVELS[i], ctx = S.ctx, me = ctx.me, pal = ctx.pal, total = mine + S.theirs;
   if (S.game && S.game.dispose) { S.game.dispose(); S.game.dispose = null; }
   UI.hud(false); UI.say(); Sfx.big();
   const n = L.stars.filter((s) => total >= s).length, st = stars(); st[L.id] = Math.max(st[L.id] || 0, n); Store.set('stars', st);
+  const bests = Store.get('best', {}), prev = bests[L.id] || 0, record = total > prev; if (record) { bests[L.id] = total; Store.set('best', bests); }
   const p = me.g.position; if (L.game !== 'collect') pal.g.position.set(p.x + 1.1, 0, p.z); pal.y = me.y = 0; me.body.rotation.z = 0; me.face = .2; pal.face = -.2;
   S.idle = (dt) => { me.cheer = pal.cheer = .2; me.anim(dt, 0); pal.anim(dt, 0); };
   setMode({ update(dt, t) { common(dt, t); S.idle(dt, t); if (Math.random() < dt * 2.5) FX.confetti(p.x + (Math.random() - .5) * 5, 3 + Math.random() * 2, p.z + (Math.random() - .5) * 3, 16); } });
   UI.cine(true); Cam.k = 2.2; Cam.set(p.x + 2.6, 2.3, p.z + 5.2, p.x + .5, 1.1, p.z);
   FX.confetti(p.x, 2.5, p.z, 70);
   await wait(1.5); if (tok !== S.run) return;
-  const snap = snapshot();
+  const snap = await photo(tok, L, ctx); if (tok !== S.run) return;
   if (L.finale) return finale(tok, snap);
-  const cap = CONFIG.captions[L.id] || L.caption, last = i === LEVELS.length - 1, canNext = !Net.open || Net.isHost;
-  UI.panel(`<div class="kicker">memory saved · ${L.kicker}</div><div class="stars">${starStr(n)}</div>
-    <div class="polaroid" id="pol"><img alt="" src="${snap}"/><span>${cap}</span></div>
-    <p>${L.icon} ${total}${Net.open ? ` &nbsp;(you ${mine} + ${S.theirs})` : ''}</p>
-    <div class="hint">${canNext ? `A · ${S.story && !last ? 'next memory' : 'back to memories'} &nbsp; B · replay` : 'waiting for player 1…'}</div>`);
-  const real = new Image(); real.onload = () => { const im = document.querySelector('#pol img'); if (im) im.src = real.src; }; real.src = `photos/${L.id}.jpg`;
-  requestAnimationFrame(() => { const e = $('#pol'); e && e.classList.add('on'); });
+  const last = i === LEVELS.length - 1, canNext = !Net.open || Net.isHost, need = L.stars[Math.min(n, 2)];
+  UI.panel(`<div class="kicker">${L.kicker}</div>
+    <div class="polaroid" id="pol"><img alt="" src="${snap}"/><span>${L.caption}</span></div>
+    <p><span class="stars" style="font-size:18px;letter-spacing:3px">${starStr(n)}</span> &nbsp; <b style="color:var(--gold);font-size:15px">${L.icon} ${total}</b></p>
+    <p>${Net.open ? `you ${mine} + ${S.theirs} &nbsp;·&nbsp; ` : ''}${record ? 'new best!' : 'best ' + prev}${n < 3 ? ` &nbsp;·&nbsp; next ★ at ${need}` : ''}</p>
+    <div class="hint">${canNext ? `A · ${S.story && !last ? 'next level' : 'level select'} &nbsp; B · retry` : 'waiting for player 1…'}</div>`).classList.add('dark');
+  requestAnimationFrame(() => requestAnimationFrame(() => { const e = $('#pol'); e && e.classList.add('on'); }));
   if (!canNext) { setB(null); return; }
   setB(() => go(i));
   await wait(.6); await pressA(tok);
   if (S.story && !last) go(i + 1); else { Net.send('menu'); title(false); }
 }
 
+/* the reward: pose the two of them in the diorama, flash, keep the picture */
+async function photo(tok, L, ctx) {
+  const me = ctx.me, pal = ctx.pal, her = S.who === 'her' ? me : pal, him = her === me ? pal : me;
+  const [cx, cz] = L.shot || [me.g.position.x, me.g.position.z];
+  her.g.position.set(cx - .43, 0, cz); him.g.position.set(cx + .43, 0, cz);
+  for (const c of [her, him]) { c.y = 0; c.cheer = 0; c.body.position.y = 0; c.body.rotation.y = c.face = c === her ? .14 : -.14; }
+  her.body.rotation.z = -.07; him.body.rotation.z = .07;
+  her.hold = [[0, .12], [-1.45, -.22]]; him.hold = [[-1.45, .22], [0, -.12]];
+  const fl = new THREE.PointLight(0xfff4e0, 8, 9, 1.6); fl.position.set(cx + .2, 1.9, cz + 2.2); world.add(fl);
+  const pr = prop(L.prop); pr.position.set(cx, .88, cz + .5); world.add(pr);
+  S.idle = (dt) => { her.anim(0, 0); him.anim(0, 0); };
+  setMode({ update(dt, t) { common(dt, t); S.idle(dt, t); } });
+  UI.cine(false); Cam.k = 60; Cam.set(cx + .2, 1.5, cz + 2.5, cx, 1.02, cz + .1); Cam.snap();
+  await wait(.9); if (tok !== S.run) return '';
+  const snap = snapshot(); Sfx.noise(.07, .35); Sfx.beep(1800, .05, 'square', .08); flash();
+  await wait(.75); return snap;
+}
+
 async function finale(tok, snap) {
   const B = CONFIG.birthday, ctx = S.ctx, g = ctx.P.goal;
-  ctx.me.g.position.set(g.x - 1.3, 0, g.z + .6); ctx.pal.g.position.set(g.x + 1.3, 0, g.z + .6); ctx.me.face = .5; ctx.pal.face = -.5;
+  UI.cine(true);
   Cam.k = 1.6; Cam.set(g.x, 3, g.z + 7.6, g.x, 2.3, g.z - 1); FX.confetti(g.x, 1.6, g.z - 1.3, 90);
   let ft = 0;
-  const cheer = (dt) => { ctx.me.cheer = ctx.pal.cheer = .2; ctx.me.anim(dt, 0); ctx.pal.anim(dt, 0); };
-  S.idle = (dt) => { cheer(dt); ft -= dt; if (ft > 0) return; ft = .35 + Math.random() * .5; const c = [0xffd77e, 0xff7ab6, 0x7ad7ff, 0x9bff9b, 0xffffff][(Math.random() * 5) | 0];
+  S.idle = (dt) => { ctx.me.anim(0, 0); ctx.pal.anim(0, 0); ft -= dt; if (ft > 0) return; ft = .35 + Math.random() * .5; const c = [0xffd77e, 0xff7ab6, 0x7ad7ff, 0x9bff9b, 0xffffff][(Math.random() * 5) | 0];
     FX.burst(g.x + (Math.random() - .5) * 14, 6 + Math.random() * 5, g.z - 3 - Math.random() * 6, c, 34, 7, 3.5, 1.5, 3); Sfx.noise(.25, .05); Sfx.beep(500 + Math.random() * 500, .25, 'sine', .04, 0, -200); };
-  UI.card('November 19', B.heading, ''); await wait(3.4); if (tok !== S.run) return; UI.card();
-  UI.panel(`<div class="kicker">♥ for ${CONFIG.her.name}</div><h2>${B.heading}</h2><p>${B.message}</p><div class="hint">A · continue</div>`, true);
-  await wait(.8); await pressA(tok);
-  if (B.giftImage || B.giftText) {
-    UI.panel(`<div class="kicker">one more thing</div>${B.giftImage ? `<div class="polaroid" id="pol" style="width:min(58%,240px)"><img alt="" style="aspect-ratio:auto" src="${B.giftImage}"/><span>${B.giftText || ''}</span></div>` : `<h2>${B.giftText}</h2>`}<div class="hint">A · continue</div>`);
-    requestAnimationFrame(() => { const e = $('#pol'); e && e.classList.add('on'); }); Sfx.big(); await wait(1); await pressA(tok);
+  UI.card(B.kicker, B.heading, ''); await wait(4); if (tok !== S.run) return; UI.card();
+  for (const para of B.message) {
+    UI.panel(`<p style="font:italic 17px/1.5 var(--serif);color:#fff;max-width:30ch">${para}</p><div class="hint">A</div>`, true);
+    await wait(.7); await pressA(tok); if (tok !== S.run) return;
   }
-  const pics = (await Promise.all((CONFIG.gallery || []).map((src) => new Promise((res) => { const im = new Image(); im.onload = () => res(src); im.onerror = () => res(null); im.src = src; })))).filter(Boolean);
-  if (tok !== S.run) return;
-  if (pics.length) {
-    UI.panel(`<div class="kicker">the real ones</div><div class="polaroid" id="pol" style="width:min(50%,210px)"><img alt="" style="aspect-ratio:1/1" src="${pics[0]}"/><span>1 / ${pics.length}</span></div><div class="hint">A · skip</div>`);
-    let k = 0; const show = () => { const e = $('#pol'); if (!e) return; e.classList.remove('on'); e.style.transform = `rotate(${(k % 2 ? 3 : -3)}deg) scale(.5)`; e.querySelector('img').src = pics[k]; e.querySelector('span').textContent = `${k + 1} / ${pics.length}`;
-      requestAnimationFrame(() => requestAnimationFrame(() => { e.style.transform = `rotate(${(k % 2 ? 3 : -3)}deg) scale(1)`; e.classList.add('on'); })); Sfx.pick(); };
-    show(); const iv = setInterval(() => { k++; if (k >= pics.length || tok !== S.run || !$('#pol')) return clearInterval(iv); show(); }, 2600);
-    await Promise.race([pressA(tok), new Promise((r) => setTimeout(r, pics.length * 2600 + 1500))]); clearInterval(iv); if (tok !== S.run) return;
-  }
-  UI.panel(`<div class="kicker">the end · for now</div><div class="polaroid on" style="transition:none"><img alt="" src="${snap}"/><span>${CONFIG.captions.birthday || LEVELS[LEVELS.length - 1].caption}</span></div><p>made by ${CONFIG.him.name}, with love.<br>year four loads automatically.</p><div class="hint">A · back to title</div>`);
+  UI.panel(`<div class="polaroid" id="pol"><img alt="" src="${snap}"/><span>${LEVELS[LEVELS.length - 1].caption}</span></div><h2 style="font-size:clamp(17px,5.4vmin,26px)">${B.heading}</h2><p>${B.signoff}</p><div class="hint">A · back to title</div>`).classList.add('dark');
+  requestAnimationFrame(() => requestAnimationFrame(() => { const e = $('#pol'); e && e.classList.add('on'); }));
   await wait(.8); await pressA(tok); Net.send('menu'); title(false);
 }
 

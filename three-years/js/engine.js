@@ -235,13 +235,13 @@ export const UI = {
   card(kicker, title, sub) { const c = $('#card'); if (!title) { c.classList.remove('on'); return; }
     c.children[0].textContent = kicker || ''; c.children[1].textContent = title; c.children[3].textContent = sub || ''; c.classList.add('on'); },
   hud(on, title) { $('#hud').classList.toggle('on', on); if (title != null) $('#hudTitle').textContent = title; if (!on) $('#hudNote').textContent = ''; },
-  score(n, icon = '♥') { $('#hudScore').innerHTML = `${icon} <b>${n}</b>`; },
+  score(n, icon = '♥', mult = 1) { $('#hudScore').innerHTML = `${icon} <b>${n}</b>${mult > 1 ? ` <em>×${mult}</em>` : ''}`; },
   time(s) { const e = $('#hudTime'); e.textContent = s == null ? '' : `${Math.max(0, Math.ceil(s))}s`; e.style.visibility = s == null ? 'hidden' : 'visible'; e.classList.toggle('low', s != null && s < 6); },
   note(t) { $('#hudNote').textContent = t || ''; },
   pop(t) { const p = $('#pop'); p.textContent = t; p.classList.remove('go'); void p.offsetWidth; p.classList.add('go'); },
   toast(t) { const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(this._toastT); this._toastT = setTimeout(() => e.classList.remove('on'), 2200); },
   say(who, text) { const d = $('#dialog'); if (!text) { d.classList.remove('on'); return; } d.querySelector('.who').textContent = who || ''; d.querySelector('.txt').textContent = text; d.classList.add('on'); },
-  panel(html, clear = false) { const p = $('#panel'); this._menu = null; if (html == null) { p.classList.remove('on'); p.innerHTML = ''; return p; } p.innerHTML = html; p.classList.toggle('clear', clear); p.classList.add('on'); return p; },
+  panel(html, clear = false) { const p = $('#panel'); this._menu = null; if (html == null) { p.classList.remove('on'); p.innerHTML = ''; return p; } p.innerHTML = html; p.classList.remove('dark'); p.classList.toggle('clear', clear); p.classList.add('on'); return p; },
   // d-pad + tap navigable list. items: [{label, hint, off, fn}]
   menu({ kicker = '', title = '', text = '', items, back, clear = false, sel = 0 }) {
     const p = this.panel(`${kicker ? `<div class="kicker">${esc(kicker)}</div>` : ''}${title ? `<h2>${esc(title)}</h2>` : ''}${text ? `<p>${esc(text)}</p>` : ''}<div class="list"></div>`, clear);
@@ -285,5 +285,6 @@ export function start() {
       if (slow > 1.5) { slow = 0; frames = 0; if (pr > 1.01) { pr = Math.max(1, pr - .35); resize(); } else bloom.enabled = false; } }
   });
 }
-export function snapshot() { composer.render(0); try { return canvas.toDataURL('image/jpeg', .82); } catch (e) { return ''; } }
+export function snapshot() { composer.render(0); try { return canvas.toDataURL('image/jpeg', .86); } catch (e) { return ''; } }
+export function flash() { film.uniforms.uFade.value = 3.2; return tween(.55, (k) => { film.uniforms.uFade.value = lerp(3.2, 1, k); }, easeOut); }
 export { THREE };

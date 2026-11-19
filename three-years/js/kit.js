@@ -84,11 +84,17 @@ export function makeChar(o = {}) {
   b.ball(0, 1.34, -.03, .3, hair, 0, .82);                      // hair cap
   if (style === 'long') { b.box(0, .78, -.2, .5, .56, .16, hair); b.box(-.25, .95, -.05, .1, .34, .2, hair); b.box(.25, .95, -.05, .1, .34, .2, hair); }
   if (style === 'bun') b.ball(0, 1.66, -.1, .13, hair);
-  if (style === 'curly') { for (let i = 0; i < 9; i++) { const an = i / 9 * 6.283; b.ball(Math.sin(an) * .27, 1.3 + Math.cos(i * 2.4) * .07, -.06 + Math.cos(an) * .2, .15, hair); }
-    b.ball(-.3, 1.12, -.05, .14, hair); b.ball(.3, 1.12, -.05, .14, hair); b.ball(0, 1.05, -.27, .2, hair); b.ball(0, 1.56, -.02, .17, hair); }
-  if (o.beard) { b.ball(0, 1.14, .13, .2, o.beard, 0, .62); }
+  if (style === 'curly') { const h2 = o.hair2 || hair;
+    for (let i = 0; i < 11; i++) { const an = i / 11 * 6.283, f = Math.max(0, Math.cos(an)); b.ball(Math.sin(an) * .31, 1.32 + Math.cos(i * 2.4) * .06 + f * .24, -.06 + Math.cos(an) * (.24 - f * .12), .17 - f * .03, i % 3 ? hair : h2); }
+    for (const sx of [-1, 1]) { b.ball(sx * .34, 1.08, -.04, .17, hair); b.ball(sx * .3, .9, -.1, .14, h2); }
+    b.ball(0, 1.02, -.3, .24, hair); b.ball(0, 1.6, -.02, .2, h2); b.ball(-.14, 1.56, .14, .13, hair); b.ball(.15, 1.55, .13, .13, h2); }
+  if (style === 'short') b.box(0, 1.44, .12, .44, .1, .2, hair, 0, 0, -.25);
+  if (o.tie) { b.box(0, .62, .2, .16, .34, .08, 0xf2efe6); b.box(0, .64, .24, .06, .28, .04, o.tie); }
+  if (o.dots) for (let i = 0; i < 9; i++) { const an = i * 2.4; b.ball(Math.sin(an) * .25, .52 + (i % 4) * .11, Math.cos(an) * .25, .05, i % 2 ? o.dots : 0x8fbf7a); }
+  if (o.beard) { b.ball(0, 1.07, .08, .2, o.beard, 0, .5); b.box(-.2, 1.1, .1, .06, .2, .2, o.beard); b.box(.2, 1.1, .1, .06, .2, .2, o.beard); b.box(0, 1.185, .255, .16, .03, .03, o.beard); }
   if (o.cap) { b.ball(0, 1.42, -.02, .31, o.cap, 0, .55); b.box(0, 1.4, .26, .36, .04, .24, o.cap); }
-  b.ball(-.1, 1.27, .25, .035, 0x1a1420); b.ball(.1, 1.27, .25, .035, 0x1a1420);
+  b.ball(-.1, 1.29, .255, .042, 0x1a1420); b.ball(.1, 1.29, .255, .042, 0x1a1420);
+  b.box(0, 1.13, .262, .12, .028, .03, o.beard ? 0xf2d8cc : 0xa8483f); b.ball(-.16, 1.19, .21, .05, 0xf08a7a); b.ball(.16, 1.19, .21, .05, 0xf08a7a);
   b.build(body);
   const L = [], A = [];
   for (const sx of [-1, 1]) {
@@ -97,18 +103,44 @@ export function makeChar(o = {}) {
   }
   const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.position.y = .03; sh.renderOrder = 1; g.add(sh);
   g.scale.setScalar(scale);
-  const ch = { g, body, L, A, sh, ph: Math.random() * 6, face: 0, y: 0, vy: 0, cheer: 0,
+  const ch = { g, body, L, A, sh, ph: Math.random() * 6, face: 0, y: 0, vy: 0, cheer: 0, hold: null,
     // speed 0..1 drives the walk cycle; ch.y is the jump height
     anim(dt, speed = 0) {
       this.ph += dt * (4 + speed * 9); const sw = Math.sin(this.ph) * .9 * clamp(speed, 0, 1);
       L[0].rotation.x = sw; L[1].rotation.x = -sw;
-      if (this.cheer > 0) { this.cheer -= dt; A[0].rotation.z = -2.6; A[1].rotation.z = 2.6; A[0].rotation.x = A[1].rotation.x = 0; }
+      if (this.hold) { for (let i = 0; i < 2; i++) { A[i].rotation.x = this.hold[i][0]; A[i].rotation.z = this.hold[i][1]; } }
+      else if (this.cheer > 0) { this.cheer -= dt; A[0].rotation.z = -2.6; A[1].rotation.z = 2.6; A[0].rotation.x = A[1].rotation.x = 0; }
       else { A[0].rotation.z = A[1].rotation.z = 0; A[0].rotation.x = -sw; A[1].rotation.x = sw; }
       body.position.y = this.y + Math.abs(Math.sin(this.ph)) * .05 * (speed > .05 ? 1.6 : .5);
       let d = this.face - body.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); body.rotation.y += d * Math.min(1, dt * 12);
       sh.scale.setScalar(1 / (1 + this.y * .6));
     } };
   return ch;
+}
+
+/* what the two of them are holding in each level's polaroid */
+export function prop(kind) {
+  const g = new THREE.Group(), b = new Batch();
+  const glass = (x) => { b.cyl(x, 0, 0, .05, .02, 0xffffff, 1, 6, 1.4); b.cyl(x, .02, 0, .012, .14, 0xffffff, 1, 5, 1.4); b.cyl(x, .16, 0, .012, .09, 0xffb3c4, 8, 8, 1.5); };
+  if (kind === 'toast') { glass(-.09); glass(.09); }
+  else if (kind === 'lantern') { b.ball(0, .12, 0, .13, 0xffd77e, 3); b.cyl(0, .23, 0, .05, .04, 0x3b3030, 1, 6); b.cyl(0, 0, 0, .07, .03, 0x3b3030, 1, 6); }
+  else if (kind === 'croissant') { b.ball(-.1, .1, 0, .08, 0xd99a4a); b.ball(0, .14, 0, .1, 0xe0a85a); b.ball(.1, .1, 0, .08, 0xd99a4a);
+    b.box(-.75, -1.05, -.75, .9, 1.25, .16, 0x2f8a80); b.box(.75, -1.05, -.75, .9, 1.25, .16, 0x2f8a80); b.box(-.75, .2, -.75, .9, .14, .2, 0x3aa598); b.box(.75, .2, -.75, .9, .14, .2, 0x3aa598); }
+  else if (kind === 'frybread') { b.cyl(0, .06, 0, .17, .05, 0xe0b060, 1, 9); b.cyl(0, .02, 0, .2, .03, 0xf2efe6, 1, 9); }
+  else if (kind === 'beignet') { b.box(-.07, .04, 0, .13, .1, .13, 0xfff6e6, .3); b.box(.08, .04, .02, .13, .1, .13, 0xfff6e6, -.2); b.box(0, .13, 0, .12, .09, .12, 0xffffff, .6);
+    for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283; b.ball(Math.cos(a) * .22, -.06 + Math.abs(Math.sin(a)) * -.12, Math.sin(a) * .05, .03, [0xb04ad9, 0x4fae6a, 0xffd27a][i % 3], 1.6); } }
+  else if (kind === 'playbill') { b.box(0, 0, 0, .24, .32, .02, 0xffd23a); b.box(0, .24, .012, .24, .07, .01, 0x1c1a24); b.box(0, .05, .012, .16, .14, .01, 0xf2efe6); }
+  else if (kind === 'cake') { b.cyl(0, 0, 0, .19, .14, 0xff9ab8, 1, 12); b.cyl(0, .14, 0, .2, .03, 0xfff6e6, 1, 12); for (const x of [-.08, 0, .08]) { b.cyl(x, .17, 0, .012, .09, 0x7ad7ff, 1, 5); b.ball(x, .29, 0, .028, 0xffd77e, 4); } }
+  b.build(g); return g;
+}
+
+/* small roaming hazards for collect levels */
+export function critter(kind) {
+  const g = new THREE.Group(), b = new Batch();
+  if (kind === 'gull') { b.ball(0, 1.3, 0, .26, 0xf4f4f0, 0, .8); b.ball(0, 1.42, .28, .16, 0xf4f4f0); b.cone(0, 1.36, .4, .06, .2, 0xffa53a, 4);
+    b.box(-.5, 1.32, 0, .7, .05, .3, 0xd8dade, 0, 0, 0, .25); b.box(.5, 1.32, 0, .7, .05, .3, 0xd8dade, 0, 0, 0, -.25); b.box(0, 1.28, -.3, .2, .04, .3, 0x8a8f9a); }
+  else { b.ball(0, 1, 0, .34, 0x7ad7ff, 3); b.ball(0, 1, -.4, .2, 0x7ad7ff, 2); b.ball(0, 1, -.7, .12, 0x7ad7ff, 1.4); }
+  b.build(g); const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.position.y = .03; g.add(sh); return g;
 }
 
 /* ---------- sky dome + stars ---------- */
