@@ -483,6 +483,7 @@ Engine.register('boot', {
 Engine.register('menu', {
   cursor: 0,
   cartridges: [
+    { key:'threeYears', name:'THREE YEARS',     desc:'seven memories in 3D. solo or co-op.', enabled:true, href:'three-years/index.html' },
     { key:'feverDream', name:'FEVER DREAM',     desc:'escape the dream. solo or co-op.', enabled:true },
     { key:null,         name:'COUPLE QUIZ',     desc:'coming soon.', enabled:false },
     { key:null,         name:'DATE NIGHT CARDS',desc:'coming soon.', enabled:false },
@@ -506,7 +507,8 @@ Engine.register('menu', {
       Audio.cursor();
     } else if (action==='A' || action==='START'){
       const c = this.cartridges[this.cursor];
-      if (c.enabled && c.key){ Audio.confirm(); Engine.go(c.key); }
+      if (c.enabled && c.href){ Audio.confirm(); location.href = c.href; }
+      else if (c.enabled && c.key){ Audio.confirm(); Engine.go(c.key); }
       else Audio.cancel();
     } else if (action==='SELECT'){
       const m = Audio.toggleMute();
