@@ -1,6 +1,7 @@
 // The four mechanics every memory is built from. Each returns { cam(), update(dt,t), dispose?() }.
 // All randomness comes from ctx.rnd (seeded) so two phones build identical levels.
-import { THREE, world, Input, Cam, UI, Sfx, rumble, clamp, lerp } from './engine.js';
+import { THREE, world, Input, Cam, UI, Sfx, Music, rumble, clamp, lerp } from './engine.js';
+import { SONGS } from './songs.js';
 import { items, FX, makeChar } from './kit.js';
 
 /* shared: stick-relative free movement with circle colliders */
@@ -161,19 +162,15 @@ export function rhythm(ctx) {
   const it = items(notes.length, 'box', 0xffffff, 2.2); notes.forEach((n, i) => it.color(i, LC[n.l], 2.2));
   const pads = items(3, 'ring', LC, 1.2), flash = [0, 0, 0];
   me.g.position.set(-3.1, 0, 2); pal.g.position.set(3.1, 0, 2);
-  let t0 = Sfx.now() + .6, sched = 0, combo = 0, done = false;
-  Sfx.duck(0); UI.note('◀    A    ▶');
-  const bass = P.bass || [110, 110, 146.8, 98];
-  ctx.on('hit', () => { pal.cheer = .25; });
+  let t0 = null, combo = 0, done = false;
+  UI.note('◀    A    ▶');
+    ctx.on('hit', () => { pal.cheer = .25; });
   return {
     cam() { Cam.set(0, 6.4, 10.5, 0, .4, -3); },
     update(dt, t) {
+      // the chart is locked to the level's song: restart it on the first frame of play and read time off the audio clock
+      if (t0 === null) { Music.play(SONGS[ctx.L.id], .7); t0 = Sfx.ctx ? Music.t0 : Sfx.now() + .7; }
       const now = Sfx.now() - t0;
-      // audio scheduler: kick / hat / bass, a beat ahead
-      while (Sfx.ctx && sched * beat / 2 < now + .25 && sched < beats * 2) { const w = Math.max(0, sched * beat / 2 - now), b = sched / 2;
-        if (sched % 2 === 0) { Sfx.beep(120, .14, 'sine', .5, w, -70); Sfx.beep(bass[Math.floor(b / 4) % bass.length] * (b % 4 === 3 ? 1.5 : 1), beat * .8, 'triangle', .16, w); if (b % 2 === 1) Sfx.noise(.09, .16, w); }
-        else Sfx.noise(.03, .06, w);
-        sched++; }
       for (const a of ['LEFT', 'A', 'RIGHT']) if (Input.just.has(a) || (a === 'A' && (Input.just.has('UP') || Input.just.has('DOWN')))) {
         const l = a === 'LEFT' ? 0 : a === 'A' ? 1 : 2; flash[l] = 1; let best = null, bd = .2;
         for (const n of notes) if (!n.st && n.l === l) { const d = Math.abs(n.t - now); if (d < bd) { bd = d; best = n; } }
@@ -189,7 +186,6 @@ export function rhythm(ctx) {
       if (ctx.twoP) { pal.anim(dt, .2); pal.body.position.y += bop; } else { pal.anim(dt, .2); pal.body.position.y += bop; pal.face = Math.sin(now / beat * Math.PI / 2) * 1.2; if (Math.random() < dt * .6) pal.cheer = .3; }
       UI.time(P.time - now); if (now >= P.time && !done) { done = true; ctx.finish(); }
     },
-    dispose() { Sfx.duck(.32); },
   };
 }
 const _sc = new THREE.Vector3();

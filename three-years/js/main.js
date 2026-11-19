@@ -1,8 +1,9 @@
 // Three Years — flow: title → menu → (lobby) → level intro → play → memory card → finale.
-import { THREE, $, world, renderer, clearWorld, killTweens, tween, wait, fade, Cam, Input, Sfx, Net, UI, Store, App, setMode, start, snapshot, flash, bakeShadows, rng, params, lerp } from './engine.js';
+import { THREE, $, world, renderer, clearWorld, killTweens, tween, wait, fade, Cam, Input, Sfx, Net, UI, Store, App, setMode, start, snapshot, bakeShadows, Music, rng, params, lerp } from './engine.js';
 import { Batch, makeChar, FX, prop } from './kit.js';
 import { LEVELS, titleScene } from './levels.js';
 import * as GAMES from './games.js';
+import { SONGS } from './songs.js';
 import { CONFIG } from '../config.js';
 
 const S = { run: 0, game: null, ctx: null, amb: [], who: Store.get('who', 'her'), story: false, theirs: 0, theirReady: false, idle: null };
@@ -11,13 +12,14 @@ const starStr = (n) => '★'.repeat(n) + '<i>' + '★'.repeat(3 - n) + '</i>';
 const center = new THREE.Vector3();
 
 function common(dt, t) { for (const a of S.amb) a.update(dt, t); FX.update(dt);
-  if (S.ctx && S.ctx.storm) { if (Math.random() < dt * .22) { S.flash = 1; Sfx.noise(.5, .05, .15); } S.flash = Math.max(0, (S.flash || 0) - dt * 3.5); renderer.toneMappingExposure = 1.15 + S.flash * 1.6; } }
+  if (S.ctx && S.ctx.storm) { if (Math.random() < dt * .22) { S.flash = 1; Sfx.noise(.5, .05, .15); } S.flash = Math.max(0, (S.flash || 0) - dt * 3.5); renderer.toneMappingExposure = 1.15 + S.flash * .22; } }
 function reset() { S.run++; killTweens(); if (S.game && S.game.dispose) S.game.dispose(); S.game = null; S.ctx = null; S.amb = []; clearWorld(); renderer.toneMappingExposure = 1.15;
   UI.panel(null); UI.card(); UI.say(); UI.hud(false); UI.cine(false); UI.tapA = false; ['pick', 'hit', 'pos', 'score', 'ready', 'start'].forEach((k) => Net.off(k)); return S.run; }
 
 /* ───────── title ───────── */
 async function title(first) {
   const tok = reset(); S.story = false;
+  Music.track();
   const sc = titleScene(CONFIG.her.look, CONFIG.him.look); S.amb = [sc.amb]; bakeShadows();
   Cam.k = 2; let a = .6;
   setMode({ update(dt, t) { common(dt, t); a += dt * .12; Cam.set(Math.sin(a) * 13, 4.6 + Math.sin(a * .7), Math.cos(a) * 13, 0, 1.4, 0); for (const c of sc.chars) c.anim(dt, 0); },
@@ -98,6 +100,7 @@ async function play(i, seed) {
     finish() { if (!ctx.done) { ctx.done = true; outro(tok, i, mine); } } };
   Net.on('pos', (d) => { Object.assign(net, d); net.has = true; }); Net.on('score', (n) => { S.theirs = n; UI.score(mine + S.theirs, L.icon, ctx.mult); });
   Net.on('ready', () => { S.theirReady = true; });
+  Music.play(SONGS[L.id]);
   const b = new Batch(); L.build(b, ctx); b.build(); S.amb = ctx.amb; bakeShadows();
   me.g.position.set(ctx.spawn.x, 0, ctx.spawn.z); pal.g.position.set(ctx.spawn.x + 1.2, 0, ctx.spawn.z + .6); me.face = pal.face = Math.PI; world.add(me.g, pal.g);
   const game = S.game = GAMES[L.game](ctx);
@@ -177,12 +180,12 @@ async function photo(tok, L, ctx) {
   setMode({ update(dt, t) { common(dt, t); S.idle(dt, t); } });
   Cam.k = 60; Cam.set(cx, 2.3, cz + 3.6, cx, 1.0, cz); Cam.snap();
   await wait(.9); if (tok !== S.run) return '';
-  const snap = snapshot(); Sfx.noise(.07, .35); Sfx.beep(1800, .05, 'square', .08); flash();
+  const snap = snapshot(); Sfx.noise(.07, .35); Sfx.beep(1800, .05, 'square', .08); UI.pop('♥');
   await wait(.75); return snap;
 }
 
 async function finale(tok, snap) {
-  const B = CONFIG.birthday, ctx = S.ctx, g = ctx.P.goal;
+  const B = CONFIG.birthday, ctx = S.ctx, g = ctx.P.goal; Music.play(SONGS.hbd, .4);
   UI.cine(true);
   Cam.k = 1.6; Cam.set(g.x, 3.4, g.z + 9.2, g.x, .1, g.z + 3.2); FX.confetti(g.x, 1.6, g.z - 1.3, 90);
   let ft = 0;

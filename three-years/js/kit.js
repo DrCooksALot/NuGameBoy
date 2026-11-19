@@ -15,7 +15,7 @@ export class Batch {
   constructor() { this.p = []; this.n = []; this.c = []; this.gp = []; this.gc = []; this.i = 0; }
   add(geo, color, glow = 0) {
     const pos = geo.attributes.position, nor = geo.attributes.normal; _n.getNormalMatrix(_m); _c.set(color);
-    const j = glow ? glow : 1 + (((this.i++ * 7919) % 13) / 13 - .5) * .1; // subtle per-piece tint variation
+    const j = glow ? Math.min(glow, 1.25) : 1 + (((this.i++ * 7919) % 13) / 13 - .5) * .1; // subtle per-piece tint variation
     const P = glow ? this.gp : this.p, C = glow ? this.gc : this.c;
     for (let i = 0; i < pos.count; i++) {
       _v.fromBufferAttribute(pos, i).applyMatrix4(_m); P.push(_v.x, _v.y, _v.z);
@@ -198,7 +198,7 @@ export function lights(skyCol, groundCol, hemi, sunCol, sun, x = 5, y = 10, z = 
   world.add(h, d);
 }
 export function orb(x, y, z, r, col, k = 2.5) { // sun / moon
-  const m = new THREE.Mesh(G.ball, new THREE.MeshBasicMaterial({ color: new THREE.Color(col).multiplyScalar(k), fog: false })); m.position.set(x, y, z); m.scale.setScalar(r); world.add(m); return m;
+  const m = new THREE.Mesh(G.ball, new THREE.MeshBasicMaterial({ color: new THREE.Color(col).multiplyScalar(Math.min(k, 1.2)), fog: false })); m.position.set(x, y, z); m.scale.setScalar(r); world.add(m); return m;
 }
 
 /* ---------- ambient particles (fireflies / rain / snow / petals) ---------- */
@@ -206,7 +206,7 @@ export function ambient({ n = 120, col = 0xffe9a0, size = .14, area = 14, h = 7,
   const p = new Float32Array(n * 3), seed = new Float32Array(n);
   for (let i = 0; i < n; i++) { p[i * 3] = (Math.random() - .5) * area * 2; p[i * 3 + 1] = Math.random() * h; p[i * 3 + 2] = (Math.random() - .5) * area * 2; seed[i] = Math.random() * 6.28; }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3));
-  const pts = new THREE.Points(g, new THREE.PointsMaterial({ color: new THREE.Color(col).multiplyScalar(add ? 2 : 1), size, transparent: true, opacity, depthWrite: false, blending: add ? THREE.AdditiveBlending : THREE.NormalBlending }));
+  const pts = new THREE.Points(g, new THREE.PointsMaterial({ color: new THREE.Color(col).multiplyScalar(add ? 1.2 : 1), size, transparent: true, opacity, depthWrite: false, blending: add ? THREE.AdditiveBlending : THREE.NormalBlending }));
   pts.frustumCulled = false; world.add(pts);
   return { pts, update(dt, t) { for (let i = 0; i < n; i++) { const j = i * 3; p[j + 1] += vy * dt + Math.sin(t * .9 + seed[i]) * drift * dt * .5; p[j] += Math.cos(t * .6 + seed[i]) * drift * dt;
     if (p[j + 1] < 0) p[j + 1] += h; else if (p[j + 1] > h) p[j + 1] -= h; } g.attributes.position.needsUpdate = true; } };
@@ -221,7 +221,7 @@ export const FX = {
   burst(x, y, z, cols, n = 14, speed = 4, grav = 9, life = .9, k = 2.2) {
     for (let i = 0; i < n; i++) { const p = P[head], a = Math.random() * 6.283, u = Math.random() * 2 - 1, r = Math.sqrt(1 - u * u), s = speed * (.4 + Math.random() * .6);
       p.x = x; p.y = y; p.z = z; p.vx = Math.cos(a) * r * s; p.vy = Math.abs(u) * s + 1; p.vz = Math.sin(a) * r * s; p.life = life * (.6 + Math.random() * .6); p.g = grav;
-      inst.setColorAt(head, _c.set(Array.isArray(cols) ? cols[i % cols.length] : cols).multiplyScalar(k)); head = (head + 1) % N; }
+      inst.setColorAt(head, _c.set(Array.isArray(cols) ? cols[i % cols.length] : cols).multiplyScalar(Math.min(k, 1.25))); head = (head + 1) % N; }
     inst.instanceColor.needsUpdate = true;
   },
   confetti(x, y, z, n = 60) { this.burst(x, y, z, [0xffd77e, 0xff7ab6, 0x7ad7ff, 0x9bff9b, 0xffffff], n, 6, 5, 2.2, 1.6); },
@@ -239,7 +239,8 @@ export function items(n, shape = 'coin', col = 0xffd77e, k = 2) {
     : shape === 'ring' ? new THREE.TorusGeometry(.26, .08, 6, 12) : new THREE.CylinderGeometry(.3, .3, .1, 10).rotateX(Math.PI / 2);
   const m = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ fog: false }), n); m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   const cols = Array.isArray(col) ? col : [col];
+  k = Math.min(k, 1.25);
   for (let i = 0; i < n; i++) m.setColorAt(i, _c.set(cols[i % cols.length]).multiplyScalar(k));
   world.add(m);
-  return { m, set(i, x, y, z, s = 1, ry = 0) { _m.makeRotationY(ry).scale(_s.set(s, s, s)).setPosition(x, y, z); m.setMatrixAt(i, _m); }, color(i, c, kk = k) { m.setColorAt(i, _c.set(c).multiplyScalar(kk)); m.instanceColor.needsUpdate = true; }, flush() { m.instanceMatrix.needsUpdate = true; } };
+  return { m, set(i, x, y, z, s = 1, ry = 0) { _m.makeRotationY(ry).scale(_s.set(s, s, s)).setPosition(x, y, z); m.setMatrixAt(i, _m); }, color(i, c, kk = k) { m.setColorAt(i, _c.set(c).multiplyScalar(Math.min(kk, 1.25))); m.instanceColor.needsUpdate = true; }, flush() { m.instanceMatrix.needsUpdate = true; } };
 }
