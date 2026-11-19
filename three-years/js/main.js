@@ -19,7 +19,7 @@ function reset() { S.run++; killTweens(); if (S.game && S.game.dispose) S.game.d
 /* ───────── title ───────── */
 async function title(first) {
   const tok = reset(); S.story = false;
-  Music.play(SONGS.title);
+  Music.track();
   const sc = titleScene(CONFIG.her.look, CONFIG.him.look); S.amb = [sc.amb]; bakeShadows();
   Cam.k = 2; let a = .6;
   setMode({ update(dt, t) { common(dt, t); a += dt * .12; Cam.set(Math.sin(a) * 13, 4.6 + Math.sin(a * .7), Math.cos(a) * 13, 0, 1.4, 0); for (const c of sc.chars) c.anim(dt, 0); },

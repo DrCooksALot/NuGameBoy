@@ -142,7 +142,7 @@ export const rumble = (ms = 40, mag = .25) => { haptic(ms); Cam.shake = Math.max
 export const Sfx = {
   ctx: null, out: null, muted: !!Store.get('muted', false),
   ensure() {
-    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); if (Music.wantTrack && Music.bgm && Music.bgm.paused) Music.bgm.play().catch(() => {}); return; }
     try { const AC = window.AudioContext || window.webkitAudioContext; this.ctx = new AC(); this.out = this.ctx.createGain(); this.out.gain.value = this.muted ? 0 : .5; this.out.connect(this.ctx.destination); } catch (e) {}
     if (this.ctx) Music.kick();
   },
@@ -166,19 +166,21 @@ export const Sfx = {
   back() { this.beep(240, .09, 'square', .1); },
   jump() { this.beep(300, .16, 'square', .1, 0, 400); },
   dash() { this.noise(.09, .08); },
-  toggleMute() { this.muted = !this.muted; Store.set('muted', this.muted); if (this.out) this.out.gain.value = this.muted ? 0 : .5; return this.muted; },
+  toggleMute() { this.muted = !this.muted; Store.set('muted', this.muted); if (this.out) this.out.gain.value = this.muted ? 0 : .5; if (Music.bgm) Music.bgm.muted = this.muted; return this.muted; },
 };
-document.addEventListener('visibilitychange', () => { if (!Sfx.ctx) return; if (document.hidden) Sfx.ctx.suspend(); else Sfx.ctx.resume(); });
+document.addEventListener('visibilitychange', () => { if (!Sfx.ctx) return; if (document.hidden) { Sfx.ctx.suspend(); Music.bgm && Music.bgm.pause(); } else { Sfx.ctx.resume(); if (Music.wantTrack && Music.bgm) Music.bgm.play().catch(() => {}); } });
 
 /* ---------- music: a tiny 4-voice chiptune sequencer (lead, arpeggio, bass, drums). every song is in a major key ---------- */
 const MAJ = [0, 2, 4, 5, 7, 9, 11];
 const deg = (root, d) => root + 12 * Math.floor(d / 7) + MAJ[((d % 7) + 7) % 7];
 const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
 export const Music = {
-  song: null, t0: 0, step: 0, next: 0, timer: 0,
+  song: null, t0: 0, step: 0, next: 0, timer: 0, bgm: $('#bgm'), wantTrack: false,
+  // Boatfriend, the recorded track: plays on the title screen and menus. levels use the chiptunes below.
+  track() { this.stop(); this.song = null; this.wantTrack = true; if (this.bgm) { this.bgm.volume = .4; this.bgm.muted = Sfx.muted; if (Sfx.ctx) this.bgm.play().catch(() => {}); } },
   // song: { bpm, root (midi), beats (per bar), chords [scale degree per bar], lead [degree | null | '-' per 8th note], wave, drums, swing }
-  play(song, delay = .1) { this.stop(); this.song = song; if (!song || !Sfx.ctx) return; this.step = 0; this.t0 = this.next = Sfx.ctx.currentTime + delay; this.timer = setInterval(() => this.tick(), 50); this.tick(); },
-  kick() { if (this.song && !this.timer) this.play(this.song); },          // audio unlocked after the song was requested
+  play(song, delay = .1) { this.stop(); this.wantTrack = false; if (this.bgm) this.bgm.pause(); this.song = song; if (!song || !Sfx.ctx) return; this.step = 0; this.t0 = this.next = Sfx.ctx.currentTime + delay; this.timer = setInterval(() => this.tick(), 50); this.tick(); },
+  kick() { if (this.wantTrack) { if (this.bgm && this.bgm.paused) this.bgm.play().catch(() => {}); } else if (this.song && !this.timer) this.play(this.song); },          // audio unlocked after the song was requested
   stop() { clearInterval(this.timer); this.timer = 0; },
   tick() {
     const s = this.song, c = Sfx.ctx; if (!s || !c || c.state !== 'running') return; const e8 = 30 / s.bpm, per = s.beats * 2, len = s.chords.length * per;
