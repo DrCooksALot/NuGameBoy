@@ -13,8 +13,7 @@
   <link rel="modulepreload" href="./vendor/three/three.core.min.js" />
   <script type="importmap">
   { "imports": {
-      "three": "./vendor/three/three.module.min.js",
-      "three/addons/": "./vendor/three/addons/"
+      "three": "./vendor/three/three.module.min.js"
   } }
   </script>
   <style>
@@ -157,6 +156,7 @@
     #boot.off { opacity:0; pointer-events:none; }
     #boot b { font:700 22px var(--mono); letter-spacing:6px; color:var(--gold); }
     #lanes { z-index:4; display:none; }
+    #fade { position:absolute; inset:0; background:#0b0b18; opacity:1; pointer-events:none; z-index:2; }
 
     /* ===== 16-bit RPG chrome: blue gradient windows, white border, chunky type ===== */
     #screen { font:700 12px/1.5 "Courier New", ui-monospace, monospace; }
@@ -189,7 +189,7 @@
   <div class="screen-area">
     <div id="screen">
       <canvas id="gl" aria-label="Game screen"></canvas>
-      <div class="bar t"></div><div class="bar b"></div>
+      <div id="fade"></div>
       <div class="layer" id="hud">
         <span class="pillbox" id="hudTitle"></span>
         <span class="pillbox" id="hudTime"></span>
@@ -220,7 +220,6 @@
   </div>
 </div>
 
-<audio id="bgm" src="../assets/Boatfriend.mp3" loop preload="none"></audio>
 <script type="module" src="./js/main.js"></script>
 </body>
 </html>

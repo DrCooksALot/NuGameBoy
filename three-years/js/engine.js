@@ -1,11 +1,5 @@
 // NuGameBoy · Three Years — engine: renderer, post, loop, input, audio, net, UI.
 import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-
 export const $ = (s) => document.querySelector(s);
 export const isMobile = matchMedia('(pointer:coarse)').matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 export const params = new URLSearchParams(location.search);
@@ -26,7 +20,7 @@ export const Store = {
 /* ---------- renderer + post ---------- */
 const screenEl = $('#screen');
 const canvas = $('#gl');
-export const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, stencil: false, powerPreference: 'high-performance' });
+export const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, stencil: false, powerPreference: 'high-performance' });
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;   // static worlds: bake once per level
@@ -36,35 +30,18 @@ export const camera = new THREE.PerspectiveCamera(45, 4 / 3, 0.5, 400);
 export const world = new THREE.Group(); world.name = 'world';
 scene.add(world);
 
-const FilmShader = {
-  uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uFade: { value: 0 }, uVig: { value: 0 }, uGrain: { value: 0 } },
-  vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-  fragmentShader: `precision mediump float; uniform sampler2D tDiffuse; uniform float uTime,uFade,uVig,uGrain; varying vec2 vUv;
-    void main(){ vec4 c=texture2D(tDiffuse,vUv); float v=smoothstep(.95,.3,length(vUv-.5));
-      c.rgb*=mix(1.,v,uVig); float n=fract(sin(dot(vUv+fract(uTime),vec2(12.9898,78.233)))*43758.5453);
-      c.rgb+=(n-.5)*uGrain*(.25+dot(c.rgb,vec3(.33))); c.rgb*=uFade; gl_FragColor=c; }`,
-};
-const rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: isMobile ? 2 : 4 });
-const composer = new EffectComposer(renderer, rt);
-composer.addPass(new RenderPass(scene, camera));
-export const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), .3, .5, .92);
-composer.addPass(bloom);
-const film = new ShaderPass(FilmShader);
-composer.addPass(film);
-composer.addPass(new OutputPass());
-
-let pr = Math.min(devicePixelRatio || 1, isMobile ? 1.75 : 2);
+const fadeEl = $('#fade'); let fadeV = 0;
+const pr = Math.min(devicePixelRatio || 1, 2);
 function resize() {
   const w = screenEl.clientWidth, h = screenEl.clientHeight;
   if (!w || !h) return;
   renderer.setPixelRatio(pr); renderer.setSize(w, h, false);
-  composer.setPixelRatio(pr); composer.setSize(w, h);
   camera.aspect = w / h; camera.fov = camera.aspect < 1.2 ? 54 : 44; camera.updateProjectionMatrix();
 }
 new ResizeObserver(resize).observe(screenEl);
 resize();
 canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); UI.toast('graphics paused…'); });
-canvas.addEventListener('webglcontextrestored', () => { UI.toast('and we are back'); resize(); });
+canvas.addEventListener('webglcontextrestored', () => { UI.toast('and we are back'); resize(); renderer.shadowMap.needsUpdate = true; });
 
 /* recursive disposal; geometries/materials flagged keep are shared caches */
 export function disposeTree(obj) {
@@ -84,7 +61,7 @@ let tweens = [];
 export function tween(dur, fn, e = ease) { return new Promise((res) => tweens.push({ t: 0, dur, fn, e, res })); }
 export const wait = (s) => tween(s, () => {}, (x) => x);
 export function killTweens() { tweens = []; }
-export function fade(to, dur = .6) { const from = film.uniforms.uFade.value; return tween(dur, (k) => { film.uniforms.uFade.value = lerp(from, to, k); }); }
+export function fade(to, dur = .6) { const from = fadeV; return tween(dur, (k) => { fadeV = lerp(from, to, k); fadeEl.style.opacity = String(1 - fadeV); }); }
 
 /* ---------- camera rig ---------- */
 const _v = new THREE.Vector3();
@@ -163,11 +140,11 @@ export const rumble = (ms = 40, mag = .25) => { haptic(ms); Cam.shake = Math.max
 
 /* ---------- audio ---------- */
 export const Sfx = {
-  ctx: null, out: null, muted: !!Store.get('muted', false), bgm: $('#bgm'),
+  ctx: null, out: null, muted: !!Store.get('muted', false),
   ensure() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     try { const AC = window.AudioContext || window.webkitAudioContext; this.ctx = new AC(); this.out = this.ctx.createGain(); this.out.gain.value = this.muted ? 0 : .5; this.out.connect(this.ctx.destination); } catch (e) {}
-    if (this.bgm) { this.bgm.volume = .32; this.bgm.muted = this.muted; this.bgm.play().catch(() => {}); }
+    if (this.ctx) Music.kick();
   },
   now() { return this.ctx ? this.ctx.currentTime : performance.now() / 1000; },
   beep(f = 440, d = .1, type = 'square', vol = .15, when = 0, slide = 0) {
@@ -189,10 +166,36 @@ export const Sfx = {
   back() { this.beep(240, .09, 'square', .1); },
   jump() { this.beep(300, .16, 'square', .1, 0, 400); },
   dash() { this.noise(.09, .08); },
-  duck(v) { if (this.bgm) this.bgm.volume = v; },
-  toggleMute() { this.muted = !this.muted; Store.set('muted', this.muted); if (this.out) this.out.gain.value = this.muted ? 0 : .5; if (this.bgm) this.bgm.muted = this.muted; return this.muted; },
+  toggleMute() { this.muted = !this.muted; Store.set('muted', this.muted); if (this.out) this.out.gain.value = this.muted ? 0 : .5; return this.muted; },
 };
-document.addEventListener('visibilitychange', () => { if (!Sfx.bgm) return; if (document.hidden) Sfx.bgm.pause(); else if (Sfx.ctx) Sfx.bgm.play().catch(() => {}); });
+document.addEventListener('visibilitychange', () => { if (!Sfx.ctx) return; if (document.hidden) Sfx.ctx.suspend(); else Sfx.ctx.resume(); });
+
+/* ---------- music: a tiny 4-voice chiptune sequencer (lead, arpeggio, bass, drums). every song is in a major key ---------- */
+const MAJ = [0, 2, 4, 5, 7, 9, 11];
+const deg = (root, d) => root + 12 * Math.floor(d / 7) + MAJ[((d % 7) + 7) % 7];
+const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+export const Music = {
+  song: null, t0: 0, step: 0, next: 0, timer: 0,
+  // song: { bpm, root (midi), beats (per bar), chords [scale degree per bar], lead [degree | null | '-' per 8th note], wave, drums, swing }
+  play(song, delay = .1) { this.stop(); this.song = song; if (!song || !Sfx.ctx) return; this.step = 0; this.t0 = this.next = Sfx.ctx.currentTime + delay; this.timer = setInterval(() => this.tick(), 50); this.tick(); },
+  kick() { if (this.song && !this.timer) this.play(this.song); },          // audio unlocked after the song was requested
+  stop() { clearInterval(this.timer); this.timer = 0; },
+  tick() {
+    const s = this.song, c = Sfx.ctx; if (!s || !c || c.state !== 'running') return; const e8 = 30 / s.bpm, per = s.beats * 2, len = s.chords.length * per;
+    if (this.next < c.currentTime - .3) this.next = c.currentTime + .05;     // fell behind (tab was asleep): jump ahead instead of machine-gunning
+    while (this.next < c.currentTime + .2) {
+      const i = this.step % len, bar = Math.floor(i / per), k = i % per, at = this.next - c.currentTime + (s.swing && k % 2 ? e8 * s.swing : 0), ch = s.chords[bar];
+      const n = s.lead[i];
+      if (typeof n === 'number') { let hold = 1; while (s.lead[(i + hold) % s.lead.length] === '-' && hold < 8) hold++; Sfx.beep(hz(deg(s.root + 12, n)), e8 * hold * .92, s.wave || 'square', .055, at); }
+      if (k % 2 === 0) Sfx.beep(hz(deg(s.root - 24, ch + (k % 4 === 2 && s.beats === 4 ? 4 : 0))), e8 * 1.7, 'triangle', .13, at);       // bass: root, fifth
+      Sfx.beep(hz(deg(s.root, ch + [0, 2, 4, 2, 7, 4, 2, 4][k % 8])), e8 * .8, 'triangle', .035, at);                                   // arpeggio
+      const d = s.drums || 'pop';
+      if (d !== 'none') { if (k === 0 || (d === 'pop' && k === 4) || (d === 'drive' && k % 2 === 0)) Sfx.beep(130, .11, 'sine', .22, at, -80);
+        if ((s.beats === 4 && (k === 2 || k === 6)) || (s.beats === 3 && (k === 2 || k === 4))) Sfx.noise(.07, .07, at); else if (k % 2) Sfx.noise(.025, .03, at); }
+      this.next += e8; this.step++;
+    }
+  },
+};
 
 /* ---------- networking: 2 phones, one room code ---------- */
 export const Net = {
@@ -271,22 +274,22 @@ Input.onDown = (a) => {
   if (UI._menu) { UI._menu.input(a); return; }
   App.mode && App.mode.down && App.mode.down(a);
 };
-let last = 0, slow = 0, frames = 0;
+let last = 0, errShown = 0;
+function report(e) { console.error('[three-years]', e); if (errShown++ < 3) UI.toast('oops: ' + String(e && e.message || e).slice(0, 60)); }
+addEventListener('error', (e) => report(e.error || e.message)); addEventListener('unhandledrejection', (e) => report(e.reason));
 export function start() {
   renderer.setAnimationLoop((ms) => {
     const dt = Math.min(.05, (ms - last) / 1000 || .016); last = ms; App.t += dt;
     Input.refreshAxis();
-    for (let i = tweens.length - 1; i >= 0; i--) { const w = tweens[i]; if (!w) continue; w.t += dt; const k = Math.min(1, w.t / w.dur); w.fn(w.e(k)); if (k >= 1) { tweens.splice(tweens.indexOf(w), 1); w.res(); } }
-    App.mode && App.mode.update && App.mode.update(dt, App.t);
+    // one bad frame must never freeze the game: catch, report on screen, keep drawing
+    try {
+      for (let i = tweens.length - 1; i >= 0; i--) { const w = tweens[i]; if (!w) continue; w.t += dt; const k = Math.min(1, w.t / w.dur); w.fn(w.e(k)); if (k >= 1) { const j = tweens.indexOf(w); if (j >= 0) tweens.splice(j, 1); w.res(); } }
+      App.mode && App.mode.update && App.mode.update(dt, App.t);
+    } catch (e) { report(e); }
     Cam.update(dt);
-    film.uniforms.uTime.value = App.t;
-    composer.render(dt);
+    renderer.render(scene, camera);
     Input.just.clear();
-    // adaptive quality: step resolution down, then drop bloom, if the phone is struggling
-    if (++frames > 90) { slow = dt > .03 ? slow + dt : Math.max(0, slow - dt * .5);
-      if (slow > 1.5) { slow = 0; frames = 0; if (pr > 1.01) { pr = Math.max(1, pr - .35); resize(); } else bloom.enabled = false; } }
   });
 }
-export function snapshot() { composer.render(0); try { return canvas.toDataURL('image/jpeg', .86); } catch (e) { return ''; } }
-export function flash() { film.uniforms.uFade.value = 3.2; return tween(.55, (k) => { film.uniforms.uFade.value = lerp(3.2, 1, k); }, easeOut); }
+export function snapshot() { renderer.render(scene, camera); try { return canvas.toDataURL('image/jpeg', .86); } catch (e) { return ''; } }
 export { THREE };

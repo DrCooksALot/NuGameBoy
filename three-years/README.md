@@ -38,7 +38,10 @@ Dev: add `?net=local` to test with two tabs in one browser, `?all` to unlock eve
 
 ## Code map
 
-- `js/engine.js` renderer, post-processing, input, audio, net, UI
+- `js/engine.js` renderer, input, sound effects, music sequencer, net, UI
+- `js/songs.js` one chiptune per level (generated from a seed and rhythm motifs) plus the ending tune
 - `js/kit.js` low-poly kit (static geometry is merged into 2 draw calls per level)
 - `js/games.js` the four mechanics · `js/levels.js` the seven dioramas · `js/main.js` flow
 - `vendor/` three.js r182 and PeerJS, vendored so nothing loads from a CDN
+
+Rendering goes straight to the canvas with no post-processing or float render targets, to stay safe on phone GPUs. All music and sound is synthesized with Web Audio; there are no audio files.
