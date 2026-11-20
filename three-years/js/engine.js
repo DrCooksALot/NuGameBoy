@@ -22,10 +22,17 @@ const screenEl = $('#screen');
 let canvas = $('#gl');
 // Deliberately plain: no shadow maps, no post-processing, default power preference. Phone GPU drivers are the thing that
 // kills WebGL contexts, so the fewer exotic features the better. `safe` drops resolution and MSAA after a crash.
-let safe = 0;
+// What went wrong last time is kept in localStorage so it can be read off the DIAGNOSTICS screen after a reload.
+export const Diag = { gpu: '?',
+  list() { return Store.get('diag', []); },
+  add(kind, msg) { const l = this.list(); l.push({ k: kind, m: String(msg).slice(0, 140), t: new Date().toISOString().slice(5, 16).replace('T', ' ') }); Store.set('diag', l.slice(-8)); console.warn('[three-years]', kind, msg); },
+  clear() { Store.set('diag', []); } };
+// start in safe mode (low resolution, no MSAA) if asked with ?safe, or if graphics died twice or more in earlier sessions
+let safe = (params.has('safe') || Diag.list().filter((x) => x.k === 'graphics lost').length >= 2) ? 1 : 0;
 function makeRenderer(cv) {
   const r = new THREE.WebGLRenderer({ canvas: cv, antialias: safe < 1, stencil: false, alpha: false });
   r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.15; r.shadowMap.enabled = false;
+  try { const gl = r.getContext(), x = gl.getExtension('WEBGL_debug_renderer_info'); Diag.gpu = String(x ? gl.getParameter(x.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)).slice(0, 90); } catch (e) {}
   return r;
 }
 export let renderer = makeRenderer(canvas);
@@ -51,12 +58,12 @@ resize(true);
    if it does not, throw the canvas away and build a fresh renderer on a new one (the scene itself is untouched). */
 let lost = false, rebuilds = 0, loop = null;
 function watch(cv) {
-  cv.addEventListener('webglcontextlost', (e) => { e.preventDefault(); if (lost) return; lost = true; UI.toast('graphics hiccup, recovering…'); setTimeout(() => { if (lost) rebuild(); }, 1200); });
+  cv.addEventListener('webglcontextlost', (e) => { e.preventDefault(); if (lost) return; lost = true; Diag.add('graphics lost', Diag.gpu); UI.toast('graphics hiccup, recovering…'); setTimeout(() => { if (lost) rebuild(); }, 1200); });
   cv.addEventListener('webglcontextrestored', () => { if (!lost) return; lost = false; resize(true); UI.toast('and we are back'); });
 }
 function rebuild() {
   if (++rebuilds > 6) { UI.toast('graphics keep failing: reload the page'); return; }
-  safe = rebuilds >= 2 ? 1 : 0;                                                    // second crash: lower resolution, no MSAA
+  safe = safe || rebuilds >= 2 ? 1 : 0;                                                    // second crash: lower resolution, no MSAA
   try { renderer.setAnimationLoop(null); renderer.dispose(); } catch (e) {}
   const fresh = document.createElement('canvas'); fresh.id = 'gl'; fresh.setAttribute('aria-label', 'Game screen'); canvas.replaceWith(fresh); canvas = fresh;
   try { renderer = makeRenderer(canvas); } catch (e) { UI.toast('this browser will not start WebGL'); return; }
@@ -239,6 +246,20 @@ export const Net = {
 };
 let peerLib = null;
 function loadPeer() { return peerLib || (peerLib = new Promise((res, rej) => { const s = document.createElement('script'); s.src = './vendor/peerjs.min.js'; s.onload = res; s.onerror = () => { peerLib = null; rej(new Error('offline')); }; document.head.appendChild(s); })); }
+let relayOK = null;
+/* server.js relays messages between the two players over one WebSocket each: no WebRTC, no third-party matchmaking, works on any network the page loads on */
+function relay(net, hosting, code) {
+  return new Promise((res, rej) => {
+    let ws, opened = false; try { ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ty-ws?room=' + code + '&role=' + (hosting ? 'host' : 'join')); } catch (e) { return rej(e); }
+    const to = setTimeout(() => { if (!opened) { try { ws.close(); } catch (e) {} rej(new Error('no relay')); } }, 2500);
+    ws.onopen = () => { opened = true; clearTimeout(to); net.status(hosting ? 'room is open · waiting for player 2' : 'knocking on room ' + code + '…');
+      res({ send: (m) => ws.readyState === 1 && ws.send(JSON.stringify(m)), close: () => { try { ws.close(); } catch (e) {} } }); };
+    ws.onmessage = (e) => { let m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      if (m.t === '_ok') { net.status('connected'); net._up(); } else if (m.t === '_bye') net._down(); else if (m.t === '_noroom') { net.status('no room with that code'); UI.toast('no room with that code'); } else net._recv(m); };
+    ws.onerror = () => { if (!opened) { clearTimeout(to); rej(new Error('no relay')); } };
+    ws.onclose = () => { if (opened) net._down(); };
+  });
+}
 async function makeTransport(net, hosting, code) {
   if (params.get('net') === 'local') { // same-browser tabs; used for testing without a signalling server
     const ch = new BroadcastChannel('ty-' + code);
@@ -246,6 +267,7 @@ async function makeTransport(net, hosting, code) {
     if (!hosting) ch.postMessage({ t: '_hi' });
     return { send: (m) => ch.postMessage(m), close: () => { ch.postMessage({ t: '_bye' }); ch.close(); } };
   }
+  if (relayOK !== false) { try { const t = await relay(net, hosting, code); relayOK = true; return t; } catch (e) { relayOK = false; } }   // same-origin relay first; public PeerJS otherwise
   net.status('loading…');
   await loadPeer();
   net.status('reaching the matchmaking server…');
@@ -311,7 +333,7 @@ Input.onDown = (a) => {
   App.mode && App.mode.down && App.mode.down(a);
 };
 let last = 0, errShown = 0;
-function report(e) { console.error('[three-years]', e); if (errShown++ < 3) UI.toast('oops: ' + String(e && e.message || e).slice(0, 60)); }
+function report(e) { console.error('[three-years]', e); Diag.add('error', (e && e.message || e) + ' @ ' + String(e && e.stack || '').split('\n')[1]); if (errShown++ < 3) UI.toast('oops: ' + String(e && e.message || e).slice(0, 60)); }
 addEventListener('error', (e) => report(e.error || e.message)); addEventListener('unhandledrejection', (e) => report(e.reason));
 export function start() {
   loop = (ms) => {

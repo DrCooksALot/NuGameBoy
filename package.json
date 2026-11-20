@@ -1,0 +1,8 @@
+{
+  "name": "nugameboy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NuGameBoy cartridges, with a zero-dependency local server and two-player relay",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}

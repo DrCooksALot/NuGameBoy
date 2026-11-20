@@ -182,6 +182,12 @@
     #panel .stars { text-shadow:1px 1px 0 #101040; } #panel .code { text-shadow:2px 2px 0 #101040; }
     .polaroid span { font:700 11px "Courier New", monospace; color:#2b2540; text-shadow:none; }
     #toast { top:6px; }
+    #screen #panel { pointer-events:none; } #screen #panel.on { pointer-events:auto; }   /* '#screen .layer' outranked '#panel' and swallowed every tap */
+    #panel .pad { display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; width:100%; }
+    #panel .key { padding:6px 0; border:2px solid rgba(255,255,255,.35); border-radius:5px; font-size:14px; background:rgba(10,14,60,.5); }
+    #panel .key.wide { grid-column:span 3; color:#ffe27a; } #panel .key.wide:last-child { grid-column:span 4; }
+    #panel .key.sel { border-color:#ffe27a; background:rgba(255,255,255,.2); color:#ffe27a; }
+    #panel .code { font-size:26px; letter-spacing:10px; margin:0; }
   </style>
 </head>
 <body>
