@@ -55,19 +55,20 @@ function lobby() {
 async function host() {
   UI.panel('<div class="kicker">hosting</div><p>Opening a room…</p>');
   try { const code = await Net.host(); const url = location.origin + location.pathname + '?join=' + code;
-    UI.panel(`<div class="kicker">room code</div><div class="code">${code}</div><p>On the other phone: TWO PLAYER → JOIN, or just open the link.</p><div class="row"><div class="item sel" data-i="0" id="share">SHARE LINK</div></div><div class="hint">waiting for player 2 · B to cancel</div>`);
+    UI.panel(`<div class="kicker">room code</div><div class="code">${code}</div><p>On the other phone: TWO PLAYER → JOIN, or just open the link.</p><div class="row"><div class="item sel" data-i="0" id="share">SHARE LINK</div></div><div class="hint" id="netStatus">room is open · waiting for player 2</div><div class="hint">B to cancel</div>`);
     $('#share').onpointerdown = async () => { try { if (navigator.share) await navigator.share({ title: 'Three Years', url }); else { await navigator.clipboard.writeText(url); UI.toast('link copied'); } } catch (e) {} };
     setB(() => { Net.close(); lobby(); });
-  } catch (e) { UI.toast('could not open a room (offline?)'); lobby(); }
+  } catch (e) { UI.toast(String(e.message || 'could not open a room')); lobby(); }
 }
 function joinForm(pre) {
   UI.panel(`<div class="kicker">join a room</div><input id="code" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="····" value="${pre || ''}"/><div class="row"><div class="item sel" data-i="0" id="join">JOIN</div></div><div class="hint">B to cancel</div>`);
   const inp = $('#code'), doJoin = async () => { const c = inp.value.trim().toUpperCase(); if (c.length < 4) return UI.toast('4 letters'); inp.blur();
-    UI.panel('<div class="kicker">joining</div><p>Knocking on room ' + c + '…</p>'); setB(() => { Net.close(); lobby(); });
-    try { await Net.join(c); setTimeout(() => { if (!Net.open && Net.code === c) { UI.toast('no answer from that room'); Net.close(); lobby(); } }, 9000); } catch (e) { UI.toast('could not connect'); lobby(); } };
+    UI.panel('<div class="kicker">joining room ' + c + '</div><p id="netStatus">starting…</p><div class="hint">this can take up to half a minute on mobile data · B to cancel</div>'); setB(() => { Net.close(); lobby(); });
+    try { await Net.join(c); setTimeout(() => { if (!Net.open && Net.code === c) { UI.toast('could not link to that room'); Net.close(); lobby(); } }, 40000); } catch (e) { UI.toast(String(e.message || 'could not connect')); lobby(); } };
   $('#join').onpointerdown = doJoin; inp.onkeydown = (e) => { if (e.key === 'Enter') doJoin(); };
   setB(lobby); if (pre) doJoin(); else if (!('ontouchstart' in window)) inp.focus();
 }
+Net.onStatus = (t) => { const e = $('#netStatus'); if (e) e.textContent = t; };
 Net.onOpen = () => { Sfx.big(); UI.toast('player 2 connected'); if (Net.isHost) Net.send('hello', { who: S.who }); menu(); };
 Net.onClose = () => { UI.toast('other player left — solo now'); S.theirReady = true; if (!S.ctx) { Net.close(); menu(); } };
 Net.on('hello', (d) => { S.who = d.who === 'her' ? 'him' : 'her'; });

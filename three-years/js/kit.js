@@ -37,7 +37,7 @@ export class Batch {
     const out = new THREE.Group();
     if (this.p.length) { const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.Float32BufferAttribute(this.p, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(this.n, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(this.c, 3));
-      const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true })); m.matrixAutoUpdate = false; m.castShadow = m.receiveShadow = true; out.add(m); }
+      const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true })); m.matrixAutoUpdate = false; out.add(m); }
     if (this.gp.length) { const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.Float32BufferAttribute(this.gp, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(this.gc, 3));
       const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, fog: false })); m.matrixAutoUpdate = false; out.add(m); }
@@ -53,9 +53,9 @@ function checkerTex() { if (checker) return checker; const cv = document.createE
   checker = new THREE.CanvasTexture(cv); checker.wrapS = checker.wrapT = THREE.RepeatWrapping; checker.magFilter = THREE.NearestFilter; checker.colorSpace = THREE.SRGBColorSpace; checker.userData.keep = true; return checker; }
 /* classic two-tone checkerboard turf */
 export function turf(w, d, col, x = 0, z = 0, round = 0) {
-  const t = checkerTex().clone(); t.needsUpdate = true; t.repeat.set(w / 2, d / 2);
+  const t = checkerTex().clone(); t.userData = {}; t.needsUpdate = true; t.repeat.set(w / 2, d / 2);
   const m = new THREE.Mesh(round ? new THREE.CircleGeometry(round, 40) : new THREE.PlaneGeometry(w, d), new THREE.MeshLambertMaterial({ color: col, map: t }));
-  m.rotation.x = -Math.PI / 2; m.position.set(x, .012, z); m.receiveShadow = true; world.add(m); return m;
+  m.rotation.x = -Math.PI / 2; m.position.set(x, .012, z); world.add(m); return m;
 }
 export function island(b, R, top = 0x4f8a5b, o = {}) {
   const { edge = 'none', woods = 0x3f9a52, hills = 0x3f8a5a, big = 150 } = o;
@@ -147,7 +147,7 @@ function atlas(o) {
 export function makeChar(o = {}) {
   o = { skin: 0xe6b596, hair: 0x241a16, top: 0xff6a6a, legs: 0x3b4a8a, style: 'short', ...o };
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
-  const map = atlas(o).clone(); map.needsUpdate = true; map.repeat.set(1 / NF, 1);
+  const map = atlas(o).clone(); map.userData = {}; map.needsUpdate = true; map.repeat.set(1 / NF, 1);
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map, alphaTest: .5, fog: false })); sp.center.set(.5, 0); sp.scale.set(1.44, 1.8, 1); body.add(sp);
   const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.position.y = .03; g.add(sh);
   if (o.scale) g.scale.setScalar(o.scale);
@@ -208,7 +208,6 @@ export function sky(top, mid, bot, stars = 0) {
 }
 export function lights(skyCol, groundCol, hemi, sunCol, sun, x = 5, y = 10, z = 6) {
   const h = new THREE.HemisphereLight(skyCol, groundCol, hemi), d = new THREE.DirectionalLight(sunCol, sun); d.position.set(x, y, z).multiplyScalar(2);
-  d.castShadow = true; d.shadow.mapSize.set(1024, 1024); const c = d.shadow.camera; c.left = -17; c.right = 17; c.top = 17; c.bottom = -17; c.near = 1; c.far = 60; d.shadow.bias = -.0012; d.shadow.radius = 4;
   world.add(h, d);
 }
 export function orb(x, y, z, r, col, k = 2.5) { // sun / moon
