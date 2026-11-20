@@ -23,7 +23,17 @@ Two player picks its route automatically, in this order:
 2. **Public broker relay** on a static host such as GitHub Pages. Both players connect out to public MQTT brokers (`broker.emqx.io`, `broker.hivemq.com`, `test.mosquitto.org`) over secure WebSockets, so no phone-to-phone link is needed. Only game messages (positions, scores) pass through, under a topic named after the 4-character room code.
 3. **PeerJS / WebRTC** only if no broker can be reached. Add `?net=p2p` to force it.
 
-## Deploy it
+## Netlify Drop (no account setup, no server)
+
+```bash
+npm run drop
+```
+
+That builds `netlify-drop/`. Drag that folder onto https://app.netlify.com/drop and Netlify gives you a link. The link opens Three Years directly; the cartridge menu is at `/index.html`. Two player there uses the public broker relay.
+
+To update the site later, rebuild and drag the folder onto the site's **Deploys** page.
+
+## Deploy it with the server
 
 Anywhere that runs a Node process works: Render, Railway, Fly, a VPS. Point it at this repo with:
 

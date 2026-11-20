@@ -1,0 +1,4 @@
+# Used only if this repo is connected to Netlify with Git. For a one-off upload, run `npm run drop` and drag ./netlify-drop onto app.netlify.com/drop
+[build]
+  command = "node scripts/make-drop.js"
+  publish = "netlify-drop"
