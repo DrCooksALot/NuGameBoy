@@ -17,7 +17,11 @@ It prints two addresses: one for this computer, and one like `http://192.168.x.x
 - serves the game files
 - relays two-player messages itself over WebSockets (`/ty-ws`), so multiplayer needs no WebRTC and no outside service
 
-When the game is opened from `server.js`, TWO PLAYER uses that relay automatically. When it is opened from a plain static host (GitHub Pages), it falls back to PeerJS.
+Two player picks its route automatically, in this order:
+
+1. **`server.js` relay** when the page was opened from `server.js`. Most reliable; nothing leaves your network.
+2. **Public broker relay** on a static host such as GitHub Pages. Both players connect out to public MQTT brokers (`broker.emqx.io`, `broker.hivemq.com`, `test.mosquitto.org`) over secure WebSockets, so no phone-to-phone link is needed. Only game messages (positions, scores) pass through, under a topic named after the 4-character room code.
+3. **PeerJS / WebRTC** only if no broker can be reached. Add `?net=p2p` to force it.
 
 ## Deploy it
 
@@ -27,7 +31,7 @@ Anywhere that runs a Node process works: Render, Railway, Fly, a VPS. Point it a
 - port: it listens on `$PORT`, default 8080
 - health check: `/healthz`
 
-A static-only host (GitHub Pages, Netlify drop) can serve the game but not the relay, so two-player there depends on PeerJS.
+A static-only host (GitHub Pages, Netlify drop) can serve the game but not `server.js`, so two-player there goes through the public brokers.
 
 ## Troubleshooting
 

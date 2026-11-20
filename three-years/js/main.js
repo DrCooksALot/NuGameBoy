@@ -153,7 +153,7 @@ async function play(i, seed) {
   UI.pop('GO'); Sfx.beep(880, .3, 'square', .16);
   let acc = 0;
   setMode({ update(dt, t) { common(dt, t); if (ctx.done) return; game.update(dt, t);
-      acc += dt; if (Net.open && acc > .07) { acc = 0; const p = me.g.position; Net.send('pos', { x: +p.x.toFixed(2), z: +p.z.toFixed(2), f: +me.face.toFixed(2), y: +me.y.toFixed(2), s: Math.min(1.2, Math.hypot(Input.axis.x, Input.axis.y) + (L.game === 'runner' ? 1 : 0)) }); } },
+      acc += dt; if (Net.open && acc > .1) { acc = 0; const p = me.g.position; Net.send('pos', { x: +p.x.toFixed(2), z: +p.z.toFixed(2), f: +me.face.toFixed(2), y: +me.y.toFixed(2), s: Math.min(1.2, Math.hypot(Input.axis.x, Input.axis.y) + (L.game === 'runner' ? 1 : 0)) }); } },
     down(k) { if (k === 'START') pause(tok); } });
 }
 function pause(tok) {
