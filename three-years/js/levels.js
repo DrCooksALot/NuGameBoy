@@ -54,13 +54,13 @@ export const LEVELS = [
         { a: [-10.6, -30.6], b: [-10.6, -12.4], speed: 1.8, look: { skin: 0xd59a70, hair: 0x3a2a20, top: 0xff9ab8, legs: 0x2a2a33, style: 'long' } }, { a: [-1.4, 1.5], b: [-12, 1.5], speed: 1.5, look: { skin: 0xf0c8a4, hair: 0x1a1412, top: 0x3d8bd9, legs: 0x6a5240, beard: 0x1a1412 } }],
       cart: { x: -13.2, z: 1.2, name: 'hot toddy cart', lines: ['one hot toddy. for warmth.', 'another one. still for warmth.', 'a third. you two are very warm now.', 'that is a lot of hot toddies. walk carefully.', 'at this point i should just give you the cart.'] },
       gloveAt: [[-20.6, -9.6], [-3.6, -22], [-15.4, 9], [-6.4, -9.4], [-17, 6.4]],
-      gloveLines: [['AHANU', 'found it. your glove. i was absolutely not the one who lost it.'], ['TEK', 'you were absolutely the one who lost it.']],
-      opening: [['TEK', 'wait. where is my other glove?'], ['AHANU', '...we should take some pictures. look. it is like falling down the rabbit hole.']],
+      gloveLines: [['NUNU', 'found it. your glove. i was absolutely not the one who lost it.'], ['TEK', 'you were absolutely the one who lost it.']],
+      opening: [['TEK', 'wait. where is my other glove?'], ['NUNU', '...we should take some pictures. look. it is like falling down the rabbit hole.']],
       note: 'then find a couple to take yours', escortNote: 'lead them to the fountain between the ponds',
       hazAt: [[-9, -21, 2.8], [-12, 9, 2.6]], hazard: () => critter('squirrel'), hazPop: 'squirrel!', yesFrom: [0],   // it was the couple by the koi pond
-      yesLines: (who) => [[who, 'a picture? of course. we were just watching the koi.'], ['AHANU', 'could you take it by the fountain, between the two ponds?'],
+      yesLines: (who) => [[who, 'a picture? of course. we were just watching the koi.'], ['NUNU', 'could you take it by the fountain, between the two ponds?'],
         [who, 'good choice. with all these lights on the water it looks like Spirited Away.'], ['TEK', 'the bathhouse at night. that is exactly what we said.'],
-        [who, "just don't eat anything in here or you'll turn into pigs."], ['AHANU', 'too late. we already had the hot chocolate.'], [who, 'ha. okay, lead the way. we will follow you.']],
+        [who, "just don't eat anything in here or you'll turn into pigs."], ['NUNU', 'too late. we already had the hot chocolate.'], [who, 'ha. okay, lead the way. we will follow you.']],
       couples: [
         { x: 7.75, z: -6.4, face: -1.57, name: 'couple by the koi pond', looks: [{ skin: 0xe6b596, hair: 0x3a2a20, top: 0x6a7ac8, legs: 0x2a2a33, style: 'long' }, { skin: 0xd59a70, hair: 0x1a1412, top: 0x4fae6a, legs: 0x3b4a8a, beard: 0x1a1412 }], no: [''] },
         { x: 4, z: -10.2, name: 'couple at the wall fountain', looks: [{ skin: 0xd59a70, hair: 0x1a1412, top: 0x3d8bd9, legs: 0x2a2a33, style: 'long' }, { skin: 0xe6b596, hair: 0x6b3a24, top: 0x4fae6a, legs: 0x3b4a8a }], no: ['sorry, we cannot feel our hands. december.', 'still frozen. try the people by the cherry trees.'] },
@@ -160,16 +160,16 @@ export const LEVELS = [
   /* ───────────── 2 · THE HEIST — an indoor farm, after hours ─────────────
      Grow racks under purple light, gear on the floor, a van backed up to the loading bay, one guard with a flashlight. */
   { id: 'heist', shot: [6.4, 4.2], prop: 'tote', caption: 'we were never here', outfit: { her: { top: 0x1c1a1e, cap: 0x1c1a1e }, him: { top: 0x1c1a1e, cap: 0x1c1a1e } },
-    kicker: 'date night · an indoor farm, after hours', title: 'The Heist', sub: 'in, out, and nobody saw anything.',
+    kicker: 'date night · an indoor farm, after hours', title: 'The Heist', sub: 'the guard is in on it. he is also bad at it.',
     game: 'heist', icon: '$', stars: [1000, 2000, 3200],
-    how: 'Fill plastic totes with gear and get them in the van before time runs out.\nA grab / put in a tote / set down · B throw (or dash, empty-handed)\nOne of you holds the tote, the other fills it. Big gear is worth the most: lean on it to push it. Stay out of the flashlight.',
+    how: 'Fill plastic totes with gear and get them in the van before time runs out.\nA grab / put in a tote / set down · B throw (or dash, empty-handed)\nOne of you holds the tote, the other fills it. Big gear is worth the most: lean on it to push it. The guard is a friend. If he catches you, he says hi.',
     P: { time: 100, cap: 6, fine: 100, bounds: [-11.2, 12.2, -14.1, 7.4], van: [9.5, 13, .9, 5.1], vanDoor: [10.6, 3], door: { x: 9.25, z0: .6, z1: 5.4 },
       racks: [[-7.8, -6.2, -12, -3], [-2.3, -.7, -12, -3], [3.2, 4.8, -12, -3]],
       patrol: [[-9.6, -1.4], [-9.6, -13.1], [-4.25, -13.1], [-4.25, -1.6], [1.25, -1.6], [1.25, -13.1], [6.6, -13.1], [6.6, -1.4], [0, 4.6], [-8, 4.6]],
-      guard: { fov: .6, range: 6.5, walk: 2.3, chase: 4.7, look: { skin: 0xd59a70, hair: 0x1a1412, top: 0x3d5a9a, legs: 0x23252e, cap: 0x23252e, beard: 0x1a1412 } },
+      guard: { fov: .6, range: 6.5, walk: 2.3, chase: 4.7, hi: ['i saw nothing', 'nice antlers', 'need a hand? no? ok', 'you missed a pump', 'shh. i am patrolling', 'is that my flashlight? keep it', 'tell no one. hi though'], look: { skin: 0xd59a70, hair: 0x1a1412, top: 0x3d5a9a, legs: 0x23252e, cap: 0x23252e, beard: 0x1a1412 } },
       itemSpots: [[-9.6, -11], [-9.6, -9], [-9.6, -7], [-9.6, -5], [-9.6, -3.4], [-4.25, -11], [-4.25, -9], [-4.25, -7], [-4.25, -5], [-4.25, -3.4], [1.25, -11], [1.25, -9], [1.25, -7], [1.25, -5], [1.25, -3.4],
         [6.6, -11], [6.6, -9], [6.6, -7], [6.6, -5], [6.6, -3.4], [-8, -13.3], [-1.6, -13.3], [3.4, -13.3], [-6, 1], [-3, 4.2], [0, 1.6], [-8.6, 5.6], [-1, 6]],
-      items: [['light', 4], ['seeds', 2], ['ballast', 3], ['fan', 3], ['meter', 4], ['jug', 4], ['trim', 4]],
+      items: [['light', 5], ['seeds', 2], ['ballast', 3], ['fan', 3], ['meter', 3], ['jug', 3], ['trim', 3], ['pump', 4]],
       bigs: [['dehu', 6.6, -13.2], ['tank', -10, -12.8]], totes: [[4.6, 1.6], [4.6, 3.2], [6.2, 1.6], [6.2, 3.2], [5.4, 5.2]],
       types: {
         tote:    { tote: true, label: 'tote', price: 0, vol: 0, w: 1, build(b) { b.box(0, 0, 0, .9, .08, .6, 0x3d6ad8); b.box(0, .08, .3, .9, .5, .06, 0x3d6ad8); b.box(0, .08, -.3, .9, .5, .06, 0x3d6ad8); b.box(.45, .08, 0, .06, .5, .66, 0x3d6ad8); b.box(-.45, .08, 0, .06, .5, .66, 0x3d6ad8); b.box(0, .54, .33, 1, .07, .08, 0xffd23a); b.box(0, .54, -.33, 1, .07, .08, 0xffd23a); } },
@@ -177,6 +177,7 @@ export const LEVELS = [
         seeds:   { label: 'seed vault', price: 500, vol: 1, w: 1, build(b) { b.box(0, 0, 0, .42, .34, .34, 0x2f6a45); b.box(0, .34, 0, .44, .06, .36, 0xffd77e); b.box(0, .12, .18, .1, .1, .03, 0xffd77e); } },
         ballast: { label: 'ballast', price: 250, vol: 2, w: 4, build(b) { b.box(0, 0, 0, .6, .28, .4, 0x55566a); for (let k = -2; k <= 2; k++) b.box(k * .11, .28, 0, .04, .1, .4, 0x9aa0a8); } },
         fan:     { label: 'clip fan', price: 120, vol: 2, w: 1.5, build(b) { b.cyl(0, 0, 0, .2, .06, 0x2a2a33, 1, 8); b.cyl(0, .06, 0, .04, .34, 0x2a2a33, 1, 5); b.ball(0, .56, 0, .26, 0xf2efe6, 0, 1); b.ball(0, .56, .1, .1, 0x3d8bd9); } },
+        pump:    { label: 'water pump', price: 180, vol: 2, w: 2.5, build(b) { b.box(0, 0, 0, .5, .08, .34, 0x2a2a33); b.cyl(-.08, .08, 0, .17, .3, 0x3d8bd9, 1, 8); b.box(.2, .08, 0, .18, .2, .22, 0x9aa0a8); b.cyl(.2, .28, 0, .05, .14, 0x2a2a33, 1, 5); } },
         meter:   { label: 'pH meter', price: 90, vol: 1, w: .4, build(b) { b.box(0, 0, 0, .2, .42, .1, 0xffd23a); b.box(0, .22, .06, .14, .14, .02, 0x9bffb0, 0, 1.2); b.box(0, -.12, 0, .06, .14, .06, 0x9aa0a8); } },
         jug:     { label: 'nutrient jug', price: 60, vol: 2, w: 3, build(b) { b.cyl(0, 0, 0, .22, .44, 0xf2efe6, 1, 8); b.cyl(0, .44, 0, .08, .1, 0xe5484d, 1, 6); b.box(0, .14, .23, .26, .18, .02, 0x4fae6a); } },
         trim:    { label: 'trimmers', price: 40, vol: 1, w: .3, build(b) { b.box(.06, 0, 0, .05, .04, .4, 0xc8ccd4, .25); b.box(-.06, 0, 0, .05, .04, .4, 0xc8ccd4, -.25); b.ball(.1, .03, -.2, .07, 0xe5484d); b.ball(-.1, .03, -.2, .07, 0xe5484d); } },
@@ -184,19 +185,33 @@ export const LEVELS = [
         tank:    { big: true, r: .6, label: 'CO2 tank', price: 700, vol: 9, w: 4.5, build(b) { b.cyl(0, 0, 0, .34, 1.4, 0x4fae6a, 1, 10); b.ball(0, 1.4, 0, .34, 0x4fae6a, 0, .6); b.cyl(0, 1.56, 0, .1, .2, 0xc8ccd4, 1, 6); b.box(.14, 1.62, 0, .2, .08, .08, 0xe5484d); } },
       } },
     build(b, c) {
-      sky(0x0b0c22, 0x1a1c44, 0x12142e, 200); lights(0xb8a8ff, 0x4a3a6a, 2.3, 0xe8d8ff, 1.5, -3, 10, 6); fog(0x16183a, 30, 70);
-      const FLOOR = 0x8a8c9a, WALL = 0xc8ccd8, STEEL = 0x9aa0a8;
+      sky(0x0b0c22, 0x1a1c44, 0x12142e, 200); lights(0xf4f2ff, 0x8a8a96, 2.5, 0xffffff, 1.7, -3, 10, 6); fog(0x2a2c44, 34, 80);          // dark outside, but the room itself is bright: grey floor, white walls
+      const FLOOR = 0xa6a8b0, WALL = 0xeef0f4, STEEL = 0x9aa0a8, ORANGE = 0xf07a1a;
       b.box(0, -.3, -3.3, 21.4, .3, 22.6, FLOOR); b.box(22, -.32, -3.3, 24, .3, 40, 0x3a3c4a);                              // slab, and the lot outside
-      for (let x = -9; x <= 9; x += 6) b.box(x, .001, -3.3, .06, .012, 22, 0x7a7c8a); b.box(0, .002, -2, 20.6, .014, .12, 0xffd23a);
+      for (let x = -9; x <= 9; x += 6) b.box(x, .001, -3.3, .06, .012, 22, 0x8e9098); b.box(0, .002, -2, 20.6, .014, .12, 0xffd23a);
       b.box(0, 0, -14.9, 22, 4.4, .5, WALL); b.box(-11.9, 0, -3.5, .5, 4.4, 23, WALL);                                       // back and west walls
       b.box(9.25, 0, -6.8, .5, 4.4, 14.6, WALL); b.box(9.25, 0, 6.6, .5, 4.4, 2, WALL); b.box(9.25, 3.3, 3, .5, 1.1, 5.2, WALL); b.box(9.25, 3.2, 3, .6, .14, 5.2, 0xffd23a);   // east wall with the loading bay
       for (let z = -14; z <= .2; z += .9) c.colliders.push({ x: 9.25, z, r: .5 }); for (let z = 5.9; z <= 7.6; z += .8) c.colliders.push({ x: 9.25, z, r: .5 });
-      sign('LOADING', 9.0, 3.85, 3, 2.4, .5, { bg: '#1c1a24', fg: '#ffd23a', border: '#ffd23a', ry: -Math.PI / 2 }); sign('SECTOR 7 · PROPAGATION', 0, 3.4, -14.62, 6, .6, { bg: '#f2efe6', fg: '#2f6a45', border: '#2f6a45' });
+      sign('LOADING', 9.0, 3.85, 3, 2.4, .5, { bg: '#1c1a24', fg: '#ffd23a', border: '#ffd23a', ry: -Math.PI / 2 }); sign('SECTOR 7 · PROPAGATION', 2.6, 3.4, -14.62, 6, .6, { bg: '#f2efe6', fg: '#2f6a45', border: '#2f6a45' });
       for (const r of c.P.racks) { const x = (r[0] + r[1]) / 2;                                                              // grow racks: two shelves of plants under LED bars
         for (let z = r[2] + .4; z <= r[3]; z += 1.05) c.colliders.push({ x, z, r: .95 });
-        for (const z of [r[2] + .15, (r[2] + r[3]) / 2, r[3] - .15]) for (const sx of [-1, 1]) b.box(x + sx * .72, 0, z, .08, 2.7, .08, STEEL);
-        for (const y of [.5, 1.5]) { b.box(x, y, (r[2] + r[3]) / 2, 1.6, .08, 9, 0xf2efe6); for (let z = r[2] + .5; z < r[3]; z += .75) { b.ball(x - .35, y + .3, z, .26, y > 1 ? 0x4fae6a : 0x3f9a52, 0, .9); b.ball(x + .35, y + .28, z + .3, .24, 0x58b870, 0, .9); } }
+        const apart = x > 3;                                                                                                  // the east rack is half taken apart
+        for (const z of [r[2] + .15, (r[2] + r[3]) / 2, r[3] - .15]) for (const sx of [-1, 1]) b.box(x + sx * .72, 0, z, .1, 2.7, .1, ORANGE);
+        for (const y of apart ? [.5] : [.5, 1.5]) for (const sx of [-1, 1]) b.box(x + sx * .72, y - .1, (r[2] + r[3]) / 2, .08, .14, 9, ORANGE);
+        if (apart) { for (let k = 0; k < 4; k++) b.box(x - .3 + k * .2, 1.42 + (k % 2) * .1, (r[2] + r[3]) / 2 + .6, .09, .12, 8.2, ORANGE, 0, 0, 0, .05 * (k - 1.5)); b.box(x, 1.5, r[2] + .15, 1.5, .1, .1, ORANGE, .3); }   // loose beams laid across where the top shelf was
+        for (const y of apart ? [.5] : [.5, 1.5]) { b.box(x, y, (r[2] + r[3]) / 2, 1.6, .08, 9, 0xf2efe6); for (let z = r[2] + .5; z < r[3]; z += .75) { b.ball(x - .35, y + .3, z, .26, y > 1 ? 0x4fae6a : 0x3f9a52, 0, .9); b.ball(x + .35, y + .28, z + .3, .24, 0x58b870, 0, .9); } }
         for (const sx of [-1, 1]) { b.box(x + sx * .45, 2.6, (r[2] + r[3]) / 2, .22, .08, 9, 0x2a2a33); b.box(x + sx * .45, 2.56, (r[2] + r[3]) / 2, .16, .04, 8.8, 0xe06aff, 0, 1.25); } b.box(x, .003, (r[2] + r[3]) / 2, 2.6, .012, 9.6, 0xa87ac8); }
+      // dismantled shelving: beams stacked on the floor, uprights leaning on the walls
+      for (const [x, z, n] of [[8.5, -7, 6], [-11.2, -6, 4]]) { for (let k = 0; k < n; k++) b.box(x + (k % 2) * .2 - .1, .02 + (k >> 1) * .15, z, .12, .13, 2.6, ORANGE, (x > 0 ? .05 : 0) * (k - 2)); c.colliders.push({ x, z: z - .9, r: .4 }, { x, z, r: .4 }, { x, z: z + .9, r: .4 }); }   // kept tight to the walls, out of every route
+      for (let k = 0; k < 5; k++) b.box(-6.4 + k * .34, 0, -14.5, .1, 2.9, .1, ORANGE, 0, 0, -.16);                           // uprights against the back wall
+      for (let k = 0; k < 3; k++) b.box(8.9, 0, -12.6 + k * .4, .1, 2.6, .1, ORANGE, 0, 0, 0, .12);
+      // grow lights everywhere: hung along the back wall, and a stack waiting to be carried out
+      for (let k = 0; k < 7; k++) { const x = -9.6 + k * 2.9; b.box(x, 2.5, -14.55, 1.6, .5, .08, 0x2a2a33); b.box(x, 2.5, -14.5, 1.44, .38, .04, [0xe06aff, 0xff7ad0, 0xb48aff][k % 3], 0, 1.25); }
+      for (let k = 0; k < 4; k++) { b.box(-11.3, .04 + k * .16, 1.2, .6, .12, 1.1, 0x2a2a33, k * .12); b.box(-11.3, .16 + k * .16, 1.2, .46, .02, .9, 0xe06aff, k * .12, 1.2); }
+      // pumps and hoses by the water barrels
+      for (const [x, z] of [[-10.6, 2.4], [-9.5, 6.9]]) { b.box(x, 0, z, .6, .08, .4, 0x2a2a33); b.cyl(x - .1, .08, z, .2, .36, 0x3d8bd9, 1, 8); b.box(x + .24, .08, z, .2, .24, .26, STEEL); }
+      b.box(-10.55, .03, 3, .07, .06, 1.2, 0x23252e); b.box(-10, .03, 6.3, .07, .06, 1.3, 0x23252e, .9); b.box(-10.2, .03, 2.4, 1, .06, .07, 0x4fae6a);
+      sign('EVERYTHING MUST GO', -7, 3.4, -14.62, 4.4, .5, { bg: '#f07a1a', fg: '#ffffff', border: '#ffffff' });
       b.box(-8, 0, 2, 2.6, .9, 1, 0x6a5240); b.box(-8, .9, 2, 2.8, .08, 1.2, STEEL); b.box(-8.6, .98, 2, .5, .3, .4, 0x2a2a33); c.colliders.push({ x: -8.7, z: 2, r: .8 }, { x: -7.3, z: 2, r: .8 });   // workbench
       for (const z of [-1, 1.2]) { b.cyl(-10.5, 0, z + 4.6, .62, 1.3, 0x3d8bd9, 1, 12); b.cyl(-10.5, 1.3, z + 4.6, .64, .06, 0x2a2a33, 1, 12); c.colliders.push({ x: -10.5, z: z + 4.6, r: .7 }); }           // water barrels
       for (let k = 0; k < 4; k++) b.box(-11.6, 3.6, -12 + k * 5, .1, .1, .1, 0x2a2a33); b.box(-11.55, 3.3, 5.6, .14, .34, .5, 0x2a2a33); b.box(-11.46, 3.36, 5.6, .04, .1, .1, 0xff3a30, 0, 1.25);        // a camera, mostly for show

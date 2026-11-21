@@ -37,10 +37,10 @@ Drawn procedurally in `three-years/js/kit.js` (`drawFrame`, `atlas`, `makeChar`)
 - **Proportions:** chibi. The head is roughly half the height. Two-by-three pixel eyes with a one-pixel white highlight, a pink blush pixel pair, a one-pixel mouth.
 - **Animation:** two-frame walk with a small bob. Idle breathes very slightly. Keep it this simple.
 - **The two leads** (defaults in `three-years/config.js`):
-  - **Ahanu:** big curly **pink** hair in two tones (`0xff5fa8`, highlights `0xffa6cf`), light skin with a slight tan (`0xecc4a0`), teal top.
-  - **TEK:** short **blue** hair and beard (`0x3a82f6`), fair skin (`0xf6dcc6`) with freckles, dark top, blue jeans.
-  - The pink and blue hair is deliberate. It makes the two leads readable at a glance in any scene and keeps them stylised instead of lookalikes of real people. Do not "correct" it to natural colours.
-- **Outfits change per level** through the level's `outfit` field, never by editing the defaults. Examples in use: tan jacket and tan hat with a leather jacket (Lightscape), suit and floral dress (Metah's wedding), red trousers (Anthony & Nicka's), all black with beanies (The Heist).
+  - **NUNU:** big curly pink hair in two tones (`0xff5fa8`, highlights `0xffa6cf`), small **red antlers** (`antlers: 0xe5352f`, drawn over hair and hats), light skin with a slight tan, a lilac dress with pale dots, a white collar with a red bow, red shoes.
+  - **TEK:** short dark brown hair and beard, fair skin with freckles, dark top, blue jeans. **No blue hair.** It was tried and rejected outright.
+  - The in-game names are NUNU and TEK. Do not use any other name for either lead in dialogue, titles or docs.
+- **Outfits change per level** through the level's `outfit` field, never by editing the defaults. Examples in use: tan jacket and tan hat with a leather jacket (Lightscape), suit and floral dress (Metah's wedding), red trousers (Anthony & Nicka's), all black with beanies, antlers poking through (The Heist).
 - **Everyone else** (guests, visitors, the guard, couples) uses the same sprite system with varied skin, hair and tops, so the whole cast matches.
 
 ## 4. The world (3D)
@@ -132,7 +132,7 @@ Synthesized with Web Audio; no audio files except one. Each level has its own up
 |---|---|
 | Reference games | *Secret of Mana*, *Tunic*, *Little Devil Inside*, *The Legend of Zelda*. |
 | "How we usually do our cool 3D games" | An earlier 3D game with a diorama feel, probably deleted. The diorama view is the thing to keep building on. |
-| The two leads | See section 3. Stylised on purpose: pink hair and blue hair. |
+| The two leads | See section 3. Named NUNU and TEK. Nunu is the stylised one: pink hair, red antlers. |
 | How dark is night | See section 5. Night only for Lightscape and the weddings. |
 | Voice | The deadpan NPC tone is right. |
 
@@ -141,12 +141,13 @@ Synthesized with Web Audio; no audio files except one. Each level has its own up
 | Level | Mood |
 |---|---|
 | Lightscape | Neon lights covering the botanic garden. An Alice in Wonderland light show in a secret garden. Cool and fun. Built as: neon-edged paths, colour-lit trees, oversized glowing mushrooms and flowers, a rainbow light tunnel, drifting pink and cyan lights. |
+| The Heist | Super goofy, not tense. The grow room is grey and white, with orange shelving being taken apart, lots of grow lights, and pumps. The guard is a friend: if he catches you he says something and looks away. No fine, no dropped gear, no stun. |
 
 ## Still open
 
 Ask about these one level at a time; do not guess in bulk.
 
-1. **Per-level mood, one line each:** weather and the single thing that must be recognisable. Still to ask: The Heist, Metah's Wedding, Anthony & Nicka's Wedding, New Orleans, Waiting for Godot, Happy Birthday.
+1. **Per-level mood, one line each:** weather and the single thing that must be recognisable. Still to ask: Metah's Wedding, Anthony & Nicka's Wedding, New Orleans, Waiting for Godot, Happy Birthday.
 2. **Sprite detail:** keep 24 × 30, or go larger? More animation for the leads (sitting, hugging, dancing)?
 3. **Type:** stay with Courier New, or bundle a real pixel font?
 4. **Shell colour:** keep the periwinkle body?
