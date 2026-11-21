@@ -39,23 +39,35 @@ export const LEVELS = [
      alongside) is the start. A path west runs through the Winter Cathedral to Cherry Esplanade, with the Cranford Rose
      Garden beside it. North is up the screen. */
   { id: 'lightscape', shot: [4, 2.9], prop: 'lantern', outfit: { her: { top: 0xc8a878, cap: 0xc8a878 }, him: { top: 0x1c1a1e, zip: 0x9a9aa4 } },   // what you wore: tan jacket and tan hat; leather jacket
-    caption: 'taken by two strangers who also love Spirited Away', kicker: 'December 2023 · Brooklyn Botanic Garden', title: 'Lightscape', sub: 'the koi ponds, and someone to take our picture.',
-    game: 'explore', icon: '✦', stars: [8, 18, 28],
-    how: 'You are at the koi ponds and you want a picture together.\nAsk couples (A) until one says yes, then lead them to the fountain between the ponds.\nLanterns around the garden are your stars. Squirrels break your streak; dash (A) past them.',
-    P: { count: 16, shape: 'lantern', col: [0xffd77e, 0xff9a62], bounds: [-22.5, 8.4, -33.4, 12.6], goal: { x: 4, z: 2.9 },
-      note: 'ask a couple to take your picture (A)', escortNote: 'lead them to the fountain between the pools',
-      hazAt: [[-9, -21, 2.8], [-13, 4, 3], [-18.8, -21.5, 1.1]], hazard: () => critter('squirrel'), hazPop: 'squirrel!', yesFrom: [0],   // it was the couple by the koi pond
+    caption: 'taken by two strangers who also love Spirited Away', kicker: 'December 2023 · Brooklyn Botanic Garden', title: 'Lightscape', sub: 'photos, hot toddies, and one missing glove.',
+    game: 'explore', icon: '✦', stars: [8, 16, 24],
+    how: 'Take photos together at the glowing frames around the garden: stand in one and press A.\nThen ask couples (A) until one will take a picture of you both, and lead them to the fountain.\nMind the other visitors and the squirrels; dash (A) past them. There is a hot toddy cart. Somewhere there is a glove.',
+    P: { col: [0xffd77e, 0xff9a62], bounds: [-22.5, 8.4, -33.4, 25.2], goal: { x: 4, z: 2.9 },
+      // the photo quest: stand in the frame together and press A. pressing as the frame swells is a perfect shot
+      photos: [{ x: 4, z: 22.9, name: 'the entrance' }, { x: 7.3, z: 7.2, name: 'the koi pond' }, { x: 7.3, z: -1.6, name: 'the Palm House' }, { x: -4.8, z: .65, name: 'the Winter Cathedral' },
+        { x: -9, z: -16, name: 'Sea of Light' }, { x: -9, z: -30.2, name: 'the Supernova' }, { x: -18.8, z: -17.4, name: 'the rose garden' }, { x: -13.2, z: 4.8, name: 'the toddy cart' }],
+      // other visitors walking the paths
+      walkers: [{ a: [1, 12.6], b: [1, -10], speed: 1.7, look: { skin: 0xd59a70, hair: 0x1a1412, top: 0x4fae6a, legs: 0x2a2a33 } }, { a: [6.6, -9.6], b: [6.6, 11.6], speed: 2, look: { skin: 0xf0c8a4, hair: 0xc8a050, top: 0xe5484d, legs: 0x3b4a8a, style: 'long' } },
+        { a: [5.2, 19.6], b: [5.2, 13.6], speed: 1.5, look: { skin: 0xb9794f, hair: 0x15100e, top: 0xffd27a, legs: 0x6a5240, style: 'bun' } }, { a: [2.8, 13.8], b: [2.8, 24.6], speed: 2.1, look: { skin: 0xe6b596, hair: 0x555060, top: 0x6a7ac8, legs: 0x2a2a33, cap: 0x2a2a33 } },
+        { a: [-9.6, -1], b: [-9.6, -10], speed: 1.6, look: { skin: 0x9a6a48, hair: 0x1a1412, top: 0xf2efe6, legs: 0x2a2a33, style: 'curly' } }, { a: [-7.6, -12], b: [-7.6, -31], speed: 2.2, look: { skin: 0xe6b596, hair: 0x6b3a24, top: 0x8a5ad0, legs: 0x3b4a8a } },
+        { a: [-10.6, -30.6], b: [-10.6, -12.4], speed: 1.8, look: { skin: 0xd59a70, hair: 0x3a2a20, top: 0xff9ab8, legs: 0x2a2a33, style: 'long' } }, { a: [-1.4, 1.5], b: [-12, 1.5], speed: 1.5, look: { skin: 0xf0c8a4, hair: 0x1a1412, top: 0x3d8bd9, legs: 0x6a5240, beard: 0x1a1412 } }],
+      cart: { x: -13.2, z: 1.2, name: 'hot toddy cart', lines: ['one hot toddy. for warmth.', 'another one. still for warmth.', 'a third. you two are very warm now.', 'that is a lot of hot toddies. walk carefully.', 'at this point i should just give you the cart.'] },
+      gloveAt: [[-20.6, -9.6], [-3.6, -22], [-15.4, 9], [-6.4, -9.4], [-17, 6.4]],
+      gloveLines: [['AHANU', 'found it. your glove. i was absolutely not the one who lost it.'], ['TEK', 'you were absolutely the one who lost it.']],
+      opening: [['TEK', 'wait. where is my other glove?'], ['AHANU', '...we should take some pictures. look, lights.']],
+      note: 'then find a couple to take yours', escortNote: 'lead them to the fountain between the ponds',
+      hazAt: [[-9, -21, 2.8], [-12, 9, 2.6]], hazard: () => critter('squirrel'), hazPop: 'squirrel!', yesFrom: [0],   // it was the couple by the koi pond
       yesLines: (who) => [[who, 'a picture? of course. we were just watching the koi.'], ['AHANU', 'could you take it by the fountain, between the two ponds?'],
         [who, 'good choice. with all these lights on the water it looks like Spirited Away.'], ['TEK', 'the bathhouse at night. that is exactly what we said.'],
         [who, "just don't eat anything in here or you'll turn into pigs."], ['AHANU', 'too late. we already had the hot chocolate.'], [who, 'ha. okay, lead the way. we will follow you.']],
       couples: [
-        { x: 7.3, z: -6.4, face: -1.57, name: 'couple by the koi pond', looks: [{ skin: 0xe6b596, hair: 0x3a2a20, top: 0x6a7ac8, legs: 0x2a2a33, style: 'long' }, { skin: 0xd59a70, hair: 0x1a1412, top: 0x4fae6a, legs: 0x3b4a8a, beard: 0x1a1412 }], no: [''] },
+        { x: 7.75, z: -6.4, face: -1.57, name: 'couple by the koi pond', looks: [{ skin: 0xe6b596, hair: 0x3a2a20, top: 0x6a7ac8, legs: 0x2a2a33, style: 'long' }, { skin: 0xd59a70, hair: 0x1a1412, top: 0x4fae6a, legs: 0x3b4a8a, beard: 0x1a1412 }], no: [''] },
         { x: 4, z: -10.2, name: 'couple at the wall fountain', looks: [{ skin: 0xd59a70, hair: 0x1a1412, top: 0x3d8bd9, legs: 0x2a2a33, style: 'long' }, { skin: 0xe6b596, hair: 0x6b3a24, top: 0x4fae6a, legs: 0x3b4a8a }], no: ['sorry, we cannot feel our hands. december.', 'still frozen. try the people by the cherry trees.'] },
         { x: 1, z: -5.4, name: 'couple on the bench', looks: [{ skin: 0xf0c8a4, hair: 0xc8a050, top: 0xe5484d, legs: 0x2a2a33, style: 'bun' }, { skin: 0xb9794f, hair: 0x15100e, top: 0x8a5ad0, legs: 0x2a2a33, beard: 0x15100e }], no: ['one second, he is about to propose. ...never mind, he is tying his shoe.', 'he is still tying it.'] },
         { x: -9, z: 2.6, name: 'couple by the light tunnel', looks: [{ skin: 0xe6b596, hair: 0x3a2a20, top: 0xffd27a, legs: 0x3b4a8a, style: 'curly', hair2: 0x5a4030 }, { skin: 0x9a6a48, hair: 0x1a1412, top: 0xf2efe6, legs: 0x6a5240 }], no: ['we would, but our phone is at 1%. so is yours? oh no.', 'now it is at 0%.'] },
         { x: -9, z: -19, name: 'couple on the esplanade', looks: [{ skin: 0xb9794f, hair: 0x15100e, top: 0xff9ab8, legs: 0x2a2a33, style: 'long' }, { skin: 0xf0c8a4, hair: 0x555060, top: 0x2a2a33, legs: 0x3b4a8a, cap: 0x8a2a3a }], no: ['we are actually looking for someone to take OUR picture.', 'if you find someone, send them our way too.'] },
-        { x: -8, z: -30.4, name: 'couple under the big star', looks: [{ skin: 0xf0c8a4, hair: 0x6b3a24, top: 0x4fae6a, legs: 0x6a5240, style: 'bun' }, { skin: 0xd59a70, hair: 0x3a2a20, top: 0xe5484d, legs: 0x2a2a33 }], no: ['sorry, we have been trying to find the exit since november.', 'is it this way? no? okay.'] },
-        { x: -18.8, z: -13.6, name: 'couple under the pergola', looks: [{ skin: 0x9a6a48, hair: 0x1a1412, top: 0x7ad7ff, legs: 0x2a2a33, style: 'curly' }, { skin: 0xe6b596, hair: 0xc8a050, top: 0x8a5ad0, legs: 0x3b4a8a, beard: 0xa88040 }], no: ['we are mid-argument about whether roses count as lights. give us a minute.', 'they do not count. he is wrong.'] },
+        { x: -11.6, z: -29, name: 'couple under the big star', looks: [{ skin: 0xf0c8a4, hair: 0x6b3a24, top: 0x4fae6a, legs: 0x6a5240, style: 'bun' }, { skin: 0xd59a70, hair: 0x3a2a20, top: 0xe5484d, legs: 0x2a2a33 }], no: ['sorry, we have been trying to find the exit since november.', 'is it this way? no? okay.'] },
+        { x: -14.3, z: -12.4, name: 'couple by the pergola', looks: [{ skin: 0x9a6a48, hair: 0x1a1412, top: 0x7ad7ff, legs: 0x2a2a33, style: 'curly' }, { skin: 0xe6b596, hair: 0xc8a050, top: 0x8a5ad0, legs: 0x3b4a8a, beard: 0xa88040 }], no: ['we are mid-argument about whether roses count as lights. give us a minute.', 'they do not count. he is wrong.'] },
         { x: -18.8, z: -22.2, name: 'couple in the rose garden', looks: [{ skin: 0xe6b596, hair: 0x555060, top: 0xf2efe6, legs: 0x2a2a33, style: 'long' }, { skin: 0xb9794f, hair: 0x555060, top: 0x6a7ac8, legs: 0x6a5240 }], no: ['oh, we are terrible at phones. you would get our thumbs.', 'we tried. it was our thumbs.'] }] },
     build(b, c) {
       sky(0x0b1040, 0x2c3690, 0x283080, 600); lights(0x8f9cf0, 0x3a6a5a, 2.1, 0xcfd8ff, 1.6, -4, 9, 5); fog(0x283080, 30, 88); orb(-40, 46, -90, 5, 0xdfe6ff, 1.2);
@@ -97,13 +109,28 @@ export const LEVELS = [
       for (let k = 0; k <= 5; k++) { const x = -21.6 + k * 1.12; for (const z of [-11.5, -12.9]) b.box(x, 0, z, .12, 2.5, .12, 0xf6f2e8); b.box(x, 2.5, -12.2, .12, .12, 2.2, 0xf6f2e8); b.dot(x, 2.36, -12.2, .07, 0xffe9a0, 1.25); b.dot(x + .56, 2.3, -11.5, .06, 0xffe9a0, 1.25); }
       for (const z of [-11.5, -12.9]) b.box(-18.8, 2.5, z, 6, .12, .12, 0xf6f2e8); c.colliders.push({ x: -21.6, z: -12.2, r: .5 }, { x: -16, z: -12.2, r: .5 });
       /* trees: some lit in colour inside the garden, a dark belt of them outside it */
-      for (const [x, z, s2, col] of [[-3, -7, 1.8, 0x8a5ad8], [-3.4, 6.4, 1.6, 0x3d8ad8], [-8, 8.6, 1.9, 0xd85a9a], [-14, 8, 2.1, 0x3fa878], [-18, 2, 1.9, 0x8a5ad8], [-13, -4, 1.7, 0x3d8ad8], [-19, 9.5, 1.8, 0xd85a9a], [-2.2, -17, 1.6, 0x3fa878], [-1.6, -27, 1.8, 0x8a5ad8]]) {
+      for (const [x, z, s2, col] of [[-3, -7, 1.8, 0x8a5ad8], [-20.4, -3.4, 1.6, 0x3d8ad8], [-6.4, 11.4, 1.6, 0xd85a9a], [-19.6, 12.4, 1.7, 0x3fa878], [-19.4, 3.6, 1.6, 0x8a5ad8], [-15.4, -5.4, 1.6, 0x3d8ad8], [-2.2, -17, 1.6, 0x3fa878], [-1.6, -27, 1.8, 0x8a5ad8]]) {
         tree(b, x, z, s2, col); b.dot(x + .6, .14, z + .5, .1, 0xffffff, 1.2); c.colliders.push({ x, z, r: .55 }); }
       let s = 3; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
       for (let i = 0; i < 26; i++) { const t = i / 26; (i % 3 ? tree : pine)(b, -26 - r() * 8, -38 + t * 56, 1.8 + r(), 0x1f5a48); (i % 3 ? pine : tree)(b, -25 + t * 40, -37.5 - r() * 8, 1.8 + r(), 0x1f5a48); }                               // nothing along the south edge: that is where the camera looks from
       for (const [x, z, r2] of [[-48, -80, 26], [-8, -92, 34], [40, -84, 28]]) b.ball(x, -8, z, r2, 0x1f4a58, 0, .5);
       c.amb.push(ambient({ n: 120, col: 0xffffff, size: .09, area: 14, h: 9, vy: -.7, drift: .3, add: false, opacity: .9 }));
-      c.spawn = { x: 1.2, z: 11.4 };
+      /* the entrance: you start outside the gate and walk in. piers, iron fence, the lit sign, a ticket booth */
+      b.box(4, .02, 19.4, 4.4, .05, 12.6, PATH);
+      for (const sx of [-1, 1]) { b.box(4 + sx * 2.7, 0, 21, .9, 3.4, .9, STONE); b.box(4 + sx * 2.7, 3.4, 21, 1.1, .2, 1.1, 0xf2efe6); b.ball(4 + sx * 2.7, 3.86, 21, .3, 0xffe9b0, 1.25); c.colliders.push({ x: 4 + sx * 2.7, z: 21, r: .6 });
+        for (let k = 0; k < 16; k++) { const x = 4 + sx * (3.6 + k * .9); b.box(x, 0, 21, .07, 1.9, .07, 0x24222c); if (x > -23 && x < 9) c.colliders.push({ x, z: 21, r: .5 }); }
+        b.box(4 + sx * 10.4, 1.8, 21, 14.4, .08, .08, 0x24222c); b.box(4 + sx * 10.4, .3, 21, 14.4, .08, .08, 0x24222c); }
+      b.box(4, 3.5, 21, 5.4, .12, .2, 0x24222c); for (let k = 0; k <= 10; k++) { const t = k / 10 * Math.PI; b.dot(4 + Math.cos(t) * 2.5, 3.6 + Math.sin(t) * 1, 21.1, .07, 0xfff2c8, 1.25); }
+      sign('LIGHTSCAPE', 4, 4.1, 21.14, 3.6, .7, { bg: '#1a1f5c', fg: '#ffe27a', border: '#ffe27a', glow: true });
+      b.box(8, 0, 23.4, 1.8, 2.2, 1.6, 0x2f6a58); b.box(8, 2.2, 23.4, 2.2, .16, 2, 0xf2efe6); b.box(7.08, 1, 23.4, .06, .8, 1, 0xffe9b0, 0, 1.15); sign('TICKETS', 7.06, 2, 23.4, 1.4, .34, { bg: '#f2efe6', fg: '#1f5a35', border: '#1f5a35', ry: -Math.PI / 2 });
+      for (const [x, z] of [[1.4, 17], [6.6, 17], [1.2, 23.6]]) { lamp(b, x, z, 0xffe9b0, 2.4); c.colliders.push({ x, z, r: .2 }); }
+      for (const [x, z, s2, col] of [[-3, 18.2, 1.7, 0xd85a9a], [-8.4, 17.6, 1.9, 0x3d8ad8], [-14, 18.4, 1.8, 0x8a5ad8], [-19.4, 17.8, 1.9, 0x3fa878]]) { tree(b, x, z, s2, col); c.colliders.push({ x, z, r: .55 }); }
+      /* the hot toddy cart */
+      b.box(-13.2, .5, 0, 2, .9, 1.1, 0x9a3a2a); b.box(-13.2, 1.4, 0, 2.1, .08, 1.2, 0xd8b88a); for (const sx of [-1, 1]) { b.ball(-13.2 + sx * .8, .4, .58, .4, 0x2a2420, 0, 1); b.cyl(-13.2 + sx * .95, 1.4, -.45, .04, 1.3, 0x6a4a30, 1, 5); b.cyl(-13.2 + sx * .95, 1.4, .45, .04, 1.3, 0x6a4a30, 1, 5); }
+      for (let k = -2; k <= 2; k++) b.box(-13.2 + k * .44, 2.7, 0, .44, .12, 1.5, k % 2 ? 0xe5484d : 0xfff6e6); b.cyl(-13.7, 1.48, 0, .22, .3, 0xc8ccd4, 1, 10); for (let k = 0; k < 4; k++) b.dot(-13.7 + Math.sin(k) * .1, 1.95 + k * .16, 0, .05, 0xffffff, 1.1);
+      b.cyl(-12.8, 1.48, .1, .08, .16, 0xffe9b0, 1, 8); b.cyl(-12.55, 1.48, -.1, .08, .16, 0xffe9b0, 1, 8); sign('HOT TODDY', -13.2, 2.2, .78, 1.7, .36, { bg: '#2a1f18', fg: '#ffd27a', border: '#ffd27a', glow: true }); c.colliders.push({ x: -13.2, z: 0, r: 1.3 });
+      person(7, -13.2, -1, 0, 0, { top: 0x2f6a58, cap: 0xe5484d });
+      c.spawn = { x: 4, z: 24.3 };
     } },
 
   /* ───────────── 2 · THE JITNEY — eastbound on the Long Island Expressway ───────────── */

@@ -266,10 +266,12 @@ const MODELS = {
   puck(b) { b.cyl(0, 0, 0, .42, .16, 0xffffff, 1, 10); b.cyl(0, .16, 0, .26, .04, 0xfff6c8, 1, 10); },
   key(b) { for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; b.ball(Math.cos(a) * .15, .16 + Math.sin(a) * .15, 0, .06, 0xffd77e); } b.box(0, -.34, 0, .07, .36, .07, 0xffd77e); b.box(.08, -.3, 0, .1, .06, .06, 0xffd77e); b.box(.08, -.18, 0, .1, .06, .06, 0xffd77e); },
   koi(b) { b.ball(0, 0, .1, .11, 0xffffff, 0, .5); b.ball(0, 0, -.08, .09, 0xffffff, 0, .5); b.box(0, -.02, -.3, .14, .04, .14, 0xffffff, .78); },
+  frame(b) { for (const sx of [-1, 1]) for (const sz of [-1, 1]) { b.box(sx * .86, 0, sz * 1.1, .56, .05, .12, 0xffe27a); b.box(sx * 1.1, 0, sz * .86, .12, .05, .56, 0xffe27a); } b.ball(0, .03, 0, .12, 0xffffff, 0, .3); },     // camera viewfinder corners on the ground
+  glove(b) { b.box(0, -.2, 0, .3, .36, .14, 0x3a2a22); for (let k = 0; k < 4; k++) b.box(-.11 + k * .074, .16, 0, .06, .2, .12, 0x3a2a22); b.box(-.2, -.06, 0, .08, .2, .12, 0x3a2a22, 0, 0, 0, .5); b.box(0, -.26, 0, .34, .1, .16, 0x8a6a4a); },
   pine(b) { pine(b, 0, 0, 1); },
   lamp(b) { b.cyl(0, 0, 0, .07, 3, 0x3b3b4a, 1, 6); b.box(-.4, 2.9, 0, .9, .07, .07, 0x3b3b4a); b.box(-.8, 2.74, 0, .34, .14, .2, 0xffe9a0); },
 };
-const UNLIT = new Set(['lantern', 'beads', 'ticket', 'puck', 'key']), TINT = new Set(['car', 'puck', 'koi']), modelGeo = new Map();
+const UNLIT = new Set(['lantern', 'beads', 'ticket', 'puck', 'key', 'frame', 'glove']), TINT = new Set(['car', 'puck', 'koi']), modelGeo = new Map();
 function modelGeometry(shape) { let g = modelGeo.get(shape); if (!g) { const b = new Batch(); b.lo = true; MODELS[shape](b); g = keep(b.geo()); modelGeo.set(shape, g); } return g; }
 
 export function items(n, shape = 'coin', col = 0xffd77e, k = 2) {
