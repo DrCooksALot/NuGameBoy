@@ -557,7 +557,7 @@ export function errands(ctx) {
       if (zone === 'room') { const x = RX + (p.x - RX) * .4; Cam.set(x, 7.4, RZ + 9.6, x, .9, RZ - .3); }
       else if (zone === 'pitch') Cam.set(PX, 5.4, PZ + 8, PX, 1.2, PZ - .8);
       else if (zone === 'swamp') Cam.set(p.x, 5.4, p.z + 9, p.x, 1.4, p.z - 7);
-      else if (zone === 'boat') { const x = BX + (p.x - BX) * .7; if (view) { Cam.set(BX, 3.4, BZ + 4.2, BX, 2.6, BZ - 60); me.face = pal.face = Math.PI; if (!ctx.twoP) pal.g.position.set(p.x + 1, 0, p.z); }   // over their shoulders, at the skyline else Cam.set(x, 7, BZ + 12, x, 1.6, BZ - 3); }
+      else if (zone === 'boat') { const x = BX + (p.x - BX) * .7; if (view) { Cam.set(BX, 3.4, BZ + 4.2, BX, 2.6, BZ - 60); me.face = pal.face = Math.PI; if (!ctx.twoP) pal.g.position.set(p.x + 1, 0, p.z); } else Cam.set(x, 7, BZ + 12, x, 1.6, BZ - 3); }   // view: over their shoulders, at the skyline
       else { const k = clamp(1 - (Math.abs(p.x - 27) - 7) / 4, 0, 1) * clamp((p.z + 5) / 3, 0, 1) * clamp((15 - p.z) / 3, 0, 1);                     // around Jackson Square the camera leans back to get the Cathedral spires in
         Cam.set(p.x, 11.5 + 2 * k, p.z + 7 + 4.5 * k, p.x, .6 + 2.4 * k, p.z - 1.5 - 2 * k); }
       ctx.sky.position.set(Cam.tp.x, 0, Cam.tp.z); },                                                                                              // the sets are far apart, so the sky travels with the camera
