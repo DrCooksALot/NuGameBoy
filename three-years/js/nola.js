@@ -51,7 +51,7 @@ const WALLET = 300, OBJ_PTS = 10, TIP_PTS = 2;
    3 · the Steamboat Natchez: the ending. Wander, eat, look at the city, leave when you like. */
 const ADVENTURES = [
   { id: HILTON, n: 'The Hilton trip', $: 0 },
-  { id: GATOR, n: 'Airboat Alligator Race', $: 50 },
+  { id: GATOR, n: 'Airboat Alligator Race', $: 50 },      // three races, see COURSES
   { id: BOAT, n: 'Steamboat Natchez', $: 60 },
 ];
 /* The pitch. Add or change lines freely: each round is one thing they say and the replies you can pick from.
@@ -84,10 +84,23 @@ const PITCH = [
 ];
 const PITCH_END = [['the sales guy', '... Okay. Here are your vouchers. You two are a tough room.'], ['', 'Two hours. Zero timeshares. You kept the pen.']];
 const PX = 0, PZ = 620;                                                                 // the Hilton conference room
-const RACE_PTS = [15, 10, 6, 4], ORD = ['1st', '2nd', '3rd', '4th'];
+/* The Airboat Alligator Race is a cup: three courses, raced in order, each a loop you lap.
+   wave: the bends, as [how far it swings, how many times per lap, phase]. pace: how fast the other boats go. */
+const RACE_PTS = [10, 7, 4, 2], ORD = ['1st', '2nd', '3rd', '4th'];
 const RACE_END = ['First across the line. The gators are filing a complaint.', 'Second. Close enough to taste the swamp water.', 'Third. The boat is fine. The pride will recover.', 'Last, but nobody got eaten. A clean race.'];
-const SWX = -700, SWZ = 950, RLEN = 300, HWID = 6;                                          // the bayou: start line at z = SWZ, finish RLEN further up the screen
-const lane = (z) => SWX + 8 * Math.sin((z - SWZ) * .03) + 2.5 * Math.sin((z - SWZ) * .08);  // the channel's centre line
+const SWZ = 950, STEP = 8;                                                                  // every course starts at z = SWZ and runs up the screen
+const COURSES = [
+  { name: 'Honey Island Warm-Up', blurb: 'Wide water, lazy bends, sleepy gators.', x: -700, L: 264, laps: 2, hw: 6.5, wave: [[6, 2, 0], [1.5, 5, 1]], gators: 4, logs: 2, rings: 3, pace: 14.2, water: 0x4a6a52 },
+  { name: 'Gator Alley', blurb: 'Narrow, twisty, and they are awake.', x: -1000, L: 304, laps: 3, hw: 5.4, wave: [[7, 3, .5], [1.5, 7, 2]], gators: 9, logs: 4, rings: 4, pace: 15, water: 0x3f6a4a },
+  { name: 'Midnight Bayou', blurb: 'After dark. Lanterns on the banks, eyes in the water.', x: -1300, L: 344, laps: 3, hw: 5.8, wave: [[8, 3, 1], [2, 8, 0]], gators: 8, logs: 5, rings: 5, pace: 15.7, water: 0x24344a, night: true },
+];
+const lane = (C, z) => C.x + C.wave.reduce((a, [A, k, ph]) => a + A * Math.sin((SWZ - z) / C.L * 6.2832 * k + ph), 0);    // the channel's centre line; repeats every lap
+/* vmax: top speed. steer: how fast it slides sideways. acc: how quickly it gets back up to speed. boost: seconds per boost. bump: speed left after hitting a gator. seat: how high the driver sits. */
+const BOATS = [
+  { n: 'Swamp Skimmer', hint: 'airboat · does everything', vmax: 16, steer: 9, acc: 1.4, boost: 1.3, bump: 5, seat: .62 },
+  { n: 'Gator Tail', hint: 'mud boat · grippy, shrugs off gators', vmax: 14.8, steer: 12.5, acc: 2.2, boost: 1.3, bump: 11, seat: .3 },
+  { n: 'Bayou Rocket', hint: 'speedboat · fast, wide turns', vmax: 18, steer: 6.8, acc: 1, boost: 1.1, bump: 4, seat: .32 },
+];
 const BX = 700, BZ = 420, DECK = [BX - 11.4, BX + 11.4, BZ - 3.5, BZ + 3.5];              // the steamboat's deck
 const CRUISE_OPEN = [['', 'The Natchez pulls off the wharf at sunset, red paddlewheel turning.'], ['', 'Nothing to win here. Eat, wander, look at the city. Talk to the captain, or press B, when you want to call it a night.']];
 const CRUISE_END = [['', 'The boat turns for the wharf. The first fat drops hit the deck.'], ['', 'Powdered sugar in a thunderstorm.']];
@@ -309,27 +322,33 @@ function buildPitch(b) {                                           // a windowle
   b.box(x + 5, 0, z + 2, .08, 2.3, 1.2, 0x4a3226);
 }
 
-function buildSwamp(b, c) {                                        // the bayou the airboats race up
-  const mid = SWZ - RLEN / 2, obs = [], rings = [];
-  b.box(SWX, -.5, mid, 130, .4, RLEN + 160, 0x4a6a52);
-  for (const sx of [-1, 1]) { b.box(SWX + sx * 44, -.2, mid, 36, 3.6, RLEN + 160, 0x2f5a3a); b.box(SWX + sx * 50, 3.4, mid, 30, 2.4, RLEN + 160, 0x2a4a34); }
-  for (let z = SWZ + 36, i = 0; z > SWZ - RLEN - 50; z -= 6, i++) for (const sx of [-1, 1]) {
-    const r = hash(i * 3 + sx), x = lane(z) + sx * (HWID + 2.4 + r * 1.6);
-    b.ball(x, -.1, z, 3.1, r > .5 ? 0x4a8a4a : 0x5a9a50, 0, .2);
-    if ((i + (sx > 0)) % 2) { const tx = x + sx * (1 + r), H = 5 + r * 2.6;                                                                     // bald cypress, hung with Spanish moss
-      b.cyl(tx, -.1, z, .6, H, 0x6a5a4a, .4, 5); b.ball(tx, H, z, 2.5, 0x3a7a4a, 0, .45); for (const [dx, dz] of [[-1.3, .6], [1.1, 1], [.2, 1.6]]) b.box(tx + dx, H - 2.1, z + dz, .14, 1.5 + r, .14, 0x8aa07a); }
-    else if (r > .4) for (let k = 0; k < 3; k++) b.box(x - sx * (2.6 + k * .5), -.1, z + k * .7, .5, .02, .5, 0x6aaa5a, k);                              // lily pads
-  }
-  for (const [z, text, bg] of [[SWZ - 5, 'AIRBOAT ALLIGATOR RACE', '#1f5a45'], [SWZ - RLEN, 'FINISH', '#1c1a24']]) { const x = lane(z);
-    for (const sx of [-1, 1]) b.cyl(x + sx * HWID, -.1, z, .16, 4.6, WOOD, 1, 5); sign(text, x, 4, z, HWID * 2, 1.2, { bg, fg: '#ffe27a', border: '#ffe27a', glow: true });
-    for (let k = 0; k < 12; k++) b.box(x - HWID + .5 + k * (HWID * 2 - 1) / 11, -.09, z, .5, .02, .5, k % 2 ? 0xffffff : 0x1c1a24); }
-  for (let k = 0; k < 14; k++) { const z = SWZ - 34 - k * 18.5, x = lane(z) + (hash(k * 3.1 + 2) - .5) * 2 * (HWID - 2.2), ry = hash(k * 7.7) * 3.1, s = Math.sin(ry), co = Math.cos(ry), log = k % 3 === 2;
-    if (log) { b.box(x, -.14, z, .42, .34, 2.6, 0x5a4630, ry); b.box(x + co * .2, .1, z - s * .2, .1, .3, .1, 0x5a4630, ry); }
-    else { b.box(x, -.16, z, .56, .3, 1.7, 0x3a5a34, ry); b.box(x + s * 1.2, -.16, z + co * 1.2, .46, .24, .8, 0x4a6a3c, ry); b.box(x - s * 1.3, -.16, z - co * 1.3, .3, .2, 1, 0x3a5a34, ry);
-      for (const e of [-1, 1]) b.dot(x + s * .95 + co * e * .16, .18, z + co * .95 - s * e * .16, .06, 0xffe27a, 1.2); for (let j = -1; j <= 1; j++) b.box(x + s * j * .5, .12, z + co * j * .5, .16, .1, .16, 0x2f4a2c, ry); }
-    obs.push({ x, z, log }); }
-  for (let k = 0; k < 6; k++) { const z = SWZ - 48 - k * 46; rings.push({ x: lane(z) + (hash(k * 5.3) - .5) * 5, z }); }
-  c.swamp = { obs, rings };
+function buildSwamp(b, c) {                                        // three bayous. Each is one lap long and built to repeat, so a boat that finishes a lap is slid back to the start unseen
+  c.courses = COURSES.map((C, ci) => {
+    const N = C.L / STEP, far = C.L + 144, mid = SWZ - C.L / 2 - 40, len = C.L + 260, dark = C.night ? .55 : 1, tint = (col) => { const r = (col >> 16) * dark, g = ((col >> 8) & 255) * dark, bl = (col & 255) * dark; return (r << 16) | (g << 8) | (bl | 0); };
+    b.box(C.x, -.5, mid, 150, .4, len, C.water);
+    for (const sx of [-1, 1]) { b.box(C.x + sx * 54, -.2, mid, 40, 3.6, len, tint(0x2f5a3a)); b.box(C.x + sx * 60, 3.4, mid, 32, 2.4, len, tint(0x2a4a34)); }
+    for (let i = -6; i * STEP < far; i++) { const z = SWZ - i * STEP, j = ((i % N) + N) % N;
+      for (const sx of [-1, 1]) { const r = hash(ci * 50 + j * 3 + sx), x = lane(C, z) + sx * (C.hw + 2.8 + r * 1.6);
+        b.box(x, -.3, z, 5.4, .32, 6.6, tint(r > .5 ? 0x4a8a4a : 0x5a9a50), r * 3); b.box(x + sx * 1.2, -.3, z + 1.5, 4.2, .4, 4.4, tint(0x4f9050), r * 5 + 1);
+        if ((j + (sx > 0)) % 2) { const tx = x + sx * (1 + r), H = 5 + r * 2.6;                                                                 // bald cypress, hung with Spanish moss
+          b.box(tx, -.1, z, .7, H, .7, tint(0x6a5a4a), r * 3); b.box(tx, -.1, z, 1.3, .9, 1.3, tint(0x6a5a4a), r * 3 + .6); b.cone(tx, H - .5, z, 3.1, 1.3, tint(0x3a7a4a), 6); b.cone(tx, H + .3, z, 1.9, 1.1, tint(0x468a52), 6);
+          for (const [dx, dz] of [[-1.5, .7], [1.2, 1.2]]) b.box(tx + dx, H - 2, z + dz, .14, 1.5 + r, .14, tint(0x8aa07a)); }
+        else if (r > .4) for (let k = 0; k < 3; k++) b.box(x - sx * (3.2 + k * .5), -.1, z + k * .7, .5, .02, .5, tint(0x6aaa5a), k);                       // lily pads
+        if (C.night && j % 2 === 0) { b.box(x - sx * 2.9, -.1, z, .1, 1.7, .1, WOOD); b.ball(x - sx * 2.9, 1.7, z, .2, 0xffd27a, 3); }
+      } }
+    for (const d of [0, C.L]) { const z = SWZ - d, x = lane(C, z);                                                                              // the start and finish line
+      for (const sx of [-1, 1]) b.box(x + sx * C.hw, -.1, z, .28, 4.6, .28, WOOD); sign('START · FINISH', x, 4, z, C.hw * 2, 1.1, { bg: '#1c1a24', fg: '#ffe27a', border: '#ffe27a', glow: true });
+      for (let k = 0; k < 12; k++) b.box(x - C.hw + .5 + k * (C.hw * 2 - 1) / 11, -.09, z, .5, .02, .5, k % 2 ? 0xffffff : 0x1c1a24); }
+    const obs = [], rings = [], nOb = C.gators + C.logs;
+    for (let k = 0; k < nOb; k++) { const d = 26 + (k + hash(ci * 9 + k) * .5) * (C.L - 56) / nOb, off = (hash(ci * 31 + k * 3.1 + 2) - .5) * 2 * (C.hw - 2.2), ry = hash(ci * 5 + k * 7.7) * 3.1, s = Math.sin(ry), co = Math.cos(ry), log = k % Math.max(2, Math.round(nOb / C.logs)) === 1;
+      const x0 = lane(C, SWZ - d) + off; obs.push({ d, x: x0, log });
+      for (const dd of [d, d + C.L]) { if (dd > far - 8) continue; const z = SWZ - dd, x = x0;
+        if (log) { b.box(x, -.14, z, .42, .34, 2.6, 0x5a4630, ry); b.box(x + co * .2, .1, z - s * .2, .1, .3, .1, 0x5a4630, ry); }
+        else { b.box(x, -.16, z, .56, .3, 1.7, 0x3a5a34, ry); b.box(x + s * 1.2, -.16, z + co * 1.2, .46, .24, .8, 0x4a6a3c, ry); b.box(x - s * 1.3, -.16, z - co * 1.3, .3, .2, 1, 0x3a5a34, ry);
+          for (const e of [-1, 1]) b.dot(x + s * .95 + co * e * .16, .18, z + co * .95 - s * e * .16, C.night ? .09 : .06, 0xffe27a, 1.2); for (let j = -1; j <= 1; j++) b.box(x + s * j * .5, .12, z + co * j * .5, .16, .1, .16, 0x2f4a2c, ry); } } }
+    for (let k = 0; k < C.rings; k++) { const d = 40 + k * (C.L - 70) / C.rings; rings.push({ d, x: lane(C, SWZ - d) + (hash(ci * 13 + k * 5.3) - .5) * (C.hw - 1.5) }); }
+    return { ...C, obs, rings };
+  });
 }
 
 function buildBoat(b, c) {                                         // the cruise: a red sternwheeler, deck plan seen from the river side
@@ -385,7 +404,7 @@ export function errands(ctx) {
   const me = ctx.me, pal = ctx.pal, door = HOTEL.door, exit = { x: RX + 3.9, z: RZ + 1.6 }, dockAt = [DOCK.x + 1.3, DOCK.z + .5];
   const shops = SHOPS.map((s) => ({ ...s, items: s.items.map(([n, cost, pts]) => ({ n, cost, pts, got: false })) }));
   const done = [false, false, false, false, false, false], once = new Set();
-  let wallet = WALLET, zone = 'room', mode = null, say = null, busy = false, lock = 0, written = 0, opened = false, over = false, dash = 0, cd = 0, T = 0, noteNow = null, pitchI = 0, race = null, view = false;
+  let wallet = WALLET, zone = 'room', mode = null, say = null, busy = false, lock = 0, written = 0, opened = false, over = false, dash = 0, cd = 0, T = 0, noteNow = null, pitchI = 0, race = null, view = false, myType = 0, palType = 1, cup = 0;
   ctx.bounds = CITY;                                                                    // (tells main.js this is a big map, so the rain follows the camera)
 
   /* the pad: a checklist pinned to the corner of the screen */
@@ -411,10 +430,15 @@ export function errands(ctx) {
   const mark = (i, mine) => { if (done[i]) return; done[i] = true; draw(); Sfx.big(); if (mine) ctx.send('pick', i);
     UI.pop('☑ ' + LIST.find((l) => l.id === i).t); me.cheer = pal.cheer = .6;
     if (!mine && i === HILTON && zone === 'pitch') toDock();                                              // two player: the other phone finished the scene we were both in
-    if (!mine && i === GATOR && zone === 'swamp') raceOver(false); };
+    if (!mine && i === GATOR && zone === 'swamp') toDock(); };
   const finish = (mine) => { if (over) return; over = true; rain.pts.visible = true; ctx.storm = true; if (mine) ctx.send('fin', 0); ctx.finish(); };
   ctx.on('pick', (i) => mark(i, false)); ctx.on('fin', () => finish(false));
-  ctx.on('hit', (z) => { if (busy || zone === z) return; if (z === 'pitch') startPitch(false); else if (z === 'swamp') startRace(false); else if (z === 'boat') startCruise(false); });
+  ctx.on('hit', (m) => {                                                                // two player: the other phone starting a scene, or news from its race
+    if (Array.isArray(m)) { const [k, a, b2] = m;
+      if (k === 'course') { palType = b2 || 0; if (!busy && !(zone === 'swamp' && race && race.k === a)) startCourse(a, false); }
+      else if (k === 'lap' && race) race.palLap = a; else if (k === 'done' && race && race.k === a && !race.fin) { race.out++; race.palLap = race.C.laps; }
+      return; }
+    if (busy || zone === m) return; if (m === 'pitch') startPitch(false); else if (m === 'boat') startCruise(false); });
   ctx.onPhoto = () => { pad.remove(); view = false; };
 
   /* people */
@@ -425,7 +449,7 @@ export function errands(ctx) {
   for (const s of shops) { const [x, z] = s.at || [s.kx, s.kz]; s.c = npc({ ...anyone(x | 0), ...s.look }, x, z); spots.push({ zone: 'city', x, z, r: 1.9, label: s.name, act: () => openShop(s), c: s.c }); }
   const guy = npc({ ...anyone(2), ...DOCK.look }, DOCK.x, DOCK.z);
   spots.push({ zone: 'city', x: DOCK.x, z: DOCK.z, r: 2, label: DOCK.name, c: guy, act: () => speak([[DOCK.name, !done[HILTON] ? 'Adventure? I got three. First one is free: a trip to the Hilton. You just sit through a little presentation.'
-    : !done[GATOR] ? 'You lived. Next line on the clipboard: airboats, gators, and a race.' : !listDone() ? 'The Natchez sails at sunset. Go finish that list of yours, then come see me.' : 'She is boarding. Last line on the clipboard.']], openDock) });
+    : !done[GATOR] ? 'You lived. Next line on the clipboard: the Airboat Alligator Race. Three courses. Bring your nerve.' : 'Back in one piece. The Natchez is boarding whenever you are. Last line on the clipboard.']], openDock) });
   const band = [0, 1, 2, 3].map((k) => npc(anyone(k + 4, { top: [0xf2efe6, 0x2a2a33][k % 2], cap: k % 2 ? 0x2a2a33 : undefined }), 7.5 + k * 1.25, -16.9));
   const dancers = [0, 1, 2].map((k) => npc(anyone(k + 9, { top: [0xb04ad9, 0xffd27a, 0x4fae6a][k] }), -12, -30, 0, false));
   const statue = npc({ skin: 0xc8c8d0, hair: 0xa8a8b4, top: 0xb8b8c4, legs: 0x9a9aa6, cap: 0xa8a8b4 }, 23.2, -1.3); statue.g.position.y = .4; statue.sh.visible = false;
@@ -438,13 +462,24 @@ export function errands(ctx) {
   const rain = ambient({ n: 240, col: 0xaec6ff, size: .07, area: 13, h: 11, vy: -15, drift: 0, add: false, opacity: .55 }); rain.pts.visible = false; ctx.amb.push(rain);
   // the Hilton: the sales guy, and the manager who comes in when it is not going well
   const rep = npc({ ...anyone(1), top: 0x1a2a5a, tie: 0xe5484d, hair: 0xc8a050, legs: 0x2a2a33 }, PX - 1.2, PZ - 1.5, 0, false), mgr = npc({ ...anyone(3), top: 0x3a3a44, tie: 0xffd27a, hair: 0x555060, beard: 0x555060, legs: 0x2a2a33 }, PX + 1.5, PZ - 1.5, 0, false);
-  // the airboats: yours, your partner's, and two locals
-  const airboat = (col) => { const g = new THREE.Group(), b = new Batch(); b.lo = true;
-    b.box(0, -.08, 0, 1.7, .3, 3.2, 0xc8ccd4); b.box(0, .02, -1.8, 1.5, .2, .6, 0xc8ccd4, 0, 0, -.5); b.box(0, .22, .2, .8, .5, .7, col); b.box(0, .22, 1.05, .6, .7, .5, 0x3a3540);
-    for (let k = 0; k < 10; k++) { const a = k / 10 * 6.283; b.box(Math.cos(a) * .9, 1.45 + Math.sin(a) * .9 - .06, 1.5, .62, .12, .14, col, 0, 0, 0, a + 1.571); } b.box(0, .7, 1.45, .1, 1.5, .06, 0x1c1a24);
-    b.build(g); g.visible = false; world.add(g); return g; };
-  const boats = [0xe5484d, 0x3d8bd9, 0xffd27a, 0x4fae6a].map(airboat), locals = [npc(anyone(31, { cap: 0x2a4a2a }), SWX, SWZ + 60, Math.PI, false), npc(anyone(34, { cap: 0xb0302a }), SWX, SWZ + 60, Math.PI, false)];
-  const ringIt = items(ctx.swamp.rings.length, 'ring', 0x7ad7ff, 1.2);
+  // the boats: three kinds, built the first time each racer uses one
+  const RACER = [0xe5484d, 0x3d8bd9, 0xffd27a, 0x4fae6a], pool = new Map();
+  const getBoat = (slot, type) => { const key = slot * 3 + type; for (const [k, g] of pool) if ((k / 3 | 0) === slot) g.visible = false;
+    let g = pool.get(key); if (g) { g.visible = true; return g; }
+    g = new THREE.Group(); const b = new Batch(), col = RACER[slot]; b.lo = true;
+    if (type === 0) {                                                                                               // airboat: flat hull, high seat, a big caged fan
+      b.box(0, -.08, 0, 1.7, .3, 3.2, 0xc8ccd4); b.box(0, .02, -1.8, 1.5, .2, .6, 0xc8ccd4, 0, 0, -.5); b.box(0, .22, .2, .8, .5, .7, col); b.box(0, .22, 1.05, .6, .7, .5, 0x3a3540);
+      for (let k = 0; k < 10; k++) { const a = k / 10 * 6.283; b.box(Math.cos(a) * .9, 1.45 + Math.sin(a) * .9 - .06, 1.5, .62, .12, .14, col, 0, 0, 0, a + 1.571); } b.box(0, .7, 1.45, .1, 1.5, .06, 0x1c1a24);
+    } else if (type === 1) {                                                                                        // mud boat: a camo jon boat with a long-tail motor
+      b.box(0, -.08, 0, 1.6, .36, 3.4, 0x5a6a3a); b.box(0, .28, 0, 1.3, .04, 3.1, 0x3f4a2a); b.box(0, .02, -1.9, 1.4, .26, .6, 0x5a6a3a, 0, 0, -.45); for (const z of [-.7, .5]) b.box(0, .28, z, 1.5, .14, .36, col);
+      b.box(-.5, .3, -1.2, .4, .3, .5, 0x6a5240); b.box(0, .2, 1.75, .46, .7, .56, 0x2a2a33); b.box(0, .86, 1.75, .5, .12, .6, col); b.box(0, .05, 2.75, .1, .1, 1.8, 0x8a8a94, 0, 0, .28);
+    } else {                                                                                                        // speedboat: pointed bow, windshield, twin engines
+      b.box(0, -.08, .35, 1.5, .42, 2.6, 0xffffff); b.box(0, -.08, -.95, 1.06, .42, 1.06, 0xffffff, .785); b.box(0, .12, .35, 1.54, .1, 2.62, col); b.box(0, .12, -.95, 1.1, .1, 1.1, col, .785);
+      b.box(0, .34, -.45, 1.2, .42, .08, 0x3a4458, 0, 0, -.45); b.box(0, .34, .5, 1.1, .2, .5, col); for (const sx of [-.4, .4]) { b.box(sx, .1, 1.75, .36, .6, .44, 0x1c1a24); b.box(sx, .7, 1.75, .38, .08, .46, col); }
+    }
+    b.build(g); world.add(g); pool.set(key, g); return g; };
+  const locals = [npc(anyone(31, { cap: 0x2a4a2a }), 0, SWZ + 80, Math.PI, false), npc(anyone(34, { cap: 0xb0302a }), 0, SWZ + 80, Math.PI, false)];
+  const ringIt = items(12, 'ring', 0x7ad7ff, 1.2);
   // the steamboat's crew and band
   const captain = npc({ ...anyone(4), top: 0xffffff, cap: 0xffffff, beard: 0xf2efe6, hair: 0xf2efe6, legs: 0x1a2a5a }, BX - 8.2, BZ + .3, 0, 'boat');
   const trio = [0, 1, 2].map((k) => npc(anyone(k + 40, { top: 0x2a2a33, cap: k === 1 ? 0x2a2a33 : undefined }), BX - 6 + k, BZ + 2.5, 0, 'boat'));
@@ -457,7 +492,7 @@ export function errands(ctx) {
 
   /* moving between the sets */
   const go = (z, x, zz, setup, after) => { busy = true; if (mode === 'menu' || mode === 'map') UI.panel(null); UI.say(); say = null; mode = null; Sfx.ok();
-    fade(0, .35).then(() => { zone = z; for (const c of [me, pal]) { c.y = 0; c.body.rotation.z = 0; } me.g.position.set(x, 0, zz); pal.g.position.set(x + 1.1, 0, zz + .5); me.face = pal.face = 0; for (const g of boats) g.visible = false;
+    fade(0, .35).then(() => { zone = z; for (const c of [me, pal]) { c.y = 0; c.body.rotation.z = 0; } me.g.position.set(x, 0, zz); pal.g.position.set(x + 1.1, 0, zz + .5); me.face = pal.face = 0; for (const g of pool.values()) g.visible = false; if (z !== 'boat') day();
       setup && setup(); api.cam(); Cam.snap(); return fade(1, .45); }).then(() => { busy = false; lock = .2; after && after(); }); };
   const toDock = () => go('city', dockAt[0], dockAt[1]);
 
@@ -469,52 +504,66 @@ export function errands(ctx) {
     const who = r.manager ? 'the manager' : 'the sales guy', c = r.manager ? mgr : rep; mgr.g.visible = mgr.g.visible || !!r.manager; c.cheer = .7; mode = 'menu';
     UI.menu({ kicker: r.clock + ' into the “ninety minutes”', title: who, text: r.line, clear: true, items: r.replies.map(([mineLine, back]) => ({ label: mineLine, fn: () => { closeMenu(); score(2); me.cheer = .5; pitchI++; speak([[who, back]], pitchStep); } })) }); };
 
-  /* 2 · the Airboat Alligator Race */
-  const startRace = (mine) => { if (mine) { ctx.send('hit', 'swamp'); wallet -= ADVENTURES[1].$; draw(); }
-    const side = mine ? -1 : 1, x0 = lane(SWZ);
-    go('swamp', x0 + side * 1.7, SWZ, () => { pal.g.position.set(x0 - side * 1.7, 0, SWZ); for (const g of boats) g.visible = true; ctx.swamp.rings.forEach((r, i) => ringIt.set(i, r.x, .9, r.z, 2.4, 0)); ringIt.flush();
-      race = { t: -3.4, n: 4, v: 0, boost: 1, bt: 0, hit: 0, fin: false, place: 1, got: [], ai: [
-        { g: boats[1], c: pal, x: x0 - side * 1.7, z: SWZ, v: 0, v0: 14.6, off: -side * 1.7, ph: 1, solo: true },
-        { g: boats[2], c: locals[0], x: x0 - 4, z: SWZ, v: 0, v0: 14, off: -3.6, ph: 2.6 }, { g: boats[3], c: locals[1], x: x0 + 4, z: SWZ, v: 0, v0: 13.4, off: 3.6, ph: 4.4 }] };
-      me.face = pal.face = Math.PI; }); };
-  const raceOver = (mine) => { const R = race; if (!R || R.fin) return; R.fin = true; Sfx.big();
-    if (mine) { score(RACE_PTS[R.place - 1]); FX.confetti(me.g.position.x, 2.5, me.g.position.z - 3, 60); mark(GATOR, true); }
-    speak([['airboat alligator race', mine ? ORD[R.place - 1] + ' place!' : 'They beat you to the line.'], ['', mine ? RACE_END[R.place - 1] : 'Rematch pending. Forever.']], toDock); };
-  const raceTick = (dt, t) => { const R = race, p = me.g.position, fin = SWZ - RLEN;
+  /* 2 · the Airboat Alligator Race: a three-course cup. Pick a boat before each race. */
+  const light = (a, b, c, fogCol, near, far, hemi, hemiCol, sunCol, sun) => { const u = ctx.sky.children[0].material.uniforms; u.a.value.set(a); u.b.value.set(b); u.c.value.set(c); scene.fog = new THREE.Fog(fogCol, near, far);
+    ctx.hemi.intensity = hemi; ctx.hemi.color.set(hemiCol); ctx.sun.color.set(sunCol); ctx.sun.intensity = sun; };
+  const day = () => light(0x4a5ac0, 0xf0b890, 0xd89a78, 0xe0b098, 46, 135, 2.5, 0xdcd0ff, 0xffe0b0, 2.3);
+  const night = () => light(0x080820, 0x1a2a4a, 0x0a1a1a, 0x14203a, 26, 105, 1.5, 0x8aa0e0, 0xaac0ff, 1.1);
+  const pickBoat = (k) => { const C = COURSES[k]; mode = 'menu';
+    UI.menu({ kicker: `race ${k + 1} of ${COURSES.length} · ${C.laps} laps`, title: C.name, text: C.blurb + ' Pick your boat.', clear: true, items: BOATS.map((bt, i) => ({ label: bt.n, hint: bt.hint, fn: () => { closeMenu(); myType = i; startCourse(k, true); } })) }); };
+  const startCourse = (k, mine) => { const C = ctx.courses[k], side = mine ? -1 : 1, z0 = SWZ + 6, x0 = lane(C, z0), w = C.hw / 6;
+    if (mine) ctx.send('hit', ['course', k, myType]);
+    go('swamp', x0 + side * 1.7, z0, () => { if (C.night) night();
+      race = { k, C, t: -3.4, lap: 0, v: 0, boost: 1, bt: 0, hit: 0, fin: false, place: 1, out: 0, got: new Set(), palLap: 0, palRaw: null, boat: getBoat(0, myType), ai: [
+        { c: pal, type: ctx.twoP ? palType : (myType + 1) % 3, d: -6, v: 0, v0: C.pace + .5, off: -side * 1.7, ph: 1, pal: true },
+        { c: locals[0], type: k % 3, d: -6, v: 0, v0: C.pace, off: -3.6 * w, ph: 2.6 }, { c: locals[1], type: (k + 2) % 3, d: -6, v: 0, v0: C.pace - .6, off: 3.6 * w, ph: 4.4 }] };
+      race.ai.forEach((a, i) => { a.g = getBoat(i + 1, a.type); });
+      pal.g.position.set(x0 - side * 1.7, 0, z0); me.face = pal.face = Math.PI; raceTick(0, 0); }); };
+  const raceOver = () => { const R = race; if (!R || R.fin) return; R.fin = true; Sfx.big(); const place = Math.min(4, R.out + 1), last = R.k === COURSES.length - 1;
+    ctx.send('hit', ['done', R.k]); score(RACE_PTS[place - 1]); cup += RACE_PTS[place - 1]; if (place === 1) FX.confetti(me.g.position.x, 2.5, me.g.position.z - 3, 60);
+    speak([[R.C.name, ORD[place - 1] + ' place!'], ['', RACE_END[place - 1]], ...(last ? [['the cup', `Three races, ${cup} points out of ${RACE_PTS[0] * COURSES.length}. ${cup >= 24 ? 'Swamp royalty.' : cup >= 15 ? 'Respectable. The gators nod.' : 'You finished all three. That counts.'}`]] : [])],
+      () => { if (!last) pickBoat(R.k + 1); else { mark(GATOR, true); toDock(); } }); };
+  const raceTick = (dt, t) => { const R = race, C = R.C, B = BOATS[myType], p = me.g.position, total = C.laps * C.L;
     R.t += dt; const n = Math.ceil(-R.t);
     if (R.t < 0) { if (n !== R.cnt && n <= 3) { R.cnt = n; UI.pop(String(n)); Sfx.beep(440, .12, 'square', .14); } }
-    else { if (R.cnt) { R.cnt = 0; UI.pop('GO'); Sfx.beep(880, .3, 'square', .16); }
+    else if (dt) { if (R.cnt) { R.cnt = 0; UI.pop('GO'); Sfx.beep(880, .3, 'square', .16); }
       R.bt -= dt; R.hit -= dt;
-      if (Input.just.has('A') && R.boost > 0 && R.bt <= 0) { R.boost--; R.bt = 1.3; Sfx.dash(); FX.burst(p.x, .5, p.z + 1.6, 0xffffff, 12, 4, 3, .5, 1); }
-      const vmax = R.bt > 0 ? 25 : 16 * (Input.axis.y > .4 ? .55 : 1); R.v += (vmax - R.v) * Math.min(1, dt * (R.bt > 0 ? 5 : 1.4));
-      p.z -= R.v * dt; p.x += Input.axis.x * 9 * dt;
-      const cl = lane(p.z), e = HWID - .9; if (Math.abs(p.x - cl) > e) { p.x = cl + Math.sign(p.x - cl) * e; R.v *= 1 - Math.min(1, dt * 1.1); }                       // dragging along the bank
-      if (R.hit <= 0 && R.bt <= 0) for (const o of ctx.swamp.obs) if (Math.abs(o.z - p.z) < 1.5 && Math.abs(o.x - p.x) < 1.3) { R.hit = 1.2; R.v = Math.min(R.v, 5); UI.pop(o.log ? 'log!' : 'chomp!'); Sfx.bad(); rumble(70, .35); FX.burst(p.x, .3, p.z, 0xaec6ff, 14, 4, 6, .6, 1); break; }
-      ctx.swamp.rings.forEach((r, i) => { if (!R.got[i] && Math.abs(r.z - p.z) < 1.6 && Math.abs(r.x - p.x) < 1.8) { R.got[i] = true; R.boost++; ringIt.set(i, 0, -9, 0, 0); ringIt.flush(); Sfx.pick(); UI.pop('boost +1'); } });
+      if (Input.just.has('A') && R.boost > 0 && R.bt <= 0) { R.boost--; R.bt = B.boost; Sfx.dash(); FX.burst(p.x, .5, p.z + 1.6, 0xffffff, 12, 4, 3, .5, 1); }
+      const vmax = R.bt > 0 ? B.vmax + 9 : B.vmax * (Input.axis.y > .4 ? .55 : 1); R.v += (vmax - R.v) * Math.min(1, dt * (R.bt > 0 ? 5 : B.acc));
+      p.z -= R.v * dt; p.x += Input.axis.x * B.steer * dt;
+      const cl = lane(C, p.z), e = C.hw - .9; if (Math.abs(p.x - cl) > e) { p.x = cl + Math.sign(p.x - cl) * e; R.v *= 1 - Math.min(1, dt * 1.1); }                    // dragging along the bank
+      if (p.z <= SWZ - C.L) { p.z += C.L; R.lap++; for (const v of [Cam.pos, Cam.look, Cam.tp, Cam.tl]) v.z += C.L;                                           // a lap: slide everything back to the start line
+        if (R.lap < C.laps) { UI.pop(R.lap === C.laps - 1 ? 'FINAL LAP' : `LAP ${R.lap + 1} of ${C.laps}`); Sfx.big(); R.boost++; ctx.send('hit', ['lap', R.lap]); } }
+      const dm = SWZ - p.z;
+      if (R.hit <= 0 && R.bt <= 0) for (const o of C.obs) if (Math.abs(o.d - dm) < 1.5 && Math.abs(o.x - p.x) < 1.3) { R.hit = 1.2; R.v = Math.min(R.v, B.bump); UI.pop(o.log ? 'log!' : B.bump > 8 ? 'bonk' : 'chomp!'); Sfx.bad(); rumble(70, .35); FX.burst(p.x, .3, p.z, 0xaec6ff, 14, 4, 6, .6, 1); break; }
+      C.rings.forEach((r, i) => { const key = R.lap * 10 + i; if (!R.got.has(key) && Math.abs(r.d - dm) < 1.6 && Math.abs(r.x - p.x) < 1.8) { R.got.add(key); R.boost++; Sfx.pick(); UI.pop('boost +1'); } });
       if (Math.random() < dt * 9) FX.burst(p.x + (Math.random() - .5), .1, p.z + 1.8, 0xffffff, 2, 1.6, 4, .4, 1);
     }
-    let ahead = 0;
-    for (const a of R.ai) { const net = a.solo && ctx.twoP;
-      if (net) { a.x = a.c.g.position.x; a.z = a.c.g.position.z; }
-      else { if (R.t > 0 && a.z > fin - 12) { const want = a.v0 + Math.sin(t * .7 + a.ph) * 1.3 + clamp((a.z - p.z) * .1, -2.2, 2.6); a.v += (want - a.v) * Math.min(1, dt * 1.5); a.z -= a.v * dt; }           // a little rubber band keeps it a race
-        a.x = lane(a.z) + a.off * .8 + Math.sin(a.z * .05 + a.ph) * 1.2; a.c.g.position.set(a.x, 0, a.z); a.c.y = .62; a.c.face = Math.PI; a.c.anim(dt, 0); }
-      a.g.position.set(a.x, 0, a.z); a.g.rotation.y = Math.sin(a.z * .05 + a.ph) * .15; if (a.z < p.z) ahead++; }
+    const myD = R.lap * C.L + (SWZ - p.z); let ahead = 0;
+    if (ctx.twoP) { if (R.palRaw != null) pal.g.position.z = R.palRaw; ctx.palNet(dt); R.palRaw = pal.g.position.z; }                                        // the other phone's boat, in its own lap
+    for (const a of R.ai) { const net = a.pal && ctx.twoP; let x;
+      if (net) { a.d = R.palLap * C.L + (SWZ - R.palRaw); x = pal.g.position.x; }
+      else { if (R.t > 0 && dt) { if (a.d >= total && !a.done) { a.done = true; R.out++; }
+          const want = a.done ? 7 : a.v0 + Math.sin(t * .7 + a.ph) * 1.3 + clamp((myD - a.d) * .1, -2.2, 2.6); a.v += (want - a.v) * Math.min(1, dt * 1.5); a.d += a.v * dt; }                   // a little rubber band keeps it a race
+        x = lane(C, SWZ - a.d) + a.off * .8 + Math.sin(a.d * .05 + a.ph) * 1.2; }
+      const zd = SWZ - (a.d - R.lap * C.L);
+      a.c.g.position.set(x, 0, zd); a.c.y = BOATS[a.type].seat; a.c.face = Math.PI; if (!net) a.c.anim(dt, 0);
+      a.g.position.set(x, 0, zd); a.g.rotation.y = net ? 0 : Math.sin(a.d * .05 + a.ph) * .15; if (a.d > myD) ahead++; }
     R.place = ahead + 1;
-    boats[0].position.set(p.x, 0, p.z); boats[0].rotation.y = -Input.axis.x * .22; boats[0].rotation.z = -Input.axis.x * .08; me.y = .62; me.face = Math.PI; me.anim(dt, 0);
-    for (let i = 0; i < ctx.swamp.rings.length; i++) if (!R.got[i]) { const r = ctx.swamp.rings[i]; ringIt.set(i, r.x, .9 + Math.sin(t * 3 + i) * .15, r.z, 2.4, t * 2); } ringIt.flush();
-    note(R.t < 0 ? 'STICK steer · A boost · rings give boosts' : `${ORD[R.place - 1]} of ${R.n}   A · boost ×${R.boost}   ${Math.max(0, Math.round((p.z - fin) / RLEN * 100))}% to go`);
-    if (p.z <= fin) raceOver(true); };
+    R.boat.position.set(p.x, 0, p.z); R.boat.rotation.y = -Input.axis.x * .22; R.boat.rotation.z = -Input.axis.x * .08; me.y = B.seat; me.face = Math.PI; me.anim(dt, 0);
+    C.rings.forEach((r, i) => { for (const m of [0, 1]) { const on = !R.got.has((R.lap + m) * 10 + i) && R.lap + m < C.laps; ringIt.set(i * 2 + m, r.x, on ? .9 + Math.sin(t * 3 + i) * .15 : -9, SWZ - r.d - m * C.L, on ? 2.4 : 0, t * 2); } }); ringIt.flush();
+    note(R.t < 0 ? 'STICK steer · pull back to slow · A boost' : `LAP ${Math.min(R.lap + 1, C.laps)}/${C.laps}   ${ORD[R.place - 1]} of 4   A · boost ×${R.boost}`);
+    if (R.lap >= C.laps) raceOver(); };
 
   /* 3 · the steamboat: the ending. No goal, no clock. */
-  const dusk = () => { const u = ctx.sky.children[0].material.uniforms; u.a.value.set(0x1c1a50); u.b.value.set(0xe07a80); u.c.value.set(0x5a3a78); scene.fog = new THREE.Fog(0x8a5a8a, 60, 260);
-    ctx.hemi.intensity = 1.9; ctx.hemi.color.set(0xb8a8e8); ctx.sun.color.set(0xff9a6a); ctx.sun.intensity = 1.7; };
+  const dusk = () => light(0x1c1a50, 0xe07a80, 0x5a3a78, 0x8a5a8a, 60, 260, 1.9, 0xb8a8e8, 0xff9a6a, 1.7);
   const startCruise = (mine) => { if (mine) { ctx.send('hit', 'boat'); wallet -= ADVENTURES[2].$; draw(); }
     go('boat', BX - 2, BZ + 1.2, dusk, () => speak(CRUISE_OPEN)); };
   const openBuffet = () => { mode = 'menu';
     UI.menu({ kicker: 'the buffet · included', title: 'Help yourself', clear: true, back: closeMenu, items: [
       ...buffet.map((d) => ({ label: d.n, hint: d.got ? 'eaten' : '+2', off: d.got, fn: () => { d.got = true; closeMenu(); score(2); speak([['', d.line]], () => { if (buffet.some((x) => !x.got)) openBuffet(); }); } })), { label: 'LEAVE', fn: closeMenu }] }); };
   const endCruise = () => { mode = 'menu';
-    UI.menu({ kicker: 'steamboat natchez', title: 'Call it a night?', text: 'This ends the level. There is no rush.', clear: true, back: closeMenu, items: [
+    UI.menu({ kicker: 'steamboat natchez', title: 'Call it a night?', text: listDone() ? 'This ends the level. There is no rush.' : 'This ends the level, with things still on the list. No rush.', clear: true, back: closeMenu, items: [
       { label: 'STAY A WHILE', fn: closeMenu }, { label: 'BRING HER IN', fn: () => { closeMenu(); rain.pts.visible = true; ctx.storm = true; speak(CRUISE_END, () => { score(OBJ_PTS); mark(BOAT, true); finish(true); }); } }] }); };
 
   /* buying and booking */
@@ -530,8 +579,8 @@ export function errands(ctx) {
     const book = (k, start) => () => { if (!afford(k.$, k.id)) { Sfx.back(); UI.toast('not enough cash'); return; } closeMenu(); start(true); };
     UI.menu({ kicker: `find adventure · you have $${wallet}`, title: 'The clipboard', text: 'Three lines, top to bottom.', clear: true, back: closeMenu, items: [
       { label: h.n, hint: done[HILTON] ? 'survived' : price(h), off: done[HILTON], fn: book(h, startPitch) },
-      { label: g.n, hint: done[GATOR] ? 'raced' : !done[HILTON] ? 'after the Hilton' : price(g), off: done[GATOR] || !done[HILTON], fn: book(g, startRace) },
-      { label: s.n, hint: !done[GATOR] ? 'after the race' : !listDone() ? 'finish the list first' : price(s), off: !done[GATOR] || !listDone(), fn: book(s, startCruise) },
+      { label: g.n, hint: done[GATOR] ? 'raced' : !done[HILTON] ? 'after the Hilton' : price(g), off: done[GATOR] || !done[HILTON], fn: () => { if (!afford(g.$, g.id)) { Sfx.back(); UI.toast('not enough cash'); return; } closeMenu(); wallet -= g.$; draw(); pickBoat(0); } },
+      { label: s.n, hint: !done[GATOR] ? 'after the race' : price(s), off: !done[GATOR], fn: book(s, startCruise) },
       { label: 'LEAVE', fn: closeMenu }] }); };
   const openMap = () => { mode = 'map'; Sfx.move(); const p = me.g.position, X0 = -60, Z0 = -37, Wm = 119, Hm = 73; let h = '';
     const r = (x0, x1, z0, z1, f, o = '') => `<rect x="${x0}" y="${z0}" width="${x1 - x0}" height="${z1 - z0}" fill="${f}" ${o}/>`;
@@ -556,7 +605,7 @@ export function errands(ctx) {
     cam() { const p = me.g.position;
       if (zone === 'room') { const x = RX + (p.x - RX) * .4; Cam.set(x, 7.4, RZ + 9.6, x, .9, RZ - .3); }
       else if (zone === 'pitch') Cam.set(PX, 5.4, PZ + 8, PX, 1.2, PZ - .8);
-      else if (zone === 'swamp') Cam.set(p.x, 5.4, p.z + 9, p.x, 1.4, p.z - 7);
+      else if (zone === 'swamp') Cam.set(p.x, 5.6, p.z + 9.5, p.x, 1.4, p.z - 7);
       else if (zone === 'boat') { const x = BX + (p.x - BX) * .7; if (view) { Cam.set(BX, 3.4, BZ + 4.2, BX, 2.6, BZ - 60); me.face = pal.face = Math.PI; if (!ctx.twoP) pal.g.position.set(p.x + 1, 0, p.z); } else Cam.set(x, 7, BZ + 12, x, 1.6, BZ - 3); }   // view: over their shoulders, at the skyline
       else { const k = clamp(1 - (Math.abs(p.x - 27) - 7) / 4, 0, 1) * clamp((p.z + 5) / 3, 0, 1) * clamp((15 - p.z) / 3, 0, 1);                     // around Jackson Square the camera leans back to get the Cathedral spires in
         Cam.set(p.x, 11.5 + 2 * k, p.z + 7 + 4.5 * k, p.x, .6 + 2.4 * k, p.z - 1.5 - 2 * k); }
@@ -580,7 +629,7 @@ export function errands(ctx) {
         if (mode == null && !busy) move(me, dt, dash > 0 ? 12 : 5.6, walls[zone], ctx.rects[zone], ctx.circs[zone]);
         if (zone === 'room' && !busy && Math.hypot(exit.x - p.x, exit.z - p.z) < .9) go('city', door.x, door.z + .3, null, () => UI.pop('Chartres Street'));
       }
-      if (ctx.twoP) ctx.palNet(dt); else if (zone === 'pitch') pal.anim(dt, 0); else if (zone !== 'swamp') trail(pal, p.x, p.z, dt);
+      if (ctx.twoP) { if (zone !== 'swamp') ctx.palNet(dt); } else if (zone === 'pitch') pal.anim(dt, 0); else if (zone !== 'swamp') trail(pal, p.x, p.z, dt);
       if (zone === 'city') {
         for (let k = 0; k < band.length; k++) { band[k].anim(dt, .35); band[k].y = Math.abs(Math.sin(t * 5.2 + k)) * .06; }
         for (let k = 0; k < dancers.length; k++) { const a = t * 1.6 + k * 2.094, d = dancers[k]; d.g.position.set(-12 + Math.cos(a) * 1.1, 0, -30 + Math.sin(a) * .8); d.face = -a; d.y = Math.abs(Math.sin(t * 6 + k)) * .22; if (Math.sin(t * 1.3 + k * 2) > .93) d.cheer = .3; d.anim(dt, .8); }
@@ -592,7 +641,7 @@ export function errands(ctx) {
       else if (zone === 'boat') { ctx.wheel.rotation.z -= dt * 1.4; ctx.skyline.position.x -= dt * .55; captain.anim(dt, 0); for (let k = 0; k < 3; k++) { trio[k].anim(dt, .35); trio[k].y = Math.abs(Math.sin(t * 4.4 + k)) * .05; }
         if (Math.random() < dt * 5) FX.burst(BX + 14.6, -.6, BZ + (Math.random() - .5) * 6, 0xffffff, 2, 1.5, 4, .5, 1); }
       if (mode == null && zone !== 'swamp') note(busy ? '' : zone === 'room' ? (written >= LIST.length ? 'the door is on the right →' : '') : near ? `A · ${near.s.label.toLowerCase()}` : zone === 'boat' ? 'B · call it a night' : zone === 'pitch' ? ''
-        : left() === 1 ? 'B · map   the Natchez is boarding at the dock' : `B · map   ${left()} left on the list`); else if (mode != null) note('');
+        : done[GATOR] ? `B · map   the Natchez is boarding   ${left() - 1} left on the list` : `B · map   ${left()} left on the list`); else if (mode != null) note('');
       this.cam();
     },
   };
