@@ -5,8 +5,8 @@
 // River-parallel streets, top to bottom: Bourbon, Royal, Chartres, Decatur, then the riverfront.
 // Cross streets, left to right: Canal, Conti, St. Louis, Toulouse, St. Peter, St. Ann, Dumaine
 // (Iberville and Bienville, between Canal and Conti, are left out to keep the walk short).
-import { THREE, $, world, scene, Input, Cam, UI, Sfx, fade, clamp, lerp } from './engine.js';
-import { tree, lamp, sky, lights, ambient, makeChar, sign, items, FX } from './kit.js';
+import { THREE, $, world, scene, Input, Cam, UI, Sfx, fade, rumble, clamp } from './engine.js';
+import { Batch, tree, lamp, sky, ambient, makeChar, sign, items, FX } from './kit.js';
 
 const IRON = 0x24222c, WOOD = 0x8a5a36, SLATE = 0x4a4e5a, CREAM = 0xf2efe6;
 const CREOLE = [0xe89a78, 0xf2d27a, 0x9ac0cc, 0xd98a9a, 0xb8d0a0, 0xe8c8a0, 0xc8a8d0, 0xf0b060, 0xa8c8b0], SHUTTERS = [0x2f6a58, 0x2a4a7a, 0x7a2a2a, 0x3a3a44];
@@ -37,7 +37,7 @@ const OPENING = [   // [speaker, line, how many list lines are written once this
   ['to do', '— FIND ADVENTURE: the alligator ride, the Hilton trip, the steamboat ride.', 5],
   ['to do', '— GET FOOD.', 6],
   ['to do', '— BUY GIFTS.', 7],
-  ['to do', 'That is the day. The door is on the right. B opens the map.', 7],
+  ['to do', 'That is the day. Adventure is the man in the life vest at the dock. The door is on the right. B opens the map.', 7],
 ];
 const CAT = {
   weed: { obj: WEED, label: 'weed', col: 0x4fae6a, css: '#58c878' },
@@ -45,11 +45,59 @@ const CAT = {
   gift: { obj: GIFTS, label: 'gifts', col: 0x9a5ad0, css: '#c08aff' },
 };
 const WALLET = 300, OBJ_PTS = 10, TIP_PTS = 2;
-const BOOKINGS = [
-  { id: GATOR, n: 'Alligator ride', $: 50, done: 'Swamp tour, tomorrow, 9 a.m. Keep your hands in the boat.' },
-  { id: HILTON, n: 'The Hilton trip', $: 0, done: 'Hilton it is. A short presentation, they said. It is a timeshare pitch and it runs two hours.' },
-  { id: BOAT, n: 'Steamboat ride', $: 60, done: 'Two for the Natchez jazz cruise. She boards right here at the Toulouse wharf.' },
+/* ───────── FIND ADVENTURE: three scenes, played in this order from the dock guy's clipboard ─────────
+   1 · the Hilton trip: a two-hour timeshare pitch. Nothing can go wrong in it; every reply is a good one.
+   2 · the Airboat Alligator Race.
+   3 · the Steamboat Natchez: the ending. Wander, eat, look at the city, leave when you like. */
+const ADVENTURES = [
+  { id: HILTON, n: 'The Hilton trip', $: 0 },
+  { id: GATOR, n: 'Airboat Alligator Race', $: 50 },
+  { id: BOAT, n: 'Steamboat Natchez', $: 60 },
 ];
+/* The pitch. Add or change lines freely: each round is one thing they say and the replies you can pick from.
+   A reply is [what you say, what they say back]. Rounds with manager: true are spoken by the manager, who walks in for them. */
+const PITCH = [
+  { clock: '0:05', line: 'Welcome, lovebirds! Mimosas are free. This will only take ninety minutes.', replies: [
+    ['We were promised a steamboat.', 'And you will get one. After a few slides.'],
+    ['Define "only".', 'Ha! I like you two. Sit, sit.'],
+    ['Is the mimosa also a timeshare?', 'Everything is a timeshare if you believe.']] },
+  { clock: '0:25', line: 'Picture it: one week a year, every year, forever. What does your dream vacation look like?', replies: [
+    ['This, but without you in it.', 'Ha! Great energy. Next slide.'],
+    ['A hotel we can check out of.', 'Ownership means never checking out. Think about that.'],
+    ['Forever is a long time for a Tuesday.', 'Forever is a lifestyle.']] },
+  { clock: '0:50', line: 'Now, what do you two spend on hotels a year? Ballpark it for me.', replies: [
+    ['Less than this is costing us in daylight.', 'Time is money. Which is why you should own some.'],
+    ['We sleep in the car. Next question.', 'Then imagine a car with a lobby!'],
+    ['We came for the free tickets, sir.', 'Everyone does. Ninety percent still buy. That is not true, but it feels true.']] },
+  { clock: '1:15', line: 'I should not do this, but today only, I can take forty percent off. Today. Only.', replies: [
+    ['What is it tomorrow?', 'Tomorrow it is also forty percent off. But a different forty.'],
+    ['Take off a hundred and we will think about it.', 'You are funny. She is funny. Is he always funny?'],
+    ['Can we have forty percent off the meeting?', 'We are almost done. We are not almost done.']] },
+  { manager: true, clock: '1:40', line: 'Folks. I am the manager. He tells me you are on the fence. Let me ask you something. How long have you been married?', replies: [
+    ['Since this meeting started. It has aged us.', '... I am going to get my manager.'],
+    ['Long enough to share one braincell. It says no.', 'That is a very united front.'],
+    ['We are not. Sell us that instead.', 'I do not have a slide for that.']] },
+  { manager: true, clock: '1:55', line: 'Last offer. Every other year. Off season. A studio. Facing the parking structure.', replies: [
+    ['Does it have a view of us leaving?', 'It does. It is our best feature.'],
+    ['We will take the free tickets and the pen.', 'The pen stays.'],
+    ['No. But warmly.', 'Warmly noted.']] },
+];
+const PITCH_END = [['the sales guy', '... Okay. Here are your vouchers. You two are a tough room.'], ['', 'Two hours. Zero timeshares. You kept the pen.']];
+const PX = 0, PZ = 620;                                                                 // the Hilton conference room
+const RACE_PTS = [15, 10, 6, 4], ORD = ['1st', '2nd', '3rd', '4th'];
+const RACE_END = ['First across the line. The gators are filing a complaint.', 'Second. Close enough to taste the swamp water.', 'Third. The boat is fine. The pride will recover.', 'Last, but nobody got eaten. A clean race.'];
+const SWX = -700, SWZ = 950, RLEN = 300, HWID = 6;                                          // the bayou: start line at z = SWZ, finish RLEN further up the screen
+const lane = (z) => SWX + 8 * Math.sin((z - SWZ) * .03) + 2.5 * Math.sin((z - SWZ) * .08);  // the channel's centre line
+const BX = 700, BZ = 420, DECK = [BX - 11.4, BX + 11.4, BZ - 3.5, BZ + 3.5];              // the steamboat's deck
+const CRUISE_OPEN = [['', 'The Natchez pulls off the wharf at sunset, red paddlewheel turning.'], ['', 'Nothing to win here. Eat, wander, look at the city. Talk to the captain, or press B, when you want to call it a night.']];
+const CRUISE_END = [['', 'The boat turns for the wharf. The first fat drops hit the deck.'], ['', 'Powdered sugar in a thunderstorm.']];
+const BUFFET = [['bread pudding, whiskey sauce', 'Warm. Dangerous.'], ['a cup of gumbo', 'Somebody\'s grandmother is in this.'], ['bananas Foster', 'They set it on fire first. Correct.']];
+const CRUISE_SPOTS = [   // [x, z, label, lines]: little things to do on deck, each worth points once
+  [-5, 2.5, 'the jazz trio', ['Three old men and a tune older than the boat. You sway a little.']],
+  [9.6, 2.3, 'the bar', ['Two hurricanes, in the souvenir glasses, obviously.']],
+  [10.6, -2, 'the paddlewheel', ['Red paddles, brown water, white foam. You watch it longer than you meant to.']],
+];
+const VIEW = ['The Quarter slides by: gallery lights, the three spires, one stubborn trumpet somewhere on Decatur.', 'Nobody is selling you anything. Stay as long as you like.'];
 /* row: which block face the shop sits on (N = far side of Bourbon, A faces Royal, B faces Chartres, C faces Decatur). items: [name, price, points] */
 const SHOPS = [
   { cat: 'weed', row: 'C', x: -27, name: 'CRESCENT CITY HEMP', keeper: 'budtender', hi: 'Welcome in. Everything is lab tested, allegedly.', look: { top: 0x4fae6a, hair: 0x3a2a20, cap: 0x2a2a33 },
@@ -244,6 +292,78 @@ function buildCity(b, c) {
   b.box(27, 0, -32.1, 1.5, .8, .6, 0xe5484d); b.box(27, .8, -32.1, 1.7, .3, .5, 0xffd27a); b.cyl(26.2, 0, -32.1, .05, 2, IRON, 1, 5); b.cyl(26.2, 2, -32.1, .9, .22, 0xffd27a, .1, 8); for (const sx of [-.6, .6]) b.cyl(27 + sx, .05, -31.8, .2, .06, 0x2a2a33, 1, 8);
 }
 
+function buildPitch(b) {                                           // a windowless Hilton conference room
+  const x = PX, z = PZ, WALLC = 0xe8dcc0;
+  b.box(x, -.4, z, 160, .08, 160, 0x16141c); b.box(x, -.3, z, 10.4, .3, 7.4, 0x4a5a80); for (let k = -4; k <= 4; k++) b.box(x + k * 1.1, 0, z, .08, .01, 7.2, 0x5a6a94);
+  b.box(x, 0, z - 3.6, 10.4, 3.3, .2, WALLC); b.box(x - 5.1, 0, z, .2, 3.3, 7.4, 0xd8ccb0); b.box(x + 5.1, 0, z, .2, 3.3, 7.4, 0xd8ccb0); b.box(x, 0, z - 3.48, 10.2, .9, .06, 0x8a6a4a);
+  sign('OWN A PIECE\nOF PARADISE', x - 1.6, 2.05, z - 3.44, 3.8, 1.9, { bg: '#1a2a5a', fg: '#ffe27a', border: '#ffffff', glow: true });
+  sign('HILTON', x + 3.4, 2.75, z - 3.44, 1.9, .5, { bg: '#ffffff', fg: '#1a2a5a', border: '#1a2a5a' });
+  for (let k = 0; k < 4; k++) b.box(x + 2.6 + k * .5, 1.1, z - 3.44, .34, .3 + k * .32, .05, [0x4fae6a, 0x4fae6a, 0xffd27a, 0xe5484d][k], 0, 1.1);           // a chart that only goes up
+  b.box(x, .72, z - .2, 4.6, .08, 1.5, 0x6a4226); for (const sx of [-1, 1]) b.box(x + sx * 1.9, 0, z - .2, .12, .72, 1.1, 0x4a3226);
+  for (let k = 0; k < 5; k++) b.box(x - 1.6 + k * .8, .8, z - .3 + (k % 2) * .25, .3, .02, .42, [0x3d8bd9, 0xffd27a, 0xf2efe6, 0x3d8bd9, 0xff9ab8][k], k * .4);    // brochures
+  for (const sx of [-.5, .7]) { b.cyl(x + sx, .8, z + .25, .05, .02, 0xffffff, 1, 6); b.cyl(x + sx, .82, z + .25, .012, .12, 0xffffff, 1, 5); b.cyl(x + sx, .94, z + .25, .012, .1, 0xffb347, 6, 6); }       // the free mimosas
+  b.box(x + 1.5, .8, z + .1, .05, .02, .3, 0x1a2a5a, .6);                                                                                                // the pen
+  for (const sx of [-.6, .6]) { b.box(x + sx, 0, z + 1.5, .55, .45, .55, 0x2a2a33); b.box(x + sx, .45, z + 1.76, .55, .6, .08, 0x2a2a33); }
+  b.cyl(x - 4.3, 0, z - 2.8, .3, .5, 0xb86a4a, .8, 6); b.ball(x - 4.3, 1, z - 2.8, .55, 0x3f9a52); b.ball(x - 4.1, 1.5, z - 2.7, .36, 0x3f9a52);
+  b.box(x + 4.3, 0, z - 2.2, .8, .8, 1.6, 0x8a6a4a); b.cyl(x + 4.3, .8, z - 2.5, .22, .5, 0xc8ccd4, 1, 8); b.box(x + 4.3, .8, z - 1.8, .5, .12, .4, 0xf2efe6);                // coffee urn, stale danish
+  b.box(x + 5, 0, z + 2, .08, 2.3, 1.2, 0x4a3226);
+}
+
+function buildSwamp(b, c) {                                        // the bayou the airboats race up
+  const mid = SWZ - RLEN / 2, obs = [], rings = [];
+  b.box(SWX, -.5, mid, 130, .4, RLEN + 160, 0x4a6a52);
+  for (const sx of [-1, 1]) { b.box(SWX + sx * 44, -.2, mid, 36, 3.6, RLEN + 160, 0x2f5a3a); b.box(SWX + sx * 50, 3.4, mid, 30, 2.4, RLEN + 160, 0x2a4a34); }
+  for (let z = SWZ + 36, i = 0; z > SWZ - RLEN - 50; z -= 6, i++) for (const sx of [-1, 1]) {
+    const r = hash(i * 3 + sx), x = lane(z) + sx * (HWID + 2.4 + r * 1.6);
+    b.ball(x, -.1, z, 3.1, r > .5 ? 0x4a8a4a : 0x5a9a50, 0, .2);
+    if ((i + (sx > 0)) % 2) { const tx = x + sx * (1 + r), H = 5 + r * 2.6;                                                                     // bald cypress, hung with Spanish moss
+      b.cyl(tx, -.1, z, .6, H, 0x6a5a4a, .4, 5); b.ball(tx, H, z, 2.5, 0x3a7a4a, 0, .45); for (const [dx, dz] of [[-1.3, .6], [1.1, 1], [.2, 1.6]]) b.box(tx + dx, H - 2.1, z + dz, .14, 1.5 + r, .14, 0x8aa07a); }
+    else if (r > .4) for (let k = 0; k < 3; k++) b.box(x - sx * (2.6 + k * .5), -.1, z + k * .7, .5, .02, .5, 0x6aaa5a, k);                              // lily pads
+  }
+  for (const [z, text, bg] of [[SWZ - 5, 'AIRBOAT ALLIGATOR RACE', '#1f5a45'], [SWZ - RLEN, 'FINISH', '#1c1a24']]) { const x = lane(z);
+    for (const sx of [-1, 1]) b.cyl(x + sx * HWID, -.1, z, .16, 4.6, WOOD, 1, 5); sign(text, x, 4, z, HWID * 2, 1.2, { bg, fg: '#ffe27a', border: '#ffe27a', glow: true });
+    for (let k = 0; k < 12; k++) b.box(x - HWID + .5 + k * (HWID * 2 - 1) / 11, -.09, z, .5, .02, .5, k % 2 ? 0xffffff : 0x1c1a24); }
+  for (let k = 0; k < 14; k++) { const z = SWZ - 34 - k * 18.5, x = lane(z) + (hash(k * 3.1 + 2) - .5) * 2 * (HWID - 2.2), ry = hash(k * 7.7) * 3.1, s = Math.sin(ry), co = Math.cos(ry), log = k % 3 === 2;
+    if (log) { b.box(x, -.14, z, .42, .34, 2.6, 0x5a4630, ry); b.box(x + co * .2, .1, z - s * .2, .1, .3, .1, 0x5a4630, ry); }
+    else { b.box(x, -.16, z, .56, .3, 1.7, 0x3a5a34, ry); b.box(x + s * 1.2, -.16, z + co * 1.2, .46, .24, .8, 0x4a6a3c, ry); b.box(x - s * 1.3, -.16, z - co * 1.3, .3, .2, 1, 0x3a5a34, ry);
+      for (const e of [-1, 1]) b.dot(x + s * .95 + co * e * .16, .18, z + co * .95 - s * e * .16, .06, 0xffe27a, 1.2); for (let j = -1; j <= 1; j++) b.box(x + s * j * .5, .12, z + co * j * .5, .16, .1, .16, 0x2f4a2c, ry); }
+    obs.push({ x, z, log }); }
+  for (let k = 0; k < 6; k++) { const z = SWZ - 48 - k * 46; rings.push({ x: lane(z) + (hash(k * 5.3) - .5) * 5, z }); }
+  c.swamp = { obs, rings };
+}
+
+function buildBoat(b, c) {                                         // the cruise: a red sternwheeler, deck plan seen from the river side
+  const RED = 0xb0302a, x = BX, z = BZ;
+  b.box(x, -1.9, z - 40, 500, .4, 320, 0x3a3a6a);
+  b.box(x - .8, -1.5, z, 27, 1.5, 8.6, RED); b.box(x - .8, -.3, z, 27.2, .26, 8.8, 0xffffff); b.box(x, -.06, z, 24.6, .06, 8, 0xb08a5a); for (let k = -5; k <= 5; k++) b.box(x + k * 2.2, 0, z, .05, .01, 8, 0x9a7648);
+  for (let k = 0; k <= 30; k++) b.box(x - 12 + k * .8, 0, z - 3.9, .06, .9, .06, 0xffffff); b.box(x, .9, z - 3.9, 24.2, .07, .09, 0xffffff); b.box(x, .45, z - 3.9, 24.2, .04, .04, 0xffffff);
+  for (let k = 0; k <= 12; k++) b.box(x - 12 + k * 2, 0, z + 3.9, .06, .8, .06, 0xffffff); b.box(x, .8, z + 3.9, 24.2, .06, .08, 0xffffff);
+  for (const sx of [-1, 1]) { b.box(x + sx * 12.1, .8, z, .08, .06, 7.8, 0xffffff); b.box(x + sx * 12, 0, z - 3.9, .1, 3.5, .1, 0xffffff); }
+  for (let k = 0; k <= 26; k++) { const t = k / 26; b.ball(x - 12 + 24 * t, 3.5 - Math.sin(t * Math.PI) * .7, z - 3.9, .09, [0xffd27a, 0xff7ab6, 0x7ad7ff][k % 3], 3.2); }       // lights strung over the rail
+  for (const dz of [-1.3, 1.3]) { b.cyl(x - 14.6, 0, z + dz, .3, 6, 0x1c1a24, 1, 6); b.cyl(x - 14.6, 6, z + dz, .44, .4, 0xffd27a, 1.3, 6, 1.1); }
+  b.box(x - 13.4, 0, z, 2.2, 2.3, 2.6, 0xffffff); b.box(x - 13.4, 2.3, z, 2.6, .2, 3, RED); b.box(x - 12.28, 1, z, .05, .8, 1.6, 0x3a4458);                           // pilot house, forward
+  b.box(x + 5, 0, z - .3, 3.8, .8, 1, 0xffffff); for (let k = 0; k < 5; k++) b.cyl(x + 3.6 + k * .7, .8, z - .3, .2, .1 + (k % 2) * .1, [0xd99a4a, 0x8a4a2a, 0xffd27a, 0xe5484d, 0xf2efe6][k], 1, 8);                  // the buffet
+  b.cyl(x + 6.5, .8, z - .3, .06, .3, 0xffd27a, 1, 5); b.ball(x + 6.5, 1.2, z - .3, .1, 0xffe9b0, 3);
+  b.box(x + 9.6, 0, z + 3, 1.8, .9, .6, 0x6a4226); for (let k = 0; k < 4; k++) b.cyl(x + 9 + k * .4, .9, z + 3, .06, .3, [0xe5484d, 0x4fae6a, 0xffd27a, 0x7ad7ff][k], .6, 5);                                 // the bar
+  b.box(x - 1.6, 0, z - 3.3, 1.8, .42, .5, WOOD); b.box(x + 1.6, 0, z - 3.3, 1.8, .42, .5, WOOD);
+  b.cyl(x - 9, 0, z - .6, .12, 1, WOOD, 1, 6); for (let k = 0; k < 4; k++) b.box(x - 9, .86, z - .5, .08, .9, .06, WOOD, 0, 0, 0, k * Math.PI / 4);                              // the wheel
+  b.cone(x - 6, 1.02, z + 2.75, .14, .32, 0xffd27a, 6); b.cyl(x - 4, .55, z + 2.9, .3, .28, 0xf2efe6, 1, 8); b.box(x - 5, 0, z + 3.3, .5, 1.6, .3, 0x6a4226);
+  c.rects.boat = [[x + 3.1, x + 6.9, z - .8, z + .2], [x + 8.7, x + 10.5, z + 2.7, z + 3.5], [x - 2.5, x + 2.5, z - 3.6, z - 3.05]];
+  c.circs.boat = [{ x: x - 9, z: z - .6, r: .45 }];
+  // the sternwheel turns, so it is its own little mesh
+  const wb = new Batch(), wheel = new THREE.Group(); for (let k = 0; k < 4; k++) wb.box(0, -1.7, 0, .24, 3.4, 7.2, RED, 0, 0, 0, k * Math.PI / 4); wb.build(wheel); wheel.position.set(x + 14.6, .1, z); world.add(wheel);
+  b.box(x + 13.2, -.3, z - 3.9, 3, .3, .3, 0xffffff); b.box(x + 13.2, -.3, z + 3.9, 3, .3, .3, 0xffffff);
+  // the city, sliding past on the far bank
+  const sb = new Batch(), sky2 = new THREE.Group(); sb.lo = true; sb.box(0, -.3, 4, 360, .9, 10, 0x2a2440);
+  for (let k = 0; k < 46; k++) { const sx = -172 + k * 7.5, r = hash(k * 2.3 + 1), h = k > 30 ? 9 + r * 14 : 3.5 + r * 5; sb.box(sx, 0, 0, 6.4, h, 5, [0x2a2848, 0x34305a, 0x2a3454][k % 3]);
+    for (let j = 0; j < 5; j++) sb.box(sx + (hash(k * 9 + j) - .5) * 5, 1 + hash(k * 5 + j * 3) * (h - 1.8), 2.56, .4, .4, .05, j % 2 ? 0xffd27a : 0xffe9b0, 0, 1.2);
+    sb.dot(sx, .9, 8.6, .12, 0xffd9a0, 1.25); }
+  for (const [dx, h, r] of [[0, 11, 1.4], [-2.6, 8, 1], [2.6, 8, 1]]) { sb.box(-20 + dx, 0, 3, r * 1.5, h * .55, 2, 0xd8d4e0); sb.cone(-20 + dx, h * .55, 3, r, h * .45, 0x4a4e6a, 6); }                      // the Cathedral, lit
+  for (const tx of [70, 110]) { sb.box(tx, 0, -6, 1.4, 20, 1.4, 0x4a4868); sb.box(tx, 20, -6, 3, .6, 2, 0x4a4868); } sb.box(90, 9, -6, 110, .7, 1.6, 0x4a4868); for (let k = 0; k <= 22; k++) sb.dot(36 + k * 5, 9.9, -5, .14, 0xffe9b0, 1.25);   // the bridge
+  sb.build(sky2); sky2.position.set(x + 46, -1.5, z - 78); world.add(sky2);
+  c.wheel = wheel; c.skyline = sky2;
+}
+
 /* ───────── the mechanic ───────── */
 function move(ch, dt, speed, bounds, rects, circs) {
   const ax = Input.axis.x, az = Input.axis.y, l = Math.hypot(ax, az);
@@ -262,75 +382,156 @@ function trail(ch, tx, tz, dt, gap = 1.3, speed = 5) {
 }
 
 export function errands(ctx) {
-  const me = ctx.me, pal = ctx.pal, door = HOTEL.door, exit = { x: RX + 3.9, z: RZ + 1.6 };
+  const me = ctx.me, pal = ctx.pal, door = HOTEL.door, exit = { x: RX + 3.9, z: RZ + 1.6 }, dockAt = [DOCK.x + 1.3, DOCK.z + .5];
   const shops = SHOPS.map((s) => ({ ...s, items: s.items.map(([n, cost, pts]) => ({ n, cost, pts, got: false })) }));
-  const done = [false, false, false, false, false, false], tipped = new Set();
-  let wallet = WALLET, zone = 'room', mode = null, say = null, busy = false, lock = 0, written = 0, opened = false, storm = false, over = false, dash = 0, cd = 0, T = 0, noteNow = null, beacon = null;
-  ctx.bounds = ROOM;                                                                    // (also tells main.js this is a big map, so the rain follows the camera)
+  const done = [false, false, false, false, false, false], once = new Set();
+  let wallet = WALLET, zone = 'room', mode = null, say = null, busy = false, lock = 0, written = 0, opened = false, over = false, dash = 0, cd = 0, T = 0, noteNow = null, pitchI = 0, race = null, view = false;
+  ctx.bounds = CITY;                                                                    // (tells main.js this is a big map, so the rain follows the camera)
 
   /* the pad: a checklist pinned to the corner of the screen */
   const pad = document.createElement('div');
   pad.style.cssText = 'position:absolute;left:6px;top:30px;z-index:5;padding:4px 7px 5px;background:#fff3a8;color:#2a2440;border-radius:2px;box-shadow:1px 2px 0 rgba(0,0,0,.45);font:700 9px/1.4 "Bradley Hand","Segoe Print","Comic Sans MS",cursive;transform:rotate(-1.5deg);transform-origin:top left;pointer-events:none;border-top:5px solid #e0b93a;text-shadow:none;letter-spacing:0;max-width:46%';
   $('#screen').appendChild(pad);
   const isDone = (l) => l.group ? l.group.every((i) => done[i]) : done[l.id];
-  const draw = () => { pad.style.display = written || opened ? 'block' : 'none';
-    pad.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #c8a83a;margin-bottom:1px"><span>TO DO</span><span>$${wallet}</span></div>` +
+  const draw = () => { pad.style.display = written ? 'block' : 'none';
+    pad.innerHTML = '<div style="display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #c8a83a;margin-bottom:1px"><span>TO DO</span><span>$' + wallet + '</span></div>' +
       LIST.slice(0, written).map((l) => `<div style="${l.sub ? 'padding-left:9px;font-size:8px;' : ''}${isDone(l) ? 'text-decoration:line-through;opacity:.5' : ''}">${isDone(l) ? '☑' : '☐'} ${l.t}</div>`).join(''); };
   draw();
 
   const note = (t) => { if (t !== noteNow) { noteNow = t; UI.note(t); } };
-  const speak = (lines, after) => { if (mode === 'menu') UI.panel(null); say = { lines, i: 0, after }; mode = 'say'; lock = .3; UI.say(lines[0][0], lines[0][1]); if (lines[0][2] != null) { written = lines[0][2]; draw(); } Sfx.move(); };
-  const score = (n, x, z) => { ctx.streak = 0; ctx.add(n, x, 1.3, z); };                 // no combo multiplier on a shopping trip
+  const closeMenu = () => { UI.panel(null); mode = null; lock = .3; };
+  const speak = (lines, after) => { if (mode === 'menu' || mode === 'map') UI.panel(null); say = { lines, i: 0, after }; mode = 'say'; lock = .3; UI.say(lines[0][0], lines[0][1]); if (lines[0][2] != null) { written = lines[0][2]; draw(); } Sfx.move(); };
+  const score = (n) => { const p = me.g.position; ctx.streak = 0; ctx.add(n, p.x, 1.6, p.z); };              // no combo multiplier on a day out
+  const listDone = () => done[WEED] && done[FOOD] && done[GIFTS];
   const left = () => done.filter((d) => !d).length;
   const cheapest = (cat) => Math.min(...shops.filter((s) => s.cat === cat).flatMap((s) => s.items.filter((i) => !i.got).map((i) => i.cost)));
   // never let a purchase strand the list: keep back the cheapest way to finish everything else
-  const reserve = (skip) => BOOKINGS.reduce((a, k) => a + (done[k.id] || k.id === skip ? 0 : k.$), 0) + Object.keys(CAT).reduce((a, c) => a + (done[CAT[c].obj] || CAT[c].obj === skip ? 0 : cheapest(c)), 0);
+  const reserve = (skip) => ADVENTURES.reduce((a, k) => a + (done[k.id] || k.id === skip ? 0 : k.$), 0) + Object.keys(CAT).reduce((a, c) => a + (done[CAT[c].obj] || CAT[c].obj === skip ? 0 : cheapest(c)), 0);
   const afford = (cost, obj) => cost <= wallet - reserve(obj);
   const mark = (i, mine) => { if (done[i]) return; done[i] = true; draw(); Sfx.big(); if (mine) ctx.send('pick', i);
-    const grp = [GATOR, HILTON, BOAT].includes(i) && [GATOR, HILTON, BOAT].every((k) => done[k]);
-    UI.pop(grp ? 'adventure: found' : `☑ ${LIST.find((l) => l.id === i).t}`); me.cheer = pal.cheer = .6;
-    if (!left()) startStorm(); };
-  const startStorm = () => { storm = true; ctx.storm = true; rain.pts.visible = true; scene.fog = new THREE.Fog(0x5a5a8a, 20, 70); beacon = items(1, 'ring', 0xffd77e, 1.2);
-    speak([['', 'Everything is crossed off. Then the sky over the river goes purple.'], ['', 'Thunderstorm. Run for the hotel on Chartres!']]); };
-  const finish = (mine) => { if (over) return; over = true; if (mine) ctx.send('fin', 0); ctx.finish(); };
+    UI.pop('☑ ' + LIST.find((l) => l.id === i).t); me.cheer = pal.cheer = .6;
+    if (!mine && i === HILTON && zone === 'pitch') toDock();                                              // two player: the other phone finished the scene we were both in
+    if (!mine && i === GATOR && zone === 'swamp') raceOver(false); };
+  const finish = (mine) => { if (over) return; over = true; rain.pts.visible = true; ctx.storm = true; if (mine) ctx.send('fin', 0); ctx.finish(); };
   ctx.on('pick', (i) => mark(i, false)); ctx.on('fin', () => finish(false));
-  ctx.onPhoto = () => { pad.remove(); if (beacon) beacon.m.visible = false; for (const w of walkers) w.c.g.visible = false; };
+  ctx.on('hit', (z) => { if (busy || zone === z) return; if (z === 'pitch') startPitch(false); else if (z === 'swamp') startRace(false); else if (z === 'boat') startCruise(false); });
+  ctx.onPhoto = () => { pad.remove(); view = false; };
 
   /* people */
-  const npc = (look, x, z, face = 0, solid = true) => { const c = makeChar(look); c.g.position.set(x, 0, z); c.face = face; c.anim(0, 0); world.add(c.g); if (solid) ctx.circs.city.push({ x, z, r: .4 }); return c; };
+  const npc = (look, x, z, face = 0, solid = 'city') => { const c = makeChar(look); c.g.position.set(x, 0, z); c.face = face; c.anim(0, 0); world.add(c.g); if (solid) ctx.circs[solid].push({ x, z, r: .4 }); return c; };
   const SK = [0xe6b596, 0xd59a70, 0xb9794f, 0xf0c8a4, 0x9a6a48], HR = [0x1a1412, 0x3a2a20, 0x6b3a24, 0xc8a050, 0x555060], TP = [0xe5484d, 0x3d8bd9, 0xf2efe6, 0xffd27a, 0x4fae6a, 0x8a5ad0, 0x2a2a33, 0xff9ab8];
   const anyone = (i, o = {}) => ({ skin: SK[i % 5], hair: HR[(i * 3) % 5], top: TP[(i * 5) % 8], legs: [0x2a2a33, 0x3b4a8a, 0x6a5240][i % 3], style: ['short', 'long', 'bun', 'curly'][i % 4], ...o });
-  const spots = [];                                                                     // everything A does something at
-  for (const s of shops) { const [x, z] = s.at || [s.kx, s.kz]; s.c = npc({ ...anyone(x | 0), ...s.look }, x, z); spots.push({ x, z, r: 1.9, label: s.name, act: () => openShop(s), c: s.c }); }
+  const spots = [];                                                                     // everything A does something at: { zone, x, z, r, label, act, c }
+  for (const s of shops) { const [x, z] = s.at || [s.kx, s.kz]; s.c = npc({ ...anyone(x | 0), ...s.look }, x, z); spots.push({ zone: 'city', x, z, r: 1.9, label: s.name, act: () => openShop(s), c: s.c }); }
   const guy = npc({ ...anyone(2), ...DOCK.look }, DOCK.x, DOCK.z);
-  spots.push({ x: DOCK.x, z: DOCK.z, r: 2, label: DOCK.name, c: guy, act: () => speak([[DOCK.name, done[GATOR] && done[HILTON] && done[BOAT] ? 'You are signed up for all three. Do not be late.' : 'Gators, the steamboat, and a free trip to the Hilton if you sit through a little presentation. I book all three, right here on the clipboard.']], openDock) });
+  spots.push({ zone: 'city', x: DOCK.x, z: DOCK.z, r: 2, label: DOCK.name, c: guy, act: () => speak([[DOCK.name, !done[HILTON] ? 'Adventure? I got three. First one is free: a trip to the Hilton. You just sit through a little presentation.'
+    : !done[GATOR] ? 'You lived. Next line on the clipboard: airboats, gators, and a race.' : !listDone() ? 'The Natchez sails at sunset. Go finish that list of yours, then come see me.' : 'She is boarding. Last line on the clipboard.']], openDock) });
   const band = [0, 1, 2, 3].map((k) => npc(anyone(k + 4, { top: [0xf2efe6, 0x2a2a33][k % 2], cap: k % 2 ? 0x2a2a33 : undefined }), 7.5 + k * 1.25, -16.9));
   const dancers = [0, 1, 2].map((k) => npc(anyone(k + 9, { top: [0xb04ad9, 0xffd27a, 0x4fae6a][k] }), -12, -30, 0, false));
   const statue = npc({ skin: 0xc8c8d0, hair: 0xa8a8b4, top: 0xb8b8c4, legs: 0x9a9aa6, cap: 0xa8a8b4 }, 23.2, -1.3); statue.g.position.y = .4; statue.sh.visible = false;
   const tarot = npc(anyone(7, { top: 0x5a2a6a, style: 'long' }), 30.8, -1.2);
   const tapper = npc(anyone(11, { top: 0xffd27a, scale: .85 }), 16, -31.3), sax = npc(anyone(13, { top: 0x2a2a33, cap: 0x2a2a33 }), -22, 23.6);
   const actors = [band[1], dancers[0], statue, tarot, tapper, sax];
-  for (const k of BUSKERS) spots.push({ x: k.x, z: k.z, r: 2.1, label: k.name, c: null, act: () => tip(k) });
+  for (const k of BUSKERS) spots.push({ zone: 'city', x: k.x, z: k.z, r: 2.1, label: k.name, c: null, act: () => tip(k) });
   for (let k = 0; k < 4; k++) { const c = npc(anyone(k + 15), -16 + k * 1.1, -33, 0, false); c.g.position.y = 2.52; c.sh.visible = false; }                  // a party on a Bourbon Street gallery
   const walkers = STROLL.map(([a, b2, speed], i) => ({ a, b: b2, speed, c: npc(anyone(i + 20), a[0], a[1], 0, false), k: ctx.rnd(), len: Math.hypot(b2[0] - a[0], b2[1] - a[1]) }));
   const rain = ambient({ n: 240, col: 0xaec6ff, size: .07, area: 13, h: 11, vy: -15, drift: 0, add: false, opacity: .55 }); rain.pts.visible = false; ctx.amb.push(rain);
+  // the Hilton: the sales guy, and the manager who comes in when it is not going well
+  const rep = npc({ ...anyone(1), top: 0x1a2a5a, tie: 0xe5484d, hair: 0xc8a050, legs: 0x2a2a33 }, PX - 1.2, PZ - 1.5, 0, false), mgr = npc({ ...anyone(3), top: 0x3a3a44, tie: 0xffd27a, hair: 0x555060, beard: 0x555060, legs: 0x2a2a33 }, PX + 1.5, PZ - 1.5, 0, false);
+  // the airboats: yours, your partner's, and two locals
+  const airboat = (col) => { const g = new THREE.Group(), b = new Batch(); b.lo = true;
+    b.box(0, -.08, 0, 1.7, .3, 3.2, 0xc8ccd4); b.box(0, .02, -1.8, 1.5, .2, .6, 0xc8ccd4, 0, 0, -.5); b.box(0, .22, .2, .8, .5, .7, col); b.box(0, .22, 1.05, .6, .7, .5, 0x3a3540);
+    for (let k = 0; k < 10; k++) { const a = k / 10 * 6.283; b.box(Math.cos(a) * .9, 1.45 + Math.sin(a) * .9 - .06, 1.5, .62, .12, .14, col, 0, 0, 0, a + 1.571); } b.box(0, .7, 1.45, .1, 1.5, .06, 0x1c1a24);
+    b.build(g); g.visible = false; world.add(g); return g; };
+  const boats = [0xe5484d, 0x3d8bd9, 0xffd27a, 0x4fae6a].map(airboat), locals = [npc(anyone(31, { cap: 0x2a4a2a }), SWX, SWZ + 60, Math.PI, false), npc(anyone(34, { cap: 0xb0302a }), SWX, SWZ + 60, Math.PI, false)];
+  const ringIt = items(ctx.swamp.rings.length, 'ring', 0x7ad7ff, 1.2);
+  // the steamboat's crew and band
+  const captain = npc({ ...anyone(4), top: 0xffffff, cap: 0xffffff, beard: 0xf2efe6, hair: 0xf2efe6, legs: 0x1a2a5a }, BX - 8.2, BZ + .3, 0, 'boat');
+  const trio = [0, 1, 2].map((k) => npc(anyone(k + 40, { top: 0x2a2a33, cap: k === 1 ? 0x2a2a33 : undefined }), BX - 6 + k, BZ + 2.5, 0, 'boat'));
+  npc({ ...anyone(44), top: 0xf2efe6, tie: 0x1c1a24 }, BX + 9.6, BZ + 2.2, 0, 'boat');
+  spots.push({ zone: 'boat', x: BX + 5, z: BZ + .7, r: 1.7, label: 'the buffet', act: () => openBuffet() },
+    { zone: 'boat', x: BX, z: BZ - 2.5, r: 1.5, label: 'look at the city', act: () => { view = true; if (!once.has('view')) { once.add('view'); score(4); } speak(VIEW.map((l) => ['', l]), () => { view = false; }); } },
+    { zone: 'boat', x: BX - 8.2, z: BZ + .3, r: 1.8, label: 'the captain', c: captain, act: () => speak([['the captain', 'Stay aboard as long as you like. Say the word and I will bring her in.']], endCruise) });
+  for (const [x, z, label, lines] of CRUISE_SPOTS) spots.push({ zone: 'boat', x: BX + x, z: BZ + z, r: 1.8, label, act: () => { if (!once.has(label)) { once.add(label); score(2); } speak(lines.map((l) => ['', l])); } });
+  const buffet = BUFFET.map(([n, line]) => ({ n, line, got: false }));
+
+  /* moving between the sets */
+  const go = (z, x, zz, setup, after) => { busy = true; if (mode === 'menu' || mode === 'map') UI.panel(null); UI.say(); say = null; mode = null; Sfx.ok();
+    fade(0, .35).then(() => { zone = z; for (const c of [me, pal]) { c.y = 0; c.body.rotation.z = 0; } me.g.position.set(x, 0, zz); pal.g.position.set(x + 1.1, 0, zz + .5); me.face = pal.face = 0; for (const g of boats) g.visible = false;
+      setup && setup(); api.cam(); Cam.snap(); return fade(1, .45); }).then(() => { busy = false; lock = .2; after && after(); }); };
+  const toDock = () => go('city', dockAt[0], dockAt[1]);
+
+  /* 1 · the Hilton pitch: pick whatever is funniest. Every answer scores, nothing can go wrong. */
+  const startPitch = (mine) => { if (mine) ctx.send('hit', 'pitch'); pitchI = 0;
+    go('pitch', PX - .6, PZ + 1.1, () => { pal.g.position.set(PX + .6, 0, PZ + 1.1); me.face = pal.face = Math.PI; mgr.g.visible = false; }, pitchStep); };
+  const pitchStep = () => { if (zone !== 'pitch' || busy) return; const r = PITCH[pitchI];
+    if (!r) return speak(PITCH_END, () => { score(OBJ_PTS); mark(HILTON, true); toDock(); });
+    const who = r.manager ? 'the manager' : 'the sales guy', c = r.manager ? mgr : rep; mgr.g.visible = mgr.g.visible || !!r.manager; c.cheer = .7; mode = 'menu';
+    UI.menu({ kicker: r.clock + ' into the “ninety minutes”', title: who, text: r.line, clear: true, items: r.replies.map(([mineLine, back]) => ({ label: mineLine, fn: () => { closeMenu(); score(2); me.cheer = .5; pitchI++; speak([[who, back]], pitchStep); } })) }); };
+
+  /* 2 · the Airboat Alligator Race */
+  const startRace = (mine) => { if (mine) { ctx.send('hit', 'swamp'); wallet -= ADVENTURES[1].$; draw(); }
+    const side = mine ? -1 : 1, x0 = lane(SWZ);
+    go('swamp', x0 + side * 1.7, SWZ, () => { pal.g.position.set(x0 - side * 1.7, 0, SWZ); for (const g of boats) g.visible = true; ctx.swamp.rings.forEach((r, i) => ringIt.set(i, r.x, .9, r.z, 2.4, 0)); ringIt.flush();
+      race = { t: -3.4, n: 4, v: 0, boost: 1, bt: 0, hit: 0, fin: false, place: 1, got: [], ai: [
+        { g: boats[1], c: pal, x: x0 - side * 1.7, z: SWZ, v: 0, v0: 14.6, off: -side * 1.7, ph: 1, solo: true },
+        { g: boats[2], c: locals[0], x: x0 - 4, z: SWZ, v: 0, v0: 14, off: -3.6, ph: 2.6 }, { g: boats[3], c: locals[1], x: x0 + 4, z: SWZ, v: 0, v0: 13.4, off: 3.6, ph: 4.4 }] };
+      me.face = pal.face = Math.PI; }); };
+  const raceOver = (mine) => { const R = race; if (!R || R.fin) return; R.fin = true; Sfx.big();
+    if (mine) { score(RACE_PTS[R.place - 1]); FX.confetti(me.g.position.x, 2.5, me.g.position.z - 3, 60); mark(GATOR, true); }
+    speak([['airboat alligator race', mine ? ORD[R.place - 1] + ' place!' : 'They beat you to the line.'], ['', mine ? RACE_END[R.place - 1] : 'Rematch pending. Forever.']], toDock); };
+  const raceTick = (dt, t) => { const R = race, p = me.g.position, fin = SWZ - RLEN;
+    R.t += dt; const n = Math.ceil(-R.t);
+    if (R.t < 0) { if (n !== R.cnt && n <= 3) { R.cnt = n; UI.pop(String(n)); Sfx.beep(440, .12, 'square', .14); } }
+    else { if (R.cnt) { R.cnt = 0; UI.pop('GO'); Sfx.beep(880, .3, 'square', .16); }
+      R.bt -= dt; R.hit -= dt;
+      if (Input.just.has('A') && R.boost > 0 && R.bt <= 0) { R.boost--; R.bt = 1.3; Sfx.dash(); FX.burst(p.x, .5, p.z + 1.6, 0xffffff, 12, 4, 3, .5, 1); }
+      const vmax = R.bt > 0 ? 25 : 16 * (Input.axis.y > .4 ? .55 : 1); R.v += (vmax - R.v) * Math.min(1, dt * (R.bt > 0 ? 5 : 1.4));
+      p.z -= R.v * dt; p.x += Input.axis.x * 9 * dt;
+      const cl = lane(p.z), e = HWID - .9; if (Math.abs(p.x - cl) > e) { p.x = cl + Math.sign(p.x - cl) * e; R.v *= 1 - Math.min(1, dt * 1.1); }                       // dragging along the bank
+      if (R.hit <= 0 && R.bt <= 0) for (const o of ctx.swamp.obs) if (Math.abs(o.z - p.z) < 1.5 && Math.abs(o.x - p.x) < 1.3) { R.hit = 1.2; R.v = Math.min(R.v, 5); UI.pop(o.log ? 'log!' : 'chomp!'); Sfx.bad(); rumble(70, .35); FX.burst(p.x, .3, p.z, 0xaec6ff, 14, 4, 6, .6, 1); break; }
+      ctx.swamp.rings.forEach((r, i) => { if (!R.got[i] && Math.abs(r.z - p.z) < 1.6 && Math.abs(r.x - p.x) < 1.8) { R.got[i] = true; R.boost++; ringIt.set(i, 0, -9, 0, 0); ringIt.flush(); Sfx.pick(); UI.pop('boost +1'); } });
+      if (Math.random() < dt * 9) FX.burst(p.x + (Math.random() - .5), .1, p.z + 1.8, 0xffffff, 2, 1.6, 4, .4, 1);
+    }
+    let ahead = 0;
+    for (const a of R.ai) { const net = a.solo && ctx.twoP;
+      if (net) { a.x = a.c.g.position.x; a.z = a.c.g.position.z; }
+      else { if (R.t > 0 && a.z > fin - 12) { const want = a.v0 + Math.sin(t * .7 + a.ph) * 1.3 + clamp((a.z - p.z) * .1, -2.2, 2.6); a.v += (want - a.v) * Math.min(1, dt * 1.5); a.z -= a.v * dt; }           // a little rubber band keeps it a race
+        a.x = lane(a.z) + a.off * .8 + Math.sin(a.z * .05 + a.ph) * 1.2; a.c.g.position.set(a.x, 0, a.z); a.c.y = .62; a.c.face = Math.PI; a.c.anim(dt, 0); }
+      a.g.position.set(a.x, 0, a.z); a.g.rotation.y = Math.sin(a.z * .05 + a.ph) * .15; if (a.z < p.z) ahead++; }
+    R.place = ahead + 1;
+    boats[0].position.set(p.x, 0, p.z); boats[0].rotation.y = -Input.axis.x * .22; boats[0].rotation.z = -Input.axis.x * .08; me.y = .62; me.face = Math.PI; me.anim(dt, 0);
+    for (let i = 0; i < ctx.swamp.rings.length; i++) if (!R.got[i]) { const r = ctx.swamp.rings[i]; ringIt.set(i, r.x, .9 + Math.sin(t * 3 + i) * .15, r.z, 2.4, t * 2); } ringIt.flush();
+    note(R.t < 0 ? 'STICK steer · A boost · rings give boosts' : `${ORD[R.place - 1]} of ${R.n}   A · boost ×${R.boost}   ${Math.max(0, Math.round((p.z - fin) / RLEN * 100))}% to go`);
+    if (p.z <= fin) raceOver(true); };
+
+  /* 3 · the steamboat: the ending. No goal, no clock. */
+  const dusk = () => { const u = ctx.sky.children[0].material.uniforms; u.a.value.set(0x1c1a50); u.b.value.set(0xe07a80); u.c.value.set(0x5a3a78); scene.fog = new THREE.Fog(0x8a5a8a, 60, 260);
+    ctx.hemi.intensity = 1.9; ctx.hemi.color.set(0xb8a8e8); ctx.sun.color.set(0xff9a6a); ctx.sun.intensity = 1.7; };
+  const startCruise = (mine) => { if (mine) { ctx.send('hit', 'boat'); wallet -= ADVENTURES[2].$; draw(); }
+    go('boat', BX - 2, BZ + 1.2, dusk, () => speak(CRUISE_OPEN)); };
+  const openBuffet = () => { mode = 'menu';
+    UI.menu({ kicker: 'the buffet · included', title: 'Help yourself', clear: true, back: closeMenu, items: [
+      ...buffet.map((d) => ({ label: d.n, hint: d.got ? 'eaten' : '+2', off: d.got, fn: () => { d.got = true; closeMenu(); score(2); speak([['', d.line]], () => { if (buffet.some((x) => !x.got)) openBuffet(); }); } })), { label: 'LEAVE', fn: closeMenu }] }); };
+  const endCruise = () => { mode = 'menu';
+    UI.menu({ kicker: 'steamboat natchez', title: 'Call it a night?', text: 'This ends the level. There is no rush.', clear: true, back: closeMenu, items: [
+      { label: 'STAY A WHILE', fn: closeMenu }, { label: 'BRING HER IN', fn: () => { closeMenu(); rain.pts.visible = true; ctx.storm = true; speak(CRUISE_END, () => { score(OBJ_PTS); mark(BOAT, true); finish(true); }); } }] }); };
 
   /* buying and booking */
-  const tip = (k) => { const first = !tipped.has(k.id) && wallet - reserve() >= 1; if (first) { tipped.add(k.id); wallet--; draw(); score(TIP_PTS, k.x, k.z); actors[k.id].cheer = 1.2; }
+  const tip = (k) => { const first = !once.has(k.id) && wallet - reserve() >= 1; if (first) { once.add(k.id); wallet--; draw(); score(TIP_PTS); actors[k.id].cheer = 1.2; }
     speak([[k.name, k.line], ...(first ? [['', 'You drop a dollar in the case.']] : [])]); };
-  const closeMenu = () => { UI.panel(null); mode = null; lock = .3; };
   const openShop = (s) => { mode = 'menu'; const c = CAT[s.cat];
     UI.menu({ kicker: `${c.label} · you have $${wallet}`, title: s.name, text: `${s.keeper}: “${s.hi}”`, clear: true, back: closeMenu, items: [
       ...s.items.map((it) => ({ label: it.n, hint: it.got ? 'in the bag' : `$${it.cost} · +${it.pts}`, off: it.got, fn: () => {
         if (!afford(it.cost, c.obj)) { Sfx.back(); UI.toast(wallet < it.cost ? 'not enough cash' : 'save enough for the rest of the list'); return; }
-        wallet -= it.cost; it.got = true; score(it.pts, s.c.g.position.x, s.c.g.position.z); s.c.cheer = .6; mark(c.obj, true); draw(); if (mode === 'menu') openShop(s); } })),
+        wallet -= it.cost; it.got = true; score(it.pts); s.c.cheer = .6; mark(c.obj, true); draw(); openShop(s); } })),
       { label: 'LEAVE', fn: closeMenu }] }); };
-  const openDock = () => { mode = 'menu';
-    UI.menu({ kicker: `find adventure · you have $${wallet}`, title: 'Sign-up sheet', text: 'Three lines on the clipboard. Put your names down.', clear: true, back: closeMenu, items: [
-      ...BOOKINGS.map((k) => ({ label: k.n, hint: done[k.id] ? 'signed up' : k.$ ? '$' + k.$ : 'free', off: done[k.id], fn: () => {
-        if (!afford(k.$, k.id)) { Sfx.back(); UI.toast('not enough cash'); return; }
-        wallet -= k.$; score(OBJ_PTS, DOCK.x, DOCK.z); guy.cheer = .6; closeMenu(); mark(k.id, true); draw();
-        if (mode !== 'say') speak([[DOCK.name, k.done]], () => { if ([GATOR, HILTON, BOAT].some((i) => !done[i])) openDock(); }); } })),
+  const openDock = () => { mode = 'menu'; const [h, g, s] = ADVENTURES, price = (k) => k.$ ? '$' + k.$ : 'free';
+    const book = (k, start) => () => { if (!afford(k.$, k.id)) { Sfx.back(); UI.toast('not enough cash'); return; } closeMenu(); start(true); };
+    UI.menu({ kicker: `find adventure · you have $${wallet}`, title: 'The clipboard', text: 'Three lines, top to bottom.', clear: true, back: closeMenu, items: [
+      { label: h.n, hint: done[HILTON] ? 'survived' : price(h), off: done[HILTON], fn: book(h, startPitch) },
+      { label: g.n, hint: done[GATOR] ? 'raced' : !done[HILTON] ? 'after the Hilton' : price(g), off: done[GATOR] || !done[HILTON], fn: book(g, startRace) },
+      { label: s.n, hint: !done[GATOR] ? 'after the race' : !listDone() ? 'finish the list first' : price(s), off: !done[GATOR] || !listDone(), fn: book(s, startCruise) },
       { label: 'LEAVE', fn: closeMenu }] }); };
   const openMap = () => { mode = 'map'; Sfx.move(); const p = me.g.position, X0 = -60, Z0 = -37, Wm = 119, Hm = 73; let h = '';
     const r = (x0, x1, z0, z1, f, o = '') => `<rect x="${x0}" y="${z0}" width="${x1 - x0}" height="${z1 - z0}" fill="${f}" ${o}/>`;
@@ -342,50 +543,56 @@ export function errands(ctx) {
     for (const [n, x] of NS) h += t(x, -21.6, 2.4, '#e8e2d0', n, `transform="rotate(-90 ${x} -22.5)"`);
     const dot = (x, z, col, n, on = true) => `<circle cx="${x}" cy="${z}" r="2" fill="${col}" stroke="#14143a" stroke-width=".5" opacity="${on ? 1 : .35}"/>` + t(x, z + .8, 2.3, '#14143a', n, 'font-weight="700"');
     shops.forEach((s, i) => { const [x, z] = s.at || [s.kx, s.kz]; h += dot(x, z - 1, CAT[s.cat].css, i + 1, !done[CAT[s.cat].obj]); });
-    h += dot(DOCK.x, DOCK.z, '#ffe27a', '★', [GATOR, HILTON, BOAT].some((i) => !done[i])) + dot(door.x, door.z - 2, '#ffffff', 'H');
+    h += dot(DOCK.x, DOCK.z, '#ffe27a', '★') + dot(door.x, door.z - 2, '#ffffff', 'H');
     if (zone === 'city') h += `<circle cx="${p.x}" cy="${p.z}" r="1.5" fill="#ff3a50" stroke="#fff" stroke-width=".6"><animate attributeName="r" values="1.2;2.2;1.2" dur="1s" repeatCount="indefinite"/></circle>`;
     const leg = (cat) => `<b style="color:${CAT[cat].css}">${CAT[cat].label}</b> ` + shops.map((s, i) => s.cat === cat ? `${i + 1} ${s.name.toLowerCase()}` : '').filter(Boolean).join(' · ');
     UI.panel(`<div class="kicker">french quarter · ${zone === 'city' ? 'red dot is you' : 'you are in the hotel (H)'}</div>
       <svg viewBox="${X0} ${Z0} ${Wm} ${Hm}" style="width:100%;border:1px solid #fff;border-radius:4px;font-family:Courier New,monospace">${h}</svg>
       <p style="font-size:8px;line-height:1.35;max-width:none;text-align:left">${leg('weed')}<br>${leg('food')}<br>${leg('gift')}<br><b style="color:#ffe27a">★ adventure</b> the man in the life vest, on the float behind the steamboat</p>
       <div class="hint">A or B · close</div>`); };
-  const leaveRoom = () => { busy = true; Sfx.ok(); fade(0, .35).then(() => { zone = 'city'; ctx.bounds = CITY; me.g.position.set(door.x, 0, door.z + .3); pal.g.position.set(door.x + 1, 0, door.z + .7); me.face = 0; api.cam(); Cam.snap(); UI.pop('Chartres Street'); return fade(1, .45); }).then(() => { busy = false; }); };
 
+  const walls = { room: ROOM, city: CITY, boat: DECK };
   const api = {
     cam() { const p = me.g.position;
       if (zone === 'room') { const x = RX + (p.x - RX) * .4; Cam.set(x, 7.4, RZ + 9.6, x, .9, RZ - .3); }
+      else if (zone === 'pitch') Cam.set(PX, 5.4, PZ + 8, PX, 1.2, PZ - .8);
+      else if (zone === 'swamp') Cam.set(p.x, 5.4, p.z + 9, p.x, 1.4, p.z - 7);
+      else if (zone === 'boat') { const x = BX + (p.x - BX) * .7; if (view) { Cam.set(BX, 3.4, BZ + 4.2, BX, 2.6, BZ - 60); me.face = pal.face = Math.PI; if (!ctx.twoP) pal.g.position.set(p.x + 1, 0, p.z); }   // over their shoulders, at the skyline else Cam.set(x, 7, BZ + 12, x, 1.6, BZ - 3); }
       else { const k = clamp(1 - (Math.abs(p.x - 27) - 7) / 4, 0, 1) * clamp((p.z + 5) / 3, 0, 1) * clamp((15 - p.z) / 3, 0, 1);                     // around Jackson Square the camera leans back to get the Cathedral spires in
-        Cam.set(p.x, 11.5 + 2 * k, p.z + 7 + 4.5 * k, p.x, .6 + 2.4 * k, p.z - 1.5 - 2 * k); } },
+        Cam.set(p.x, 11.5 + 2 * k, p.z + 7 + 4.5 * k, p.x, .6 + 2.4 * k, p.z - 1.5 - 2 * k); }
+      ctx.sky.position.set(Cam.tp.x, 0, Cam.tp.z); },                                                                                              // the sets are far apart, so the sky travels with the camera
     dispose() { pad.remove(); },
     update(dt, t) {
       const p = me.g.position; T += dt; lock -= dt;
       if (!opened) { opened = true; speak(OPENING); }
-      const A = Input.just.has('A'), Bk = Input.just.has('B'), city = zone === 'city';
-      const near = city && !busy ? spots.reduce((best, s) => { const d = Math.hypot(s.x - p.x, s.z - p.z); return d < s.r && (!best || d < best.d) ? { s, d } : best; }, null) : null;
+      const A = Input.just.has('A'), Bk = Input.just.has('B'), roam = zone === 'room' || zone === 'city' || zone === 'boat';
+      const near = roam && !busy ? spots.reduce((best, s) => { if (s.zone !== zone) return best; const d = Math.hypot(s.x - p.x, s.z - p.z); return d < s.r && (!best || d < best.d) ? { s, d } : best; }, null) : null;
       if (mode === 'say') { me.anim(dt, 0); if ((A || Bk) && lock <= 0) { if (++say.i < say.lines.length) { const l = say.lines[say.i]; UI.say(l[0], l[1]); if (l[2] != null) { written = l[2]; draw(); } Sfx.move(); } else { const after = say.after; say = null; mode = null; lock = .25; UI.say(); after && after(); } } }
       else if (mode === 'map') { me.anim(dt, 0); if ((A || Bk) && lock <= 0) closeMenu(); }
-      else if (mode === 'menu' || busy) me.anim(dt, 0);
+      else if (mode === 'menu' || busy || !roam) { if (zone === 'swamp' && !busy && race && !race.fin) raceTick(dt, t); else if (zone !== 'swamp') me.anim(dt, 0); }
       else {
         cd -= dt; dash -= dt;
-        if (Bk && lock <= 0) openMap();
+        if (Bk && lock <= 0) { if (zone === 'boat') endCruise(); else openMap(); }
         else if (A && lock <= 0) {
           if (near) { if (near.s.c) near.s.c.face = Math.atan2(p.x - near.s.x, p.z - near.s.z); near.s.act(); }
           else if (cd <= 0) { dash = .22; cd = .7; Sfx.dash(); FX.burst(p.x, .3, p.z, 0xffffff, 5, 2, 2, .4, 1); }
         }
-        if (mode == null) move(me, dt, dash > 0 ? 12 : 5.6, city ? CITY : ROOM, ctx.rects[zone], ctx.circs[zone]);
-        if (!city && Math.hypot(exit.x - p.x, exit.z - p.z) < .9) leaveRoom();
-        if (storm && city && Math.hypot(door.x - p.x, door.z - p.z) < 1.4) finish(true);
+        if (mode == null && !busy) move(me, dt, dash > 0 ? 12 : 5.6, walls[zone], ctx.rects[zone], ctx.circs[zone]);
+        if (zone === 'room' && !busy && Math.hypot(exit.x - p.x, exit.z - p.z) < .9) go('city', door.x, door.z + .3, null, () => UI.pop('Chartres Street'));
       }
-      if (ctx.twoP) ctx.palNet(dt); else trail(pal, p.x, p.z, dt);
-      // the street
-      for (let k = 0; k < band.length; k++) { band[k].anim(dt, .35); band[k].y = Math.abs(Math.sin(t * 5.2 + k)) * .06; }
-      for (let k = 0; k < dancers.length; k++) { const a = t * 1.6 + k * 2.094, d = dancers[k]; d.g.position.set(-12 + Math.cos(a) * 1.1, 0, -30 + Math.sin(a) * .8); d.face = -a; d.y = Math.abs(Math.sin(t * 6 + k)) * .22; if (Math.sin(t * 1.3 + k * 2) > .93) d.cheer = .3; d.anim(dt, .8); }
-      tapper.y = Math.abs(Math.sin(t * 11)) * .1; tapper.face = Math.sin(t * 2) * 1.3; tapper.anim(dt, 1); sax.anim(dt, 0); sax.body.rotation.z = Math.sin(t * 1.4) * .08; tarot.anim(dt, 0); statue.anim(statue.cheer > 0 ? dt : 0, 0); guy.anim(dt, 0);
-      for (const s of shops) s.c.anim(dt, 0);
-      for (const w of walkers) { const u = (T * w.speed / w.len + w.k * 2) % 2, f = u < 1 ? u : 2 - u, sg = u < 1 ? 1 : -1;
-        w.c.g.position.set(w.a[0] + (w.b[0] - w.a[0]) * f, 0, w.a[1] + (w.b[1] - w.a[1]) * f); w.c.face = Math.atan2((w.b[0] - w.a[0]) * sg, (w.b[1] - w.a[1]) * sg); w.c.anim(dt, .7); }
-      if (beacon) { beacon.set(0, door.x, 2.6 + Math.sin(t * 3) * .2, door.z, 1.7, t * 2); beacon.flush(); }
-      if (mode == null) note(!city ? (written >= LIST.length ? 'the door is on the right →' : '') : near ? `A · ${near.s.label.toLowerCase()}` : storm ? 'thunderstorm! back to the hotel on Chartres' : `B · map   ${left()} left on the list`); else note('');
+      if (ctx.twoP) ctx.palNet(dt); else if (zone === 'pitch') pal.anim(dt, 0); else if (zone !== 'swamp') trail(pal, p.x, p.z, dt);
+      if (zone === 'city') {
+        for (let k = 0; k < band.length; k++) { band[k].anim(dt, .35); band[k].y = Math.abs(Math.sin(t * 5.2 + k)) * .06; }
+        for (let k = 0; k < dancers.length; k++) { const a = t * 1.6 + k * 2.094, d = dancers[k]; d.g.position.set(-12 + Math.cos(a) * 1.1, 0, -30 + Math.sin(a) * .8); d.face = -a; d.y = Math.abs(Math.sin(t * 6 + k)) * .22; if (Math.sin(t * 1.3 + k * 2) > .93) d.cheer = .3; d.anim(dt, .8); }
+        tapper.y = Math.abs(Math.sin(t * 11)) * .1; tapper.face = Math.sin(t * 2) * 1.3; tapper.anim(dt, 1); sax.anim(dt, 0); sax.body.rotation.z = Math.sin(t * 1.4) * .08; tarot.anim(dt, 0); statue.anim(statue.cheer > 0 ? dt : 0, 0); guy.anim(dt, 0);
+        for (const s of shops) s.c.anim(dt, 0);
+        for (const w of walkers) { const u = (T * w.speed / w.len + w.k * 2) % 2, f = u < 1 ? u : 2 - u, sg = u < 1 ? 1 : -1;
+          w.c.g.position.set(w.a[0] + (w.b[0] - w.a[0]) * f, 0, w.a[1] + (w.b[1] - w.a[1]) * f); w.c.face = Math.atan2((w.b[0] - w.a[0]) * sg, (w.b[1] - w.a[1]) * sg); w.c.anim(dt, .7); }
+      } else if (zone === 'pitch') { rep.anim(dt, 0); mgr.anim(dt, 0); rep.face = Math.sin(t * .8) * .5; }
+      else if (zone === 'boat') { ctx.wheel.rotation.z -= dt * 1.4; ctx.skyline.position.x -= dt * .55; captain.anim(dt, 0); for (let k = 0; k < 3; k++) { trio[k].anim(dt, .35); trio[k].y = Math.abs(Math.sin(t * 4.4 + k)) * .05; }
+        if (Math.random() < dt * 5) FX.burst(BX + 14.6, -.6, BZ + (Math.random() - .5) * 6, 0xffffff, 2, 1.5, 4, .5, 1); }
+      if (mode == null && zone !== 'swamp') note(busy ? '' : zone === 'room' ? (written >= LIST.length ? 'the door is on the right →' : '') : near ? `A · ${near.s.label.toLowerCase()}` : zone === 'boat' ? 'B · call it a night' : zone === 'pitch' ? ''
+        : left() === 1 ? 'B · map   the Natchez is boarding at the dock' : `B · map   ${left()} left on the list`); else if (mode != null) note('');
       this.cam();
     },
   };
@@ -394,14 +601,15 @@ export function errands(ctx) {
 
 /* ───────── the level ───────── */
 export const NOLA = {
-  id: 'nola', shot: [HOTEL.x, -2.2], prop: 'beignet', caption: 'powdered sugar in a thunderstorm', kicker: 'April 2025 · French Quarter', title: 'New Orleans', sub: 'a hotel room, a list, a thunderstorm.',
-  game: 'errands', icon: '⚜', stars: [35, 60, 85],
-  how: 'A hotel room in the Quarter. Write the list, then go cross it off.\nWeed, food and gifts each come from any one of several shops. The man in the life vest at the dock books the adventures.\nSTICK walk · A talk and buy · B map',
+  id: 'nola', shot: [BX, BZ - 2.3], prop: 'beignet', caption: 'powdered sugar in a thunderstorm', kicker: 'April 2025 · French Quarter', title: 'New Orleans', sub: 'a list, a timeshare, gators, a steamboat.',
+  game: 'errands', icon: '⚜', stars: [40, 70, 100],
+  how: 'A hotel room in the Quarter. Write the list, then go cross it off.\nWeed, food and gifts come from any of several shops. The man in the life vest at the dock has the adventures: the Hilton, the airboat race, then the steamboat.\nSTICK walk · A talk and buy · B map',
   P: { col: 0xffd27a },
   build(b, c) {
     b.lo = true;
-    sky(0x4a5ac0, 0xf0b890, 0xd89a78); lights(0xdcd0ff, 0x8a7a70, 2.5, 0xffe0b0, 2.3, -4, 9, 8); scene.fog = new THREE.Fog(0xe0b098, 46, 135);
+    c.sky = sky(0x4a5ac0, 0xf0b890, 0xd89a78); scene.fog = new THREE.Fog(0xe0b098, 46, 135);
+    c.hemi = new THREE.HemisphereLight(0xdcd0ff, 0x8a7a70, 2.5); c.sun = new THREE.DirectionalLight(0xffe0b0, 2.3); c.sun.position.set(-8, 18, 16); world.add(c.hemi, c.sun);     // kept, so the steamboat can turn the day to dusk
     c.rects = {}; c.circs = {}; c.spawn = { x: RX + 1.15, z: RZ + 1.55 };
-    buildRoom(b, c); buildCity(b, c);
+    buildRoom(b, c); buildCity(b, c); buildPitch(b); buildSwamp(b, c); buildBoat(b, c);
   },
 };
