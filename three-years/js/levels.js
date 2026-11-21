@@ -1,4 +1,4 @@
-// Eight memories. Each level = a set built from real things you would see there (build) + one mechanic from games.js (game + P).
+// Seven memories. Each level = a set built from real things you would see there (build) + one mechanic from games.js (game + P).
 // Everything static is baked into one mesh per level, so detail costs vertices, not draw calls.
 import { THREE, scene, world } from './engine.js';
 import { turf, island, tree, pine, lamp, house, stringLights, sky, lights, orb, ambient, makeChar, critter, sign, items, Batch } from './kit.js';
@@ -133,25 +133,55 @@ export const LEVELS = [
       c.spawn = { x: 4, z: 24.3 };
     } },
 
-  /* ───────────── 2 · THE JITNEY — eastbound on the Long Island Expressway ───────────── */
-  { id: 'jitney', shot: [0, 0], prop: 'croissant', caption: 'the 5:41 out east', kicker: '2024 · Brooklyn ⇄ the East End', title: 'The Jitney Years', sub: 'two tickets. every time.',
-    game: 'runner', icon: '➤', stars: [30, 70, 110],
-    how: 'The L.I.E. at rush hour, chasing the Jitney.\n◀ ▶ change lane around the cars · A jumps the barricades · grab the croissants',
-    P: { time: 38, shape: 'croissant', col: 0xffc65c, obsCol: [0xe5484d, 0x3d8bd9, 0xf2efe6, 0x9aa0a8], hitPop: 'traffic', note: '', side: 'pine', sideX: 7.4, sideScale: 1.7 },
+  /* ───────────── 2 · THE HEIST — an indoor farm, after hours ─────────────
+     Grow racks under purple light, gear on the floor, a van backed up to the loading bay, one guard with a flashlight. */
+  { id: 'heist', shot: [6.4, 4.2], prop: 'tote', caption: 'we were never here', outfit: { her: { top: 0x1c1a1e, cap: 0x1c1a1e }, him: { top: 0x1c1a1e, cap: 0x1c1a1e } },
+    kicker: 'date night · an indoor farm, after hours', title: 'The Heist', sub: 'in, out, and nobody saw anything.',
+    game: 'heist', icon: '$', stars: [1000, 2000, 3200],
+    how: 'Fill plastic totes with gear and get them in the van before time runs out.\nA grab / put in a tote / set down · B throw (or dash, empty-handed)\nOne of you holds the tote, the other fills it. Big gear is worth the most: lean on it to push it. Stay out of the flashlight.',
+    P: { time: 100, cap: 6, fine: 100, bounds: [-11.2, 12.2, -14.1, 7.4], van: [9.5, 13, .9, 5.1], vanDoor: [10.6, 3], door: { x: 9.25, z0: .6, z1: 5.4 },
+      racks: [[-7.8, -6.2, -12, -3], [-2.3, -.7, -12, -3], [3.2, 4.8, -12, -3]],
+      patrol: [[-9.6, -1.4], [-9.6, -13.1], [-4.25, -13.1], [-4.25, -1.6], [1.25, -1.6], [1.25, -13.1], [6.6, -13.1], [6.6, -1.4], [0, 4.6], [-8, 4.6]],
+      guard: { fov: .6, range: 6.5, walk: 2.3, chase: 4.7, look: { skin: 0xd59a70, hair: 0x1a1412, top: 0x3d5a9a, legs: 0x23252e, cap: 0x23252e, beard: 0x1a1412 } },
+      itemSpots: [[-9.6, -11], [-9.6, -9], [-9.6, -7], [-9.6, -5], [-9.6, -3.4], [-4.25, -11], [-4.25, -9], [-4.25, -7], [-4.25, -5], [-4.25, -3.4], [1.25, -11], [1.25, -9], [1.25, -7], [1.25, -5], [1.25, -3.4],
+        [6.6, -11], [6.6, -9], [6.6, -7], [6.6, -5], [6.6, -3.4], [-8, -13.3], [-1.6, -13.3], [3.4, -13.3], [-6, 1], [-3, 4.2], [0, 1.6], [-8.6, 5.6], [-1, 6]],
+      items: [['light', 4], ['seeds', 2], ['ballast', 3], ['fan', 3], ['meter', 4], ['jug', 4], ['trim', 4]],
+      bigs: [['dehu', 6.6, -13.2], ['tank', -10, -12.8]], totes: [[4.6, 1.6], [4.6, 3.2], [6.2, 1.6], [6.2, 3.2], [5.4, 5.2]],
+      types: {
+        tote:    { tote: true, label: 'tote', price: 0, vol: 0, w: 1, build(b) { b.box(0, 0, 0, .9, .08, .6, 0x3d6ad8); b.box(0, .08, .3, .9, .5, .06, 0x3d6ad8); b.box(0, .08, -.3, .9, .5, .06, 0x3d6ad8); b.box(.45, .08, 0, .06, .5, .66, 0x3d6ad8); b.box(-.45, .08, 0, .06, .5, .66, 0x3d6ad8); b.box(0, .54, .33, 1, .07, .08, 0xffd23a); b.box(0, .54, -.33, 1, .07, .08, 0xffd23a); } },
+        light:   { label: 'LED grow light', price: 400, vol: 3, w: 2, build(b) { b.box(0, 0, 0, 1, .12, .55, 0x2a2a33); b.box(0, -.03, 0, .86, .04, .42, 0xd05aff, 0, 1.25); b.box(0, .12, 0, .1, .2, .1, 0x9aa0a8); } },
+        seeds:   { label: 'seed vault', price: 500, vol: 1, w: 1, build(b) { b.box(0, 0, 0, .42, .34, .34, 0x2f6a45); b.box(0, .34, 0, .44, .06, .36, 0xffd77e); b.box(0, .12, .18, .1, .1, .03, 0xffd77e); } },
+        ballast: { label: 'ballast', price: 250, vol: 2, w: 4, build(b) { b.box(0, 0, 0, .6, .28, .4, 0x55566a); for (let k = -2; k <= 2; k++) b.box(k * .11, .28, 0, .04, .1, .4, 0x9aa0a8); } },
+        fan:     { label: 'clip fan', price: 120, vol: 2, w: 1.5, build(b) { b.cyl(0, 0, 0, .2, .06, 0x2a2a33, 1, 8); b.cyl(0, .06, 0, .04, .34, 0x2a2a33, 1, 5); b.ball(0, .56, 0, .26, 0xf2efe6, 0, 1); b.ball(0, .56, .1, .1, 0x3d8bd9); } },
+        meter:   { label: 'pH meter', price: 90, vol: 1, w: .4, build(b) { b.box(0, 0, 0, .2, .42, .1, 0xffd23a); b.box(0, .22, .06, .14, .14, .02, 0x9bffb0, 0, 1.2); b.box(0, -.12, 0, .06, .14, .06, 0x9aa0a8); } },
+        jug:     { label: 'nutrient jug', price: 60, vol: 2, w: 3, build(b) { b.cyl(0, 0, 0, .22, .44, 0xf2efe6, 1, 8); b.cyl(0, .44, 0, .08, .1, 0xe5484d, 1, 6); b.box(0, .14, .23, .26, .18, .02, 0x4fae6a); } },
+        trim:    { label: 'trimmers', price: 40, vol: 1, w: .3, build(b) { b.box(.06, 0, 0, .05, .04, .4, 0xc8ccd4, .25); b.box(-.06, 0, 0, .05, .04, .4, 0xc8ccd4, -.25); b.ball(.1, .03, -.2, .07, 0xe5484d); b.ball(-.1, .03, -.2, .07, 0xe5484d); } },
+        dehu:    { big: true, r: .8, label: 'dehumidifier', price: 1100, vol: 9, w: 7, build(b) { b.box(0, .1, 0, 1.1, 1.3, .8, 0xf2efe6); for (let k = 0; k < 5; k++) b.box(0, .5 + k * .15, .41, .8, .05, .02, 0x9aa0a8); b.box(0, 1.2, .41, .3, .12, .02, 0x9bffb0, 0, 1.2); for (const sx of [-1, 1]) b.ball(sx * .4, .12, .3, .12, 0x2a2a33); } },
+        tank:    { big: true, r: .6, label: 'CO2 tank', price: 700, vol: 9, w: 4.5, build(b) { b.cyl(0, 0, 0, .34, 1.4, 0x4fae6a, 1, 10); b.ball(0, 1.4, 0, .34, 0x4fae6a, 0, .6); b.cyl(0, 1.56, 0, .1, .2, 0xc8ccd4, 1, 6); b.box(.14, 1.62, 0, .2, .08, .08, 0xe5484d); } },
+      } },
     build(b, c) {
-      sky(0x3a3f98, 0xf2a070, 0xf2a070, 120); lights(0xffd0b0, 0x6a8a5a, 2.1, 0xffd8b0, 2.2, -6, 6, 8); fog(0xeaa888, 44, 130); orb(-24, 9, -170, 13, 0xfff0d0, 1.15);
-      turf(200, 240, 0x6fb858, 0, -70);
-      b.box(0, -.3, -52, 11.4, .3, 150, 0x8a8a96); b.box(0, -.28, -52, 7.4, .3, 150, 0x5c5d70);                              // shoulders + three lanes
-      for (const sx of [-1, 1]) { b.box(sx * 3.78, .021, -52, .12, .012, 150, 0xf4f0e0); b.box(sx * 5.95, .32, -52, .07, .22, 150, 0xc8ccd4); for (let z = 8; z > -124; z -= 3.2) b.box(sx * 5.95, 0, z, .1, .5, .1, 0x9aa0a8); }   // edge lines + guardrails
-      let s = 5; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
-      for (let i = 0; i < 44; i++) { const sx = i % 2 ? 1 : -1; (i % 5 ? pine : tree)(b, sx * (9.5 + r() * 26), 6 - i * 2.9 + r() * 2, 1.4 + r() * 1.3, i % 3 ? 0x2f8a52 : 0x3f9a52); }                                 // pine barrens
-      for (const sx of [-1, 1]) b.cyl(sx * 6.3, 0, -26, .14, 5.6, 0x9aa0a8, 1, 6); b.box(0, 5.5, -26, 12.8, .22, .22, 0x9aa0a8); b.box(0, 3.3, -26, 12.8, .12, .12, 0x9aa0a8);                                       // sign gantry
-      sign('EXIT 70\nManorville', 2.5, 4.4, -25.86, 4.4, 2, { bg: '#1f7a45' }); sign('495 EAST\nRiverhead', -2.6, 4.4, -25.86, 4, 2, { bg: '#1f7a45' });
-      // the Jitney, always just ahead
-      b.box(0, .5, -82, 2.6, 2.7, 9.5, 0x2f7a4a); b.box(0, 1.2, -82, 2.64, .5, 9.54, 0xf2efe6); b.box(0, 2.05, -82, 2.66, .8, 8.8, 0x26304a); b.box(0, 3.2, -82, 2.4, .16, 9.2, 0xf2efe6);
-      for (const sx of [-1, 1]) for (const z of [-79, -85]) b.ball(sx * 1.2, .5, z, .5, 0x18181e); b.box(-.95, 1, -77.22, .4, .22, .05, 0xff3a30); b.box(.95, 1, -77.22, .4, .22, .05, 0xff3a30);
-      sign('JITNEY', 0, 2.75, -77.2, 2, .5, { bg: '#f2efe6', fg: '#1f5a35', border: '#1f5a35' });
-      b.box(8.2, 0, -8, .12, 2.4, .12, 0x9aa0a8); sign('SPEED\nLIMIT\n55', 8.2, 2.3, -7.9, 1.1, 1.4, { bg: '#ffffff', fg: '#1c1a24' });
+      sky(0x0b0c22, 0x1a1c44, 0x12142e, 200); lights(0xb8a8ff, 0x4a3a6a, 2.3, 0xe8d8ff, 1.5, -3, 10, 6); fog(0x16183a, 30, 70);
+      const FLOOR = 0x8a8c9a, WALL = 0xc8ccd8, STEEL = 0x9aa0a8;
+      b.box(0, -.3, -3.3, 21.4, .3, 22.6, FLOOR); b.box(22, -.32, -3.3, 24, .3, 40, 0x3a3c4a);                              // slab, and the lot outside
+      for (let x = -9; x <= 9; x += 6) b.box(x, .001, -3.3, .06, .012, 22, 0x7a7c8a); b.box(0, .002, -2, 20.6, .014, .12, 0xffd23a);
+      b.box(0, 0, -14.9, 22, 4.4, .5, WALL); b.box(-11.9, 0, -3.5, .5, 4.4, 23, WALL);                                       // back and west walls
+      b.box(9.25, 0, -6.8, .5, 4.4, 14.6, WALL); b.box(9.25, 0, 6.6, .5, 4.4, 2, WALL); b.box(9.25, 3.3, 3, .5, 1.1, 5.2, WALL); b.box(9.25, 3.2, 3, .6, .14, 5.2, 0xffd23a);   // east wall with the loading bay
+      for (let z = -14; z <= .2; z += .9) c.colliders.push({ x: 9.25, z, r: .5 }); for (let z = 5.9; z <= 7.6; z += .8) c.colliders.push({ x: 9.25, z, r: .5 });
+      sign('LOADING', 9.0, 3.85, 3, 2.4, .5, { bg: '#1c1a24', fg: '#ffd23a', border: '#ffd23a', ry: -Math.PI / 2 }); sign('SECTOR 7 · PROPAGATION', 0, 3.4, -14.62, 6, .6, { bg: '#f2efe6', fg: '#2f6a45', border: '#2f6a45' });
+      for (const r of c.P.racks) { const x = (r[0] + r[1]) / 2;                                                              // grow racks: two shelves of plants under LED bars
+        for (let z = r[2] + .4; z <= r[3]; z += 1.05) c.colliders.push({ x, z, r: .95 });
+        for (const z of [r[2] + .15, (r[2] + r[3]) / 2, r[3] - .15]) for (const sx of [-1, 1]) b.box(x + sx * .72, 0, z, .08, 2.7, .08, STEEL);
+        for (const y of [.5, 1.5]) { b.box(x, y, (r[2] + r[3]) / 2, 1.6, .08, 9, 0xf2efe6); for (let z = r[2] + .5; z < r[3]; z += .75) { b.ball(x - .35, y + .3, z, .26, y > 1 ? 0x4fae6a : 0x3f9a52, 0, .9); b.ball(x + .35, y + .28, z + .3, .24, 0x58b870, 0, .9); } }
+        for (const sx of [-1, 1]) { b.box(x + sx * .45, 2.6, (r[2] + r[3]) / 2, .22, .08, 9, 0x2a2a33); b.box(x + sx * .45, 2.56, (r[2] + r[3]) / 2, .16, .04, 8.8, 0xe06aff, 0, 1.25); } b.box(x, .003, (r[2] + r[3]) / 2, 2.6, .012, 9.6, 0xa87ac8); }
+      b.box(-8, 0, 2, 2.6, .9, 1, 0x6a5240); b.box(-8, .9, 2, 2.8, .08, 1.2, STEEL); b.box(-8.6, .98, 2, .5, .3, .4, 0x2a2a33); c.colliders.push({ x: -8.7, z: 2, r: .8 }, { x: -7.3, z: 2, r: .8 });   // workbench
+      for (const z of [-1, 1.2]) { b.cyl(-10.5, 0, z + 4.6, .62, 1.3, 0x3d8bd9, 1, 12); b.cyl(-10.5, 1.3, z + 4.6, .64, .06, 0x2a2a33, 1, 12); c.colliders.push({ x: -10.5, z: z + 4.6, r: .7 }); }           // water barrels
+      for (let k = 0; k < 4; k++) b.box(-11.6, 3.6, -12 + k * 5, .1, .1, .1, 0x2a2a33); b.box(-11.55, 3.3, 5.6, .14, .34, .5, 0x2a2a33); b.box(-11.46, 3.36, 5.6, .04, .1, .1, 0xff3a30, 0, 1.25);        // a camera, mostly for show
+      // the van, backed up to the bay
+      b.box(15.4, .5, 3, 4.6, 2.3, 2.5, 0xf2efe6); b.box(18.5, .5, 3, 1.7, 1.6, 2.4, 0xf2efe6); b.box(18.9, 1.3, 3, .9, .7, 2.2, 0x26304a); b.box(13.2, .56, 3, .3, 2.1, 2.2, 0x23252e);
+      for (const sz of [-1, 1]) { b.box(12.9, .5, 3 + sz * 1.7, .1, 2.2, 1.2, 0xe4e0d6, sz * .9); for (const x of [14.2, 17.6]) b.ball(x, .45, 3 + sz * 1.25, .46, 0x18181e); }
+      b.box(11.2, 0, 3, 3.6, .06, 4.2, 0xffd23a); b.box(11.2, .005, 3, 3.2, .062, 3.8, 0x55566a); sign('NO QUESTIONS\nMOVING CO.', 15.4, 1.9, 4.27, 3.4, 1.1, { bg: '#f2efe6', fg: '#3d5a9a', border: '#3d5a9a' });
+      c.amb.push(ambient({ n: 50, col: 0xe8a8ff, size: .07, area: 10, h: 3, drift: .2 }));
+      c.spawn = { x: 10.6, z: 3 };
     } },
 
   /* ───────────── 3 · METAH'S WEDDING — a garden ceremony in Portland ───────────── */
@@ -177,33 +207,7 @@ export const LEVELS = [
       c.amb.push(ambient({ n: 60, col: 0xffb3d1, size: .12, area: 11, h: 9, vy: -.7, add: false, opacity: .85 }));
     } },
 
-  /* ───────────── 4 · POW WOW — the powwow grounds at Shinnecock ───────────── */
-  { id: 'powwow', shot: [0, 6.6], prop: 'frybread', caption: 'crispy fry bread, last day', kicker: 'Labor Day 2024 · Shinnecock', title: 'Pow Wow', sub: 'the last day was the best day.',
-    game: 'collect', R: 12, icon: '☀', stars: [25, 60, 100],
-    how: 'Walk the vendor row and collect the fry bread, round after round.\nThe gulls want it too — dash (A) past them. A near her cousin to talk.',
-    P: { count: 10, time: 60, waves: true, shape: 'frybread', col: 0xffc65c, hazards: 3, hazard: () => critter('gull'), hazPop: 'gull!', hazSpeed: 1.2, note: '',
-      npcs: [{ x: 2.6, z: 6.4, name: 'her cousin', look: { skin: 0xb9794f, hair: 0x15100e, top: 0xe5484d, legs: 0x2b2b3a, style: 'long' },
-        lines: ['you came on the right day. the last day is the good one.', 'he said my dance looked like praising the sun. i am choosing to take that well.', 'get the fry bread while it is still crispy.'] }] },
-    build(b, c) {
-      sky(0x4a90e0, 0xcfe8ff, 0xcfe8ff); lights(0xdfeeff, 0x7a9a5a, 1.7, 0xfff2d0, 2.2, 7, 10, 4); fog(0xd8ecff, 44, 140); orb(60, 50, -120, 8, 0xfff6c8, 1.2);
-      island(b, 12, 0x74c45e, { edge: 'rope', woods: 0x3f9a52, hills: 0x5aa870 });
-      b.cyl(0, 0, 0, 4.5, .035, 0x9ad878, 1, 26);                                                                           // the dance arena: a mown circle inside an arbor
-      ring(14, 4.7, (x, z, a, i) => { if (Math.abs(a - Math.PI / 2) < .3) return; b.cyl(x, 0, z, .07, 2, WOOD, 1, 6); b.box(x, 2, z, .08, .08, 2.2, WOOD, -a); b.box(x, 1.62, z, .34, .26, .03, [0xe5484d, 0xffd27a, 0xffffff, 0x2a2a33][i % 4], -a + Math.PI / 2); });
-      for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) b.cyl(dx * 1, 0, dz * 1, .05, 2.2, WOOD, 1, 5); b.box(0, 2.2, 0, 2.4, .1, 2.4, 0xe8d8b0);               // drum under its canopy
-      b.cyl(0, .12, 0, .62, .44, 0x9a4a2a, 1, 12); b.cyl(0, .56, 0, .64, .05, 0xf2e6c8, 1, 12); for (let i = 0; i < 4; i++) b.cyl(Math.cos(i * 1.57 + .8) * 1.05, 0, Math.sin(i * 1.57 + .8) * 1.05, .16, .4, 0x6a5240, 1, 7); c.colliders.push({ x: 0, z: 0, r: 1.35 });
-      b.box(0, 0, -9.6, 5, .5, 2.2, 0xb0763e); b.box(0, .5, -10.6, 5, 2.6, .14, 0xe8d8b0); for (const sx of [-1, 1]) { b.cyl(sx * 2.4, .5, -8.7, .06, 2.6, WOOD, 1, 5); b.box(sx * 3, 0, -8.9, .7, 1.3, .6, 0x2a2a33); } b.box(0, 3.1, -9.6, 5.4, .14, 2.5, 0xffffff);   // MC stage
-      sign('SHINNECOCK\nPOWWOW', 0, 2, -10.5, 3.6, 1.3, { bg: '#f2e6c8', fg: '#8a2a1f', border: '#8a2a1f' }); c.colliders.push({ x: 0, z: -9.7, r: 2.7 });
-      for (const sx of [-1, 1]) { for (let k = 0; k < 3; k++) b.box(sx * (8.2 + k * .6), 0, -3.4, .6, .35 + k * .35, 4.4, 0xc8ccd4); c.colliders.push({ x: sx * 8.8, z: -3.4, r: 1.9 }, { x: sx * 8.8, z: -5, r: 1.2 }, { x: sx * 8.8, z: -1.8, r: 1.2 });     // bleachers + spectators
-        for (let k = 0; k < 4; k++) person(k + (sx > 0 ? 4 : 9), sx * (8.5 + (k % 2) * .6), -4.9 + k, sx > 0 ? -1.57 : 1.57, .35 + (k % 2) * .35); }
-      const spots = [[-9.8, 1.4], [-8.4, 5.2], [9.8, 1.4], [8.4, 5.2], [-5.8, -8.2], [5.8, -8.2]];                                                                      // vendor row, kept to the sides so it never hides you
-      spots.forEach(([x, z], i) => { tent(b, x, z, Math.atan2(-x, -z), [0xe5484d, 0x3d8bd9, 0xffb347, 0x4fae6a, 0x8a5ad0, 0xff9ab8][i]); c.colliders.push({ x, z, r: 1.45 }); });
-      sign('FRY BREAD', -5.8, 1.62, -7.02, 1.9, .42, { bg: '#ffd27a', fg: '#8a2a1f', border: '#8a2a1f' });
-      for (const sx of [-1, 1]) { b.cyl(sx * 1.6, 0, 5.2, .05, 4.4, 0xd8d8de, 1, 6); b.box(sx * 1.6 + .5, 3.6, 5.2, 1, .66, .04, sx > 0 ? 0xe5484d : 0xffd27a); b.box(sx * 1.6 + .5, 3.82, 5.2, 1, .22, .05, 0xffffff); c.colliders.push({ x: sx * 1.6, z: 5.2, r: .15 }); }   // flags at the entrance
-      c.amb.push(ambient({ n: 40, col: 0xfff3c0, size: .1, area: 12, h: 5, add: false, opacity: .5 }));
-      c.spawn = { x: 0, z: 7.2 };
-    } },
-
-  /* ───────────── 5 · ANTHONY & NICKA'S WEDDING — the reception ───────────── */
+  /* ───────────── 4 · ANTHONY & NICKA'S WEDDING — the reception ───────────── */
   { id: 'wedding', shot: [0, 1.2], prop: 'toast', caption: 'we closed the dance floor', outfit: { him: { top: 0x2a2a33, tie: 0x8a2a3a, legs: 0xc2313a } }, kicker: 'September 7, 2024', title: "Anthony & Nicka's Wedding", sub: 'red pants. rain jacket. no regrets.',
     game: 'rhythm', icon: '♪', stars: [80, 200, 320],
     how: 'Own the dance floor.\n◀ and ▶ on the stick, A in the middle — hit each one as it reaches the line.',
@@ -223,7 +227,7 @@ export const LEVELS = [
       c.amb.push(ambient({ n: 50, col: 0xffe9a0, size: .1, area: 10, h: 6 }));
     } },
 
-  /* ───────────── 6 · NEW ORLEANS — Frenchmen Street in a thunderstorm ───────────── */
+  /* ───────────── 5 · NEW ORLEANS — Frenchmen Street in a thunderstorm ───────────── */
   { id: 'nola', shot: [0, .4], prop: 'beignet', caption: 'powdered sugar in a thunderstorm', kicker: 'April 2025 · French Quarter', title: 'New Orleans', sub: 'a wedding, a steamboat, a thunderstorm.',
     game: 'catcher', icon: '⚜', stars: [40, 80, 120],
     how: 'Frenchmen Street after the wedding. They are throwing from the gallery.\nCatch beignets and beads. Dodge the raindrops.\nSTICK move · A dash',
@@ -248,7 +252,7 @@ export const LEVELS = [
       c.storm = true;
     } },
 
-  /* ───────────── 7 · WAITING FOR GODOT — West 44th Street to the Hudson Theatre ───────────── */
+  /* ───────────── 6 · WAITING FOR GODOT — West 44th Street to the Hudson Theatre ───────────── */
   { id: 'godot', shot: [0, 0], prop: 'playbill', caption: 'nothing happens, twice. we loved it.', kicker: 'October 22, 2025 · Hudson Theatre', title: 'Waiting for Godot', sub: 'he never shows. we did, barely.',
     game: 'runner', icon: '★', stars: [30, 70, 110],
     how: 'Curtain is at 2:00 and West 44th is jammed.\n◀ ▶ change lane around the cabs · A jumps the barricades · grab the tickets',
@@ -270,7 +274,7 @@ export const LEVELS = [
       sign('WAITING FOR GODOT', 0, 3.65, -83.78, 8.2, .56, { bg: '#fff6e0', fg: '#1c1a24', glow: true }); sign('HUDSON', 0, 4.75, -84.4, 4, .9, { bg: '#1c1a24', fg: '#ffe27a', border: '#ffe27a', glow: true });
     } },
 
-  /* ───────────── 8 · NOVEMBER 19 — the old town from the first games, by the lake ───────────── */
+  /* ───────────── 7 · NOVEMBER 19 — the old town from the first games, by the lake ───────────── */
   { id: 'birthday', shot: [0, -8.1], prop: 'cake', caption: 'my only one', kicker: 'November 19 · today', title: 'Happy Birthday', sub: 'one key for every year.',
     game: 'collect', R: 12, icon: '♥', stars: [1, 2, 3], finale: true,
     how: 'The old town again, a little less bleak.\nFind the three keys, then open the box on the dock.',

@@ -4,14 +4,13 @@ Seven short 3D levels, one per memory, playable solo or with two phones.
 
 | # | Level | Memory | Game |
 |---|-------|--------|------|
-| 1 | Lightscape | Brooklyn Botanic Garden, Dec 2023 | take photos together at the sights, dodge visitors and squirrels, find a couple to take your picture |
-| 2 | The Jitney Years | Brooklyn ⇄ the East End | 3-lane runner |
-| 3 | Metah's Wedding | Portland, Aug 24, 2024 | catch petals, dodge rain |
-| 4 | Pow Wow | Shinnecock, Labor Day 2024 | collect in rounds, dodge gulls |
-| 5 | Anthony & Nicka's Wedding | Sep 7, 2024 | rhythm |
-| 6 | New Orleans | French Quarter, Apr 2025 | catch |
-| 7 | Waiting for Godot | Hudson Theatre, Oct 22, 2025 | 3-lane runner |
-| 8 | Happy Birthday | Nov 19 | find 3 keys, open the box |
+| 1 | Lightscape | Brooklyn Botanic Garden, Dec 2023 | take photos at the sights, dodge visitors, find a couple to take your picture |
+| 2 | The Heist | an indoor farm, after hours | co-op: fill totes with gear, throw and push loot into the van, avoid the guard |
+| 3 | Metah's Wedding | Portland, Aug 24, 2024 | catch petals, dodge bees |
+| 4 | Anthony & Nicka's Wedding | Sep 7, 2024 | rhythm |
+| 5 | New Orleans | French Quarter, Apr 2025 | catch |
+| 6 | Waiting for Godot | Hudson Theatre, Oct 22, 2025 | 3-lane runner |
+| 7 | Happy Birthday | Nov 19 | find 3 keys, open the box |
 
 Scoring: every good pickup in a row builds a streak, every 5 raises the multiplier (max ×4), getting hit resets it. Stars and best scores are saved per level.
 Each level ends with a polaroid: the two characters are posed in the diorama with a prop and the game takes the picture. No photographs are used anywhere.

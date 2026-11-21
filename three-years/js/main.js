@@ -14,7 +14,7 @@ const center = new THREE.Vector3();
 function common(dt, t) { for (const a of S.amb) { a.update(dt, t); if (a.pts && S.ctx && S.ctx.bounds) a.pts.position.set(Cam.look.x, 0, Cam.look.z); } FX.update(dt);   // on big maps the snow travels with the camera
   if (S.ctx && S.ctx.storm) { if (Math.random() < dt * .22) { S.flash = 1; Sfx.noise(.5, .05, .15); } S.flash = Math.max(0, (S.flash || 0) - dt * 3.5); renderer.toneMappingExposure = 1.15 + S.flash * .22; } }
 function reset() { S.run++; killTweens(); if (S.game && S.game.dispose) S.game.dispose(); S.game = null; S.ctx = null; S.amb = []; clearWorld(); renderer.toneMappingExposure = 1.15;
-  UI.panel(null); UI.card(); UI.say(); UI.hud(false); UI.cine(false); UI.tapA = false; ['pick', 'hit', 'pos', 'score', 'ready', 'start', 'yes', 'fin'].forEach((k) => Net.off(k)); return S.run; }
+  UI.panel(null); UI.card(); UI.say(); UI.hud(false); UI.cine(false); UI.tapA = false; ['pick', 'hit', 'pos', 'score', 'ready', 'start', 'yes', 'fin', 'snap', 'glove', 'grab', 'drop', 'put', 'throw', 'del', 'mv', 'gd', 'bust'].forEach((k) => Net.off(k)); return S.run; }
 
 /* ───────── title ───────── */
 async function title(first) {
@@ -31,7 +31,7 @@ async function title(first) {
 }
 function menu() {
   UI.card(); UI.tapA = false; UI.cine(false); bFn = null;
-  const st = stars(), nextI = Math.max(0, LEVELS.findIndex((l) => !(l.id in st))), done = Object.keys(st).length;
+  const st = stars(), nextI = Math.max(0, LEVELS.findIndex((l) => !(l.id in st))), done = LEVELS.filter((l) => l.id in st).length;
   if (Net.open && !Net.isHost) return UI.panel(`<div class="kicker">player 2 · room ${Net.code}</div><h2>Connected</h2><p>Waiting for player 1 to pick a memory…</p><div class="hint">B · leave room</div>`), setB(() => { Net.close(); menu(); });
   UI.menu({ kicker: Net.open ? `2 players · room ${Net.code}` : 'nu gameboy', title: CONFIG.title, clear: true, items: [
     { label: done ? (done >= LEVELS.length ? 'REPLAY STORY' : 'CONTINUE STORY') : 'START STORY', hint: `${done}/${LEVELS.length}`, fn: () => { S.story = true; go(done >= LEVELS.length ? 0 : nextI); } },
@@ -121,6 +121,8 @@ async function play(i, seed) {
       if (n > 0) { const m0 = this.mult; this.streak++; n *= m0; if (this.mult > m0) { UI.pop('×' + this.mult); Sfx.big(); } else Sfx.pick(); if (x != null) FX.burst(x, y, z, L.P.col || 0xffd77e, 8 + m0 * 3); }
       else this.streak = 0;
       mine = Math.max(0, mine + n); UI.score(mine + S.theirs, L.icon, this.mult); Net.send('score', mine); },
+    cash(n) { mine = Math.max(0, mine + n); UI.score(mine + S.theirs, L.icon, 1); Net.send('score', mine); },      // plain money, no streak multiplier
+    get isHost() { return Net.isHost; },
     miss() { this.streak = 0; UI.score(mine + S.theirs, L.icon, 1); },
     palNet(dt) { if (!net.has) { pal.anim(dt, 0); return; } const p = pal.g.position, k = 1 - Math.exp(-14 * dt); p.x = lerp(p.x, net.x, k); p.z = lerp(p.z, net.z, k); pal.y = net.y; pal.face = net.f; pal.anim(dt, net.s); },
     finish() { if (!ctx.done) { ctx.done = true; outro(tok, i, mine); } } };

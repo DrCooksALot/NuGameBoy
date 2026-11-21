@@ -179,6 +179,7 @@ export function prop(kind) {
   else if (kind === 'beignet') { b.box(-.07, .04, 0, .13, .1, .13, 0xfff6e6, .3); b.box(.08, .04, .02, .13, .1, .13, 0xfff6e6, -.2); b.box(0, .13, 0, .12, .09, .12, 0xffffff, .6);
     for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283; b.ball(Math.cos(a) * .22, -.06 + Math.abs(Math.sin(a)) * -.12, Math.sin(a) * .05, .03, [0xb04ad9, 0x4fae6a, 0xffd27a][i % 3], 1.6); } }
   else if (kind === 'playbill') { b.box(0, 0, 0, .24, .32, .02, 0xffd23a); b.box(0, .24, .012, .24, .07, .01, 0x1c1a24); b.box(0, .05, .012, .16, .14, .01, 0xf2efe6); }
+  else if (kind === 'tote') { b.box(0, -.1, 0, .5, .05, .34, 0x3d6ad8); for (const z of [-.17, .17]) b.box(0, -.05, z, .5, .26, .04, 0x3d6ad8); for (const x of [-.25, .25]) b.box(x, -.05, 0, .04, .26, .36, 0x3d6ad8); b.box(0, .12, 0, .4, .05, .2, 0xd05aff, 0, 1.2); b.ball(.12, .22, 0, .08, 0xffd77e); b.box(-.12, .16, .02, .1, .16, .06, 0xffd23a); }
   else if (kind === 'cake') { b.cyl(0, 0, 0, .19, .14, 0xff9ab8, 1, 12); b.cyl(0, .14, 0, .2, .03, 0xfff6e6, 1, 12); for (const x of [-.08, 0, .08]) { b.cyl(x, .17, 0, .012, .09, 0x7ad7ff, 1, 5); b.ball(x, .29, 0, .028, 0xffd77e, 4); } }
   b.build(g); return g;
 }
