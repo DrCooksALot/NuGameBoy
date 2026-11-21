@@ -103,7 +103,7 @@ Measured with `renderer.info` during play. Stay inside these.
 | | Target | Heaviest level today |
 |---|---|---|
 | Draw calls | under 50 | 46 |
-| Triangles | under 75k | about 70k (Lightscape). New Orleans is a known exception at about 111k: it is five sets in one merged mesh. Do not add to it. |
+| Triangles | under 75k | about 76k (Lightscape, at the limit: add nothing without removing something). New Orleans is a known exception at about 111k: it is five sets in one merged mesh. Do not add to it. |
 
 - Static scenery: one merged mesh per level, plus one for unlit glow.
 - Repeated moving things: pooled `InstancedMesh` via `items()`. Never one mesh per pickup for the whole level.
@@ -136,11 +136,17 @@ Synthesized with Web Audio; no audio files except one. Each level has its own up
 | How dark is night | See section 5. Night only for Lightscape and the weddings. |
 | Voice | The deadpan NPC tone is right. |
 
+## Per-level mood (from the owner)
+
+| Level | Mood |
+|---|---|
+| Lightscape | Neon lights covering the botanic garden. An Alice in Wonderland light show in a secret garden. Cool and fun. Built as: neon-edged paths, colour-lit trees, oversized glowing mushrooms and flowers, a rainbow light tunnel, drifting pink and cyan lights. |
+
 ## Still open
 
 Ask about these one level at a time; do not guess in bulk.
 
-1. **Per-level mood, one line each:** weather and the single thing that must be recognisable. Lightscape, The Heist, Metah's Wedding, Anthony & Nicka's Wedding, New Orleans, Waiting for Godot, Happy Birthday.
+1. **Per-level mood, one line each:** weather and the single thing that must be recognisable. Still to ask: The Heist, Metah's Wedding, Anthony & Nicka's Wedding, New Orleans, Waiting for Godot, Happy Birthday.
 2. **Sprite detail:** keep 24 × 30, or go larger? More animation for the leads (sitting, hugging, dancing)?
 3. **Type:** stay with Courier New, or bundle a real pixel font?
 4. **Shell colour:** keep the periwinkle body?

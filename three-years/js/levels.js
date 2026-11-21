@@ -40,7 +40,7 @@ export const LEVELS = [
      alongside) is the start. A path west runs through the Winter Cathedral to Cherry Esplanade, with the Cranford Rose
      Garden beside it. North is up the screen. */
   { id: 'lightscape', tint: 0xc8ccf4, shot: [4, 2.9], prop: 'lantern', outfit: { her: { top: 0xc8a878, cap: 0xc8a878 }, him: { top: 0x1c1a1e, zip: 0x9a9aa4 } },   // what you wore: tan jacket and tan hat; leather jacket
-    caption: 'taken by two strangers who also love Spirited Away', kicker: 'December 2023 · Brooklyn Botanic Garden', title: 'Lightscape', sub: 'photos, hot toddies, and one missing glove.',
+    caption: 'taken by two strangers who also love Spirited Away', kicker: 'December 2023 · Brooklyn Botanic Garden', title: 'Lightscape', sub: 'a secret garden, lit in neon. one missing glove.',
     game: 'explore', icon: '✦', stars: [8, 16, 24],
     how: 'Take photos together at the glowing frames around the garden: stand in one and press A.\nThen ask couples (A) until one will take a picture of you both, and lead them to the fountain.\nMind the other visitors and the squirrels; dash (A) past them. There is a hot toddy cart. Somewhere there is a glove.',
     P: { col: [0xffd77e, 0xff9a62], bounds: [-22.5, 8.4, -33.4, 25.2], goal: { x: 4, z: 2.9 },
@@ -55,7 +55,7 @@ export const LEVELS = [
       cart: { x: -13.2, z: 1.2, name: 'hot toddy cart', lines: ['one hot toddy. for warmth.', 'another one. still for warmth.', 'a third. you two are very warm now.', 'that is a lot of hot toddies. walk carefully.', 'at this point i should just give you the cart.'] },
       gloveAt: [[-20.6, -9.6], [-3.6, -22], [-15.4, 9], [-6.4, -9.4], [-17, 6.4]],
       gloveLines: [['AHANU', 'found it. your glove. i was absolutely not the one who lost it.'], ['TEK', 'you were absolutely the one who lost it.']],
-      opening: [['TEK', 'wait. where is my other glove?'], ['AHANU', '...we should take some pictures. look, lights.']],
+      opening: [['TEK', 'wait. where is my other glove?'], ['AHANU', '...we should take some pictures. look. it is like falling down the rabbit hole.']],
       note: 'then find a couple to take yours', escortNote: 'lead them to the fountain between the ponds',
       hazAt: [[-9, -21, 2.8], [-12, 9, 2.6]], hazard: () => critter('squirrel'), hazPop: 'squirrel!', yesFrom: [0],   // it was the couple by the koi pond
       yesLines: (who) => [[who, 'a picture? of course. we were just watching the koi.'], ['AHANU', 'could you take it by the fountain, between the two ponds?'],
@@ -73,7 +73,7 @@ export const LEVELS = [
     build(b, c) {
       sky(0x05071c, 0x151d58, 0x111742, 800); lights(0x7684dc, 0x26483e, 1.45, 0xb4c0ff, 1.05, -4, 9, 5); fog(0x111742, 26, 82); orb(-40, 46, -90, 5, 0xdfe6ff, 1.2);
       turf(150, 150, 0x225a4a, -7, -10);
-      const BRICK = 0xa8604e, STONE = 0xd8cab8, WATER = 0x161e52, PATH = 0x8f90a4, GLOBE = [0xff7ab6, 0x7ad7ff, 0xffd77e, 0x9bffb0];
+      const BRICK = 0xa8604e, STONE = 0xd8cab8, WATER = 0x161e52, PATH = 0x8f90a4, GLOBE = [0xff7ab6, 0x7ad7ff, 0xffd77e, 0x9bffb0], NEON = [0xff3fa4, 0x3fe0ff, 0xb46bff, 0x7dff6a, 0xffd23f, 0xff7a3f];
       /* Lily Pool Terrace */
       b.box(4, 0, 1, 9.6, .06, 24.8, BRICK);
       const pool = (z0, z1, round) => { const zc = (z0 + z1) / 2, len = z1 - z0; b.box(4, .06, zc, 4, .1, len + .8, STONE); b.box(4, .1, zc, 3.2, .08, len, WATER);
@@ -97,7 +97,7 @@ export const LEVELS = [
       for (let k = -4; k <= 4; k++) { const a = k * .34; b.box(10.6 - Math.cos(a) * 3.5, 0, .65 + Math.sin(a) * 3.5, .07, 2.9, .07, 0xffffff); b.dot(10.6 - Math.cos(a) * 3.45, 2.2, .65 + Math.sin(a) * 3.45, .07, 0xffe9b0, 1.2); }
       /* the path west through the Winter Cathedral, then north to the esplanade */
       b.box(-4.9, .02, .65, 8.4, .05, 2.3, PATH); b.box(-9, .02, -4.6, 2.3, .05, 12.6, PATH);
-      for (let a = 0; a < 9; a++) { const x = -1.6 - a * .8; for (let k = 0; k <= 14; k++) { const t = k / 14 * Math.PI; b.dot(x, .1 + Math.sin(t) * 3.1, .65 + Math.cos(t) * 1.55, .06, 0xfff2c8, 1.25); } }
+      for (let a = 0; a < 9; a++) { const x = -1.6 - a * .8; for (let k = 0; k <= 14; k++) { const t = k / 14 * Math.PI; b.dot(x, .1 + Math.sin(t) * 3.1, .65 + Math.cos(t) * 1.55, .07, NEON[a % 6], 1.25); } }
       /* Cherry Esplanade: a long lawn between double rows of cherry trees, Sea of Light across it, the Supernova at the far end */
       b.box(-9, .016, -21.6, 6.6, .03, 23.4, 0x2c6e56);
       [-13.7, -12.3, -5.7, -4.3].forEach((x, r) => { for (let i = 0; i < 7; i++) { const z = -11.2 - i * 3.4 - (r % 2) * 1.2; cherry(b, x, z, i + r * 3); c.colliders.push({ x, z, r: .35 }); } });
@@ -110,8 +110,11 @@ export const LEVELS = [
       for (let k = 0; k <= 5; k++) { const x = -21.6 + k * 1.12; for (const z of [-11.5, -12.9]) b.box(x, 0, z, .12, 2.5, .12, 0xf6f2e8); b.box(x, 2.5, -12.2, .12, .12, 2.2, 0xf6f2e8); b.dot(x, 2.36, -12.2, .07, 0xffe9a0, 1.25); b.dot(x + .56, 2.3, -11.5, .06, 0xffe9a0, 1.25); }
       for (const z of [-11.5, -12.9]) b.box(-18.8, 2.5, z, 6, .12, .12, 0xf6f2e8); c.colliders.push({ x: -21.6, z: -12.2, r: .5 }, { x: -16, z: -12.2, r: .5 });
       /* trees: some lit in colour inside the garden, a dark belt of them outside it */
+      let n = 0; const neonTree = (x, z, s2, k) => { const col = NEON[k % 6]; b.cyl(x, .012, z, 1.5 * s2 * .6, .02, col, 1, 12, .5);
+        for (let j = 0; j < 5; j++) b.dot(x + Math.cos(j * 1.3) * .2 * s2, .15 + j * .17 * s2, z + Math.sin(j * 1.3) * .2 * s2, .05, col, 1.25);
+        for (let j = 0; j < 6; j++) { const a = j * 2.4, y = (1.1 + (j % 3) * .42) * s2, rr = (.82 - (j % 3) * .2) * s2; b.dot(x + Math.cos(a) * rr, y, z + Math.sin(a) * rr * .9 + .1, .07, j % 3 ? col : 0xffffff, 1.25); } };
       for (const [x, z, s2, col] of [[-3, -7, 1.8, 0x8a5ad8], [-20.4, -3.4, 1.6, 0x3d8ad8], [-6.4, 11.4, 1.6, 0xd85a9a], [-19.6, 12.4, 1.7, 0x3fa878], [-19.4, 3.6, 1.6, 0x8a5ad8], [-15.4, -5.4, 1.6, 0x3d8ad8], [-2.2, -17, 1.6, 0x3fa878], [-1.6, -27, 1.8, 0x8a5ad8]]) {
-        tree(b, x, z, s2, col); b.dot(x + .6, .14, z + .5, .1, 0xffffff, 1.2); c.colliders.push({ x, z, r: .55 }); }
+        tree(b, x, z, s2, col); neonTree(x, z, s2, n++); c.colliders.push({ x, z, r: .55 }); }
       let s = 3; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
       for (let i = 0; i < 26; i++) { const t = i / 26; (i % 3 ? tree : pine)(b, -26 - r() * 8, -38 + t * 56, 1.8 + r(), 0x1f5a48); (i % 3 ? pine : tree)(b, -25 + t * 40, -37.5 - r() * 8, 1.8 + r(), 0x1f5a48); }                               // nothing along the south edge: that is where the camera looks from
       for (const [x, z, r2] of [[-48, -80, 26], [-8, -92, 34], [40, -84, 28]]) b.ball(x, -8, z, r2, 0x1f4a58, 0, .5);
@@ -125,7 +128,27 @@ export const LEVELS = [
       sign('LIGHTSCAPE', 4, 4.1, 21.14, 3.6, .7, { bg: '#1a1f5c', fg: '#ffe27a', border: '#ffe27a', glow: true });
       b.box(8, 0, 23.4, 1.8, 2.2, 1.6, 0x2f6a58); b.box(8, 2.2, 23.4, 2.2, .16, 2, 0xf2efe6); b.box(7.08, 1, 23.4, .06, .8, 1, 0xffe9b0, 0, 1.15); sign('TICKETS', 7.06, 2, 23.4, 1.4, .34, { bg: '#f2efe6', fg: '#1f5a35', border: '#1f5a35', ry: -Math.PI / 2 });
       for (const [x, z] of [[1.4, 17], [6.6, 17], [1.2, 23.6]]) { lamp(b, x, z, 0xffe9b0, 2.4); c.colliders.push({ x, z, r: .2 }); }
-      for (const [x, z, s2, col] of [[-3, 18.2, 1.7, 0xd85a9a], [-8.4, 17.6, 1.9, 0x3d8ad8], [-14, 18.4, 1.8, 0x8a5ad8], [-19.4, 17.8, 1.9, 0x3fa878]]) { tree(b, x, z, s2, col); c.colliders.push({ x, z, r: .55 }); }
+      for (const [x, z, s2, col] of [[-3, 18.2, 1.7, 0xd85a9a], [-8.4, 17.6, 1.9, 0x3d8ad8], [-14, 18.4, 1.8, 0x8a5ad8], [-19.4, 17.8, 1.9, 0x3fa878]]) { tree(b, x, z, s2, col); neonTree(x, z, s2, n++); c.colliders.push({ x, z, r: .55 }); }
+      /* neon: every path is edged in a line of colour */
+      const tube = (x, z, w, d, col) => b.box(x, .05, z, w, .07, d, col, 0, 1.2);
+      tube(1.75, 16.2, .09, 6, NEON[0]); tube(6.25, 16.2, .09, 6, NEON[1]);                                   // in from the gate
+      tube(-5, -.55, 8.2, .09, NEON[2]); tube(-5, 1.85, 8.2, .09, NEON[3]);                                   // through the light tunnel
+      tube(-10.2, -5.8, .09, 9.6, NEON[1]); tube(-7.8, -5.8, .09, 9.6, NEON[0]);                              // north to the esplanade
+      tube(-12.35, -21.6, .09, 23.4, NEON[0]); tube(-5.65, -21.6, .09, 23.4, NEON[2]);                        // down both sides of the lawn
+      /* the wonderland part: glowing mushrooms and flowers taller than they should be, all through the grass */
+      b.lo = true;
+      const shroom = (x, z, s2, col) => { b.cyl(x, 0, z, .11 * s2, .62 * s2, 0xf2efe6, .7, 6, .75); b.ball(x, .6 * s2, z, .5 * s2, col, 1.15, .62);
+        for (let j = 0; j < 3; j++) b.dot(x + Math.cos(j * 2.09 + x) * .3 * s2, (.82 - .02 * j) * s2, z + Math.sin(j * 2.09 + x) * .3 * s2, .07 * s2, 0xffffff, 1.25); c.colliders.push({ x, z, r: .22 * s2 }); };
+      const bloom = (x, z, s2, col) => { b.cyl(x, 0, z, .05, 1.1 * s2, 0x3fa868, 1, 5, .7); for (let j = 0; j < 5; j++) b.dot(x + Math.cos(j * 1.257) * .24 * s2, 1.12 * s2, z + Math.sin(j * 1.257) * .24 * s2, .15 * s2, col, 1.15); b.dot(x, 1.2 * s2, z, .1 * s2, 0xffe27a, 1.25); c.colliders.push({ x, z, r: .15 }); };
+      [[-2.4, 15.4, 1.5], [-5.6, 13.8, 1], [-10.8, 13.4, 1.7], [-16.4, 14.8, 1.2], [-21, 9, 1.6], [-17.4, -1.8, 1.1], [-6, -3.4, 1.4], [-11.9, -6.6, .9], [-3.4, -12.4, 1.6], [-1.6, -20.4, 1.2], [-3, -31, 1.7],
+        [-11.4, 7.2, 1.3], [-4, 6.4, 1], [-7.6, 9.2, 1.6], [-14.6, 11.6, .9], [-2.6, 3.4, 1.2], [-21.2, -7, 1.3], [-6.2, -7.2, .8], [-15, 6.6, 1], [-1.8, 10.6, 1.4], [-9.4, 16.2, 1.1], [-20.2, 15.6, 1.4]]
+        .forEach(([x, z, s2], i) => (i % 3 === 2 ? bloom : shroom)(x, z, s2, NEON[(i * 5 + 1) % 6]));
+      b.lo = false;
+      /* a signpost that is no help at all */
+      b.cyl(-10.9, 0, -1.3, .06, 2.5, 0x3b3b4a, 1, 6); c.colliders.push({ x: -10.9, z: -1.3, r: .25 });
+      sign('THIS WAY →', -10.9, 2.3, -1.24, 1.7, .34, { bg: '#1a0f3a', fg: '#ff7ad0', border: '#ff3fa4', glow: true });
+      sign('← THAT WAY', -10.9, 1.86, -1.24, 1.7, .34, { bg: '#0f1f3a', fg: '#7af0ff', border: '#3fe0ff', glow: true });
+      c.amb.push(ambient({ n: 70, col: 0xff7ad0, size: .11, area: 16, h: 4, vy: .25, drift: .5, add: false, opacity: .9 }), ambient({ n: 70, col: 0x7af0ff, size: .11, area: 16, h: 4, vy: .2, drift: .6, add: false, opacity: .9 }));
       /* the hot toddy cart */
       b.box(-13.2, .5, 0, 2, .9, 1.1, 0x9a3a2a); b.box(-13.2, 1.4, 0, 2.1, .08, 1.2, 0xd8b88a); for (const sx of [-1, 1]) { b.ball(-13.2 + sx * .8, .4, .58, .4, 0x2a2420, 0, 1); b.cyl(-13.2 + sx * .95, 1.4, -.45, .04, 1.3, 0x6a4a30, 1, 5); b.cyl(-13.2 + sx * .95, 1.4, .45, .04, 1.3, 0x6a4a30, 1, 5); }
       for (let k = -2; k <= 2; k++) b.box(-13.2 + k * .44, 2.7, 0, .44, .12, 1.5, k % 2 ? 0xe5484d : 0xfff6e6); b.cyl(-13.7, 1.48, 0, .22, .3, 0xc8ccd4, 1, 10); for (let k = 0; k < 4; k++) b.dot(-13.7 + Math.sin(k) * .1, 1.95 + k * .16, 0, .05, 0xffffff, 1.1);
