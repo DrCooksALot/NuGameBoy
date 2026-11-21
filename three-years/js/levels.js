@@ -1,7 +1,7 @@
 // Eight memories. Each level = a set built from real things you would see there (build) + one mechanic from games.js (game + P).
 // Everything static is baked into one mesh per level, so detail costs vertices, not draw calls.
 import { THREE, scene, world } from './engine.js';
-import { turf, island, tree, pine, lamp, house, stringLights, sky, lights, orb, ambient, makeChar, critter, sign, Batch } from './kit.js';
+import { turf, island, tree, pine, lamp, house, stringLights, sky, lights, orb, ambient, makeChar, critter, sign, items, Batch } from './kit.js';
 
 const fog = (c, a, b) => { scene.fog = new THREE.Fog(c, a, b); };
 const ring = (n, r, fn, off = 0) => { for (let i = 0; i < n; i++) { const a = off + i / n * Math.PI * 2; fn(Math.cos(a) * r, Math.sin(a) * r, a, i); } };
@@ -38,16 +38,18 @@ export const LEVELS = [
      Laid out from satellite views. Lily Pool Terrace (two long pools, the round fountain between them, the Palm House
      alongside) is the start. A path west runs through the Winter Cathedral to Cherry Esplanade, with the Cranford Rose
      Garden beside it. North is up the screen. */
-  { id: 'lightscape', shot: [4, 2.9], prop: 'lantern', caption: 'taken by two strangers who also love Spirited Away', kicker: 'December 2023 · Brooklyn Botanic Garden', title: 'Lightscape', sub: 'find someone to take our picture.',
+  { id: 'lightscape', shot: [4, 2.9], prop: 'lantern', outfit: { her: { top: 0xc8a878, cap: 0xc8a878 }, him: { top: 0x1c1a1e, zip: 0x9a9aa4 } },   // what you wore: tan jacket and tan hat; leather jacket
+    caption: 'taken by two strangers who also love Spirited Away', kicker: 'December 2023 · Brooklyn Botanic Garden', title: 'Lightscape', sub: 'the koi ponds, and someone to take our picture.',
     game: 'explore', icon: '✦', stars: [8, 18, 28],
-    how: 'You are at the lily pools and you want a picture together.\nWalk the garden and ask couples (A). When one says yes, lead them back to the fountain between the pools.\nLanterns are points. Squirrels break your streak; dash (A) past them.',
+    how: 'You are at the koi ponds and you want a picture together.\nAsk couples (A) until one says yes, then lead them to the fountain between the ponds.\nLanterns around the garden are your stars. Squirrels break your streak; dash (A) past them.',
     P: { count: 16, shape: 'lantern', col: [0xffd77e, 0xff9a62], bounds: [-22.5, 8.4, -33.4, 12.6], goal: { x: 4, z: 2.9 },
       note: 'ask a couple to take your picture (A)', escortNote: 'lead them to the fountain between the pools',
-      hazAt: [[-9, -21, 2.8], [-13, 4, 3], [-18.8, -21.5, 1.1]], hazard: () => critter('squirrel'), hazPop: 'squirrel!', yesFrom: [2, 3, 4, 5, 6],
-      yesLines: (who) => [[who, 'a picture? of course. where do you want it?'], ['AHANU', 'by the fountain, between the two pools.'],
+      hazAt: [[-9, -21, 2.8], [-13, 4, 3], [-18.8, -21.5, 1.1]], hazard: () => critter('squirrel'), hazPop: 'squirrel!', yesFrom: [0],   // it was the couple by the koi pond
+      yesLines: (who) => [[who, 'a picture? of course. we were just watching the koi.'], ['AHANU', 'could you take it by the fountain, between the two ponds?'],
         [who, 'good choice. with all these lights on the water it looks like Spirited Away.'], ['TEK', 'the bathhouse at night. that is exactly what we said.'],
         [who, "just don't eat anything in here or you'll turn into pigs."], ['AHANU', 'too late. we already had the hot chocolate.'], [who, 'ha. okay, lead the way. we will follow you.']],
       couples: [
+        { x: 7.3, z: -6.4, face: -1.57, name: 'couple by the koi pond', looks: [{ skin: 0xe6b596, hair: 0x3a2a20, top: 0x6a7ac8, legs: 0x2a2a33, style: 'long' }, { skin: 0xd59a70, hair: 0x1a1412, top: 0x4fae6a, legs: 0x3b4a8a, beard: 0x1a1412 }], no: [''] },
         { x: 4, z: -10.2, name: 'couple at the wall fountain', looks: [{ skin: 0xd59a70, hair: 0x1a1412, top: 0x3d8bd9, legs: 0x2a2a33, style: 'long' }, { skin: 0xe6b596, hair: 0x6b3a24, top: 0x4fae6a, legs: 0x3b4a8a }], no: ['sorry, we cannot feel our hands. december.', 'still frozen. try the people by the cherry trees.'] },
         { x: 1, z: -5.4, name: 'couple on the bench', looks: [{ skin: 0xf0c8a4, hair: 0xc8a050, top: 0xe5484d, legs: 0x2a2a33, style: 'bun' }, { skin: 0xb9794f, hair: 0x15100e, top: 0x8a5ad0, legs: 0x2a2a33, beard: 0x15100e }], no: ['one second, he is about to propose. ...never mind, he is tying his shoe.', 'he is still tying it.'] },
         { x: -9, z: 2.6, name: 'couple by the light tunnel', looks: [{ skin: 0xe6b596, hair: 0x3a2a20, top: 0xffd27a, legs: 0x3b4a8a, style: 'curly', hair2: 0x5a4030 }, { skin: 0x9a6a48, hair: 0x1a1412, top: 0xf2efe6, legs: 0x6a5240 }], no: ['we would, but our phone is at 1%. so is yours? oh no.', 'now it is at 0%.'] },
@@ -66,6 +68,9 @@ export const LEVELS = [
         for (let z = z0 + .6; z < z1; z += 1.25) { c.colliders.push({ x: 4, z, r: 1.75 }); for (const sx of [-1, 1]) b.dot(4 + sx * 1.9, .2, z, .05, 0xffe9b0, 1.25); }                    // you cannot walk on water; lights along the rim
         for (let k = 0; k < 9; k++) { const x = 4 + Math.sin(k * 2.3 + z0) * 1.2, z = z0 + .7 + (k + .5) * (len - 1) / 9; b.cyl(x, .18, z, .2, .02, 0x3f8a52, 1, 7); if (k % 2) b.ball(x + .3, .3, z + .2, .13, GLOBE[k % 4], 1.25); } };
       pool(-9, -2.2, true); pool(3.5, 10.4, false);
+      const koi = items(12, 'koi', [0xff7a2a, 0xffffff, 0xffb347, 0xff5a3a]);                                           // the koi, circling under the lights
+      c.amb.push({ update(dt, t) { for (let i = 0; i < 12; i++) { const south = i % 2, zc = south ? 6.95 : -5.6, a = t * (.35 + (i % 5) * .07) * (i % 3 ? 1 : -1) + i * 1.7, rx = .5 + (i % 4) * .28, rz = 1.2 + (i % 3) * .85;
+        koi.set(i, 4 + Math.cos(a) * rx, .2, zc + Math.sin(a) * rz, 1.25, Math.atan2(-Math.sin(a) * rx, Math.cos(a) * rz) + (i % 3 ? 0 : Math.PI)); } koi.flush(); } });
       b.cyl(4, .02, .65, 2.7, .06, STONE, 1, 22); b.cyl(4, .08, .65, 1.6, .16, STONE, 1, 18); b.cyl(4, .2, .65, 1.35, .06, WATER, 1, 18);                                               // the round fountain between them
       b.cyl(4, .2, .65, .34, .5, 0xf2efe6, .8, 10); b.ball(4, .86, .65, .3, 0xf2efe6); for (let k = 0; k < 6; k++) b.dot(4 + Math.cos(k * 1.05) * .2, 1.1 + (k % 3) * .22, .65 + Math.sin(k * 1.05) * .2, .05, 0xdff4ff, 1.25);
       c.colliders.push({ x: 4, z: .65, r: 1.65 });

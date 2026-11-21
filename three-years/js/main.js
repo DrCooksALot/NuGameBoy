@@ -11,7 +11,7 @@ const stars = () => Store.get('stars', {});
 const starStr = (n) => '★'.repeat(n) + '<i>' + '★'.repeat(3 - n) + '</i>';
 const center = new THREE.Vector3();
 
-function common(dt, t) { for (const a of S.amb) { a.update(dt, t); if (S.ctx && S.ctx.bounds) a.pts.position.set(Cam.look.x, 0, Cam.look.z); } FX.update(dt);   // on big maps the snow travels with the camera
+function common(dt, t) { for (const a of S.amb) { a.update(dt, t); if (a.pts && S.ctx && S.ctx.bounds) a.pts.position.set(Cam.look.x, 0, Cam.look.z); } FX.update(dt);   // on big maps the snow travels with the camera
   if (S.ctx && S.ctx.storm) { if (Math.random() < dt * .22) { S.flash = 1; Sfx.noise(.5, .05, .15); } S.flash = Math.max(0, (S.flash || 0) - dt * 3.5); renderer.toneMappingExposure = 1.15 + S.flash * .22; } }
 function reset() { S.run++; killTweens(); if (S.game && S.game.dispose) S.game.dispose(); S.game = null; S.ctx = null; S.amb = []; clearWorld(); renderer.toneMappingExposure = 1.15;
   UI.panel(null); UI.card(); UI.say(); UI.hud(false); UI.cine(false); UI.tapA = false; ['pick', 'hit', 'pos', 'score', 'ready', 'start', 'yes', 'fin'].forEach((k) => Net.off(k)); return S.run; }
