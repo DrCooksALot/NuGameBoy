@@ -2,7 +2,7 @@
 // All randomness comes from ctx.rnd (seeded) so two phones build identical levels.
 import { THREE, world, Input, Cam, UI, Sfx, Music, rumble, clamp, lerp } from './engine.js';
 import { SONGS } from './songs.js';
-import { items, FX, makeChar } from './kit.js';
+import { items, FX, makeChar, Batch } from './kit.js';
 
 /* shared: stick-relative free movement with circle colliders */
 function walk(ctx, ch, dt, speed) {
@@ -146,6 +146,141 @@ export function explore(ctx) {
         if (hit && stun <= 0 && Math.hypot(x - p.x, z - p.z) < .75) bump(w.pop || 'excuse me!'); }
       if (beacon) { beacon.set(0, g.x, 2.6 + Math.sin(t * 3) * .2, g.z, 1.7, t * 2); beacon.flush(); }
       if (!say) note(cart ? 'A · hot toddy' : near >= 0 ? `A · photo at ${shots[near].name}` : stage ? (P.escortNote || '') : `photos ${taken}/${shots.length} · ${P.note || ''}`);
+      this.cam();
+    },
+  };
+}
+
+/* ============ HEIST: carry, pass, throw and push loot into the van before time runs out ============
+   Small gear goes in plastic totes (each has a volume limit); a tote in the van pays for everything in it, with a bonus if full.
+   One of you can hold a tote while the other fills it. Big gear cannot be carried: shove it across the floor, faster with two.
+   A guard patrols with a flashlight; shelving blocks his view. Everything is event-synced so two phones stay in step. */
+function steer(ctx, ch, tx, tz, dt, speed, gap = .3) {          // walk a non-player toward a point, sliding around obstacles
+  const p = ch.g.position, dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz);
+  if (d <= gap + .03) { ch.anim(dt, 0); return true; }               // the tolerance matters: stepping to exactly `gap` can land a hair outside it forever
+  const st = Math.min(speed * dt, d - gap); p.x += dx / d * st; p.z += dz / d * st; ch.face = Math.atan2(dx, dz);
+  for (const c of ctx.colliders) { if (c.soft) continue; const ex = p.x - c.x, ez = p.z - c.z, dd = Math.hypot(ex, ez), m = c.r + .35; if (dd < m && dd > .001) { p.x = c.x + ex / dd * m + (-ez / dd) * st * .6; p.z = c.z + ez / dd * m + (ex / dd) * st * .6; } }
+  const B = ctx.bounds; p.x = clamp(p.x, B[0], B[1]); p.z = clamp(p.z, B[2], B[3]); ch.anim(dt, .9); return false;
+}
+export function heist(ctx) {
+  const P = ctx.P, me = ctx.me, pal = ctx.pal, B = ctx.bounds = P.bounds, V = P.van, CAP = P.cap, objs = [], hand = { me: null, pal: null };
+  const inVan = (x, z) => x > V[0] && x < V[1] && z > V[2] && z < V[3];
+  const mk = (type, x, z) => { const T = P.types[type], g = new THREE.Group(), b = new Batch(); b.lo = true; T.build(b); b.build(g); g.position.set(x, 0, z); world.add(g);
+    const o = { id: objs.length, type, T, g, x, z, y: 0, vx: 0, vz: 0, vy: 0, fly: 0, held: null, box: null, gone: false, items: [], vol: 0, owner: null, tx: x, tz: z };
+    if (T.tote) { o.fill = new THREE.Mesh(new THREE.BoxGeometry(.78, 1, .5), new THREE.MeshLambertMaterial({ color: 0xffd27a })); o.fill.visible = false; g.add(o.fill); }
+    if (T.big) { o.col = { x, z, r: T.r }; ctx.colliders.push(o.col); }
+    objs.push(o); return o; };
+  // layout is seeded so both phones get the same floor
+  const spots = P.itemSpots.slice(); for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(ctx.rnd() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
+  let si = 0; for (const [type, n] of P.items) for (let k = 0; k < n && si < spots.length; k++, si++) mk(type, spots[si][0], spots[si][1]);
+  for (const [type, x, z] of P.bigs) mk(type, x, z);
+  const totes = P.totes.map(([x, z]) => { const t = mk('tote', x, z); t.home = [x, z]; return t; });
+  const value = (o) => o.T.tote ? Math.round(o.items.reduce((a, i) => a + i.T.price, 0) * (o.vol >= CAP ? 1.25 : 1)) : o.T.price;
+  const weight = (o) => o ? (o.T.tote ? 1 + o.items.reduce((a, i) => a + i.T.w, 0) * .45 : o.T.w) : 0;
+  const take = (o, who) => { if (hand[who]) return; o.held = who; hand[who] = o; o.fly = 0; o.owner = who; };
+  const letGo = (who) => { const o = hand[who]; hand[who] = null; if (o) o.held = null; return o; };
+  const putIn = (o, box) => { if (o.held) hand[o.held] = null; o.held = null; o.fly = 0; o.box = box; o.g.visible = false; box.items.push(o); box.vol += o.T.vol; box.fill.visible = true; box.fill.scale.y = Math.max(.08, box.vol / CAP * .5); box.fill.position.y = .1 + box.fill.scale.y / 2; Sfx.pick(); };
+  const deliver = (o, credit) => { if (o.gone) return; if (o.held) hand[o.held] = null; const v = value(o), full = o.T.tote && o.vol >= CAP, ax = o.x, az = o.z; o.held = null;
+    if (o.T.tote) { for (const i of o.items) i.gone = true; o.items = []; o.vol = 0; o.fill.visible = false; o.owner = null; o.x = o.home[0]; o.z = o.home[1]; o.y = 0; o.fly = 0; o.g.position.set(o.x, 0, o.z); }     // emptied into the van; the tote goes back on the stack
+    else { o.gone = true; o.g.visible = false; if (o.col) ctx.colliders.splice(ctx.colliders.indexOf(o.col), 1); }
+    if (v) { FX.confetti(ax, 1.2, az, 24 + Math.min(40, v / 30)); Sfx.big(); } if (credit && v) { ctx.cash(v); UI.pop('+$' + v + (full ? ' full box!' : '')); } };
+  const boxNear = (x, z, r) => { let best = null, bd = r; for (const t of totes) { if (t.gone || t.fly || t.vol >= CAP) continue; const d = Math.hypot(t.x - x, t.z - z); if (d < bd) { bd = d; best = t; } } return best; };
+  /* events from the other phone */
+  ctx.on('grab', (id) => { const o = objs[id]; if (!o || o.gone) return; if (o.held === 'me') { if (ctx.isHost) { ctx.send('grab', id); return; } hand.me = null; o.held = null; } take(o, 'pal'); });       // both grabbed at once: the host keeps it
+  ctx.on('drop', ([id, x, z]) => { const o = objs[id]; if (!o) return; if (o.held === 'pal') hand.pal = null; o.held = null; o.fly = 0; o.x = x; o.z = z; o.y = 0; o.owner = 'pal'; });
+  ctx.on('put', ([id, bid]) => { const o = objs[id], bx = objs[bid]; if (o && bx && !o.box) putIn(o, bx); });
+  ctx.on('throw', ([id, x, z, vx, vz]) => { const o = objs[id]; if (!o) return; if (o.held === 'pal') hand.pal = null; o.held = null; o.x = x; o.z = z; o.y = .9; o.vx = vx; o.vz = vz; o.vy = 4.6; o.fly = .001; o.owner = 'pal'; });
+  ctx.on('del', (id) => { const o = objs[id]; if (o) deliver(o, false); });
+  ctx.on('mv', ([id, x, z]) => { const o = objs[id]; if (o) { o.tx = x; o.tz = z; o.owner = 'pal'; } });
+  /* the guard */
+  const G = { c: makeChar(P.guard.look), wp: 0, st: 'patrol', t: 0, who: null, lost: 0, nx: 0, nz: 0, nf: 0 }; G.c.g.position.set(P.patrol[0][0], 0, P.patrol[0][1]); world.add(G.c.g);
+  const cone = new THREE.Mesh(new THREE.CircleGeometry(P.guard.range, 12, Math.PI / 2 - P.guard.fov, P.guard.fov * 2).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xfff2a0, transparent: true, opacity: .2, depthWrite: false })); cone.position.y = .06; G.c.g.add(cone);
+  const blocked = (ax, az, bx, bz) => { for (let k = 1; k < 9; k++) { const x = ax + (bx - ax) * k / 9, z = az + (bz - az) * k / 9; for (const r of P.racks) if (x > r[0] && x < r[1] && z > r[2] && z < r[3]) return true; } return false; };
+  const sees = (ch) => { const g = G.c.g.position, p = ch.g.position, dx = p.x - g.x, dz = p.z - g.z, d = Math.hypot(dx, dz); if (d > P.guard.range) return false;
+    let a = Math.atan2(dx, dz) - G.c.face; a = Math.atan2(Math.sin(a), Math.cos(a)); return Math.abs(a) < P.guard.fov && !blocked(g.x, g.z, p.x, p.z); };
+  // getting around the shelving: if the straight line is blocked, walk along the aisle to the nearer cross-corridor, then across
+  const zS = Math.max(...P.racks.map((r) => r[3])) + 1.15, zN = Math.min(...P.racks.map((r) => r[2])) - 1.1;
+  const cut = (ax, az, bx, bz) => { for (let k = 0; k <= 12; k++) { const x = ax + (bx - ax) * k / 12, z = az + (bz - az) * k / 12; for (const r of P.racks) if (x > r[0] - .55 && x < r[1] + .55 && z > r[2] - .55 && z < r[3] + .55) return true; } return false; };
+  const D = P.door, dm = (D.z0 + D.z1) / 2;
+  const nav = (ch, tx, tz, dt, speed, gap) => { const p = ch.g.position; let wx = tx, wz = tz;
+    if ((p.x - D.x) * (tx - D.x) < 0) { const side = p.x < D.x ? -1 : 1;                                   // the wall is in the way: line up with the loading bay, then go through it
+      if (Math.abs(p.z - dm) > 1.3) { wx = D.x + side * 1.3; wz = dm; } else { wx = D.x - side * 1.2; wz = dm; } }
+    if (wx === tx && wz === tz ? cut(p.x, p.z, tx, tz) : cut(p.x, p.z, wx, wz)) { const gx = wx, gz = wz;
+      const zc = Math.abs(p.z - zS) + Math.abs(gz - zS) <= Math.abs(p.z - zN) + Math.abs(gz - zN) ? zS : zN;
+      if (Math.abs(p.z - zc) > .35) { wx = p.x; wz = zc; } else { wx = gx; wz = zc; } }
+    const direct = wx === tx && wz === tz, there = steer(ctx, ch, wx, wz, dt, speed, direct ? gap : .12); return direct && there; };
+  ctx.on('gd', ([x, z, f, st]) => { G.nx = x; G.nz = z; G.nf = f; if (st !== G.st && st === 'chase') { UI.pop('!'); Sfx.bad(); } G.st = st; }); ctx.on('bust', () => { G.st = 'daze'; G.t = 2.6; });
+  /* state */
+  let T = P.time, stun = 0, dash = 0, cd = 0, mvT = 0, gdT = 0, noteNow = '', aiState = 'follow', aiBox = null, over = false;
+  const note = (t) => { if (t !== noteNow) { noteNow = t; UI.note(t); } };
+  if (!ctx.twoP) { take(totes[0], 'pal'); aiBox = totes[0]; }                       // solo: your partner carries a tote and follows you
+  UI.score(0, ctx.L.icon, 1);
+  ctx.onPhoto = () => { G.c.g.visible = false; for (const o of objs) if (o.held) o.g.visible = false; };
+  ctx.heist = { objs, hand, G, totes, get ai() { return aiState; } };
+  const dropHeld = (who, x, z) => { const o = letGo(who); if (!o) return null; o.x = x; o.z = z; o.y = 0; return o; };
+  return {
+    cam() { const p = me.g.position; Cam.set(p.x, 9.6, p.z + 8.6, p.x, .6, p.z - .4); },
+    update(dt, t) {
+      const p = me.g.position, q = pal.g.position, held = hand.me, ax = Input.axis.x, az = Input.axis.y, moving = Math.hypot(ax, az) > .1;
+      T -= dt; cd -= dt; dash -= dt;
+      /* you */
+      if (stun > 0) { stun -= dt; me.body.rotation.z = Math.sin(t * 40) * .2; me.anim(dt, 0); if (stun <= 0) me.body.rotation.z = 0; }
+      else {
+        const fx = Math.sin(me.face), fz = Math.cos(me.face);
+        if (Input.just.has('A')) {
+          if (!held) { let best = null, bd = 1.5; for (const o of objs) { if (o.gone || o.held || o.fly || o.box || o.T.big) continue; const d = Math.hypot(o.x - p.x, o.z - p.z); if (d < bd) { bd = d; best = o; } }
+            if (best) { take(best, 'me'); ctx.send('grab', best.id); Sfx.move(); } }
+          else if (!held.T.tote) { const bx = boxNear(p.x + fx * .6, p.z + fz * .6, 1.9);
+            if (bx && bx.vol + held.T.vol <= CAP) { putIn(held, bx); ctx.send('put', [held.id, bx.id]); }
+            else if (bx && bx.held === 'pal' && !ctx.twoP) { UI.pop('no room: running it to the van'); aiState = 'run'; }                    // solo partner takes the tote in when your item will not fit
+            else { if (bx) UI.pop('box is full'); const o = dropHeld('me', p.x + fx * .7, p.z + fz * .7); ctx.send('drop', [o.id, o.x, o.z]); } }
+          else { const o = dropHeld('me', p.x + fx * .8, p.z + fz * .8); ctx.send('drop', [o.id, o.x, o.z]); }
+        }
+        if (Input.just.has('B')) {
+          if (held) { const sp = Math.max(4.5, 9.5 - weight(held)); letGo('me'); held.x = p.x + fx * .5; held.z = p.z + fz * .5; held.y = .9; held.vx = fx * sp; held.vz = fz * sp; held.vy = 4.6; held.fly = .001; Sfx.jump(); ctx.send('throw', [held.id, held.x, held.z, held.vx, held.vz]); }
+          else if (cd <= 0) { dash = .22; cd = .7; Sfx.dash(); }
+        }
+        const sp = dash > 0 ? 12 : 5.3 * (1 - Math.min(.5, weight(hand.me) * .075));
+        const bx0 = p.x, bz0 = p.z; walk(ctx, me, dt, sp);
+        // shoving big gear: lean into it. heavy things move slowly; two of you move it faster
+        if (moving && !hand.me) for (const o of objs) { if (!o.T.big || o.gone) continue; const dx = o.x - bx0, dz = o.z - bz0, d = Math.hypot(dx, dz);
+          if (d < o.T.r + .75 && (dx * ax + dz * az) / d > .35) { const k = 5.3 * dt / o.T.w * (Math.hypot(o.x - q.x, o.z - q.z) < o.T.r + 1.1 ? 1.9 : 1); o.x = clamp(o.x + ax * k, B[0] + o.T.r, V[1] - .4); o.z = clamp(o.z + az * k, B[2] + o.T.r, B[3] - o.T.r);
+            for (const c of ctx.colliders) { if (c === o.col || c.soft) continue; const ex = o.x - c.x, ez = o.z - c.z, dd = Math.hypot(ex, ez), m = c.r + o.T.r; if (dd < m && dd > .001) { o.x = c.x + ex / dd * m; o.z = c.z + ez / dd * m; } }
+            o.tx = o.x; o.tz = o.z; o.owner = 'me'; mvT += dt; if (mvT > .12) { mvT = 0; ctx.send('mv', [o.id, +o.x.toFixed(2), +o.z.toFixed(2)]); } } }
+      }
+      /* your partner */
+      if (ctx.twoP) ctx.palNet(dt);
+      else { const bx = hand.pal;
+        if (aiState === 'follow') { nav(pal, p.x, p.z, dt, 5, 1.5); if (bx && bx.T.tote && (bx.vol >= CAP - .01 || (T < 14 && bx.vol > 0))) aiState = 'run'; if (!bx) aiState = 'fetch'; }
+        else if (aiState === 'run') { if (!bx) aiState = 'fetch'; else if (nav(pal, P.vanDoor[0], P.vanDoor[1], dt, 5.6, .4) || inVan(q.x, q.z)) { const o = dropHeld('pal', (V[0] + V[1]) / 2, (V[2] + V[3]) / 2); o.owner = 'me'; aiState = 'fetch'; } }
+        else { const nx = totes.find((b2) => !b2.gone && !b2.held && !b2.fly && b2.vol < CAP && !inVan(b2.x, b2.z)); if (!nx) nav(pal, p.x, p.z, dt, 5, 1.5); else if (nav(pal, nx.x, nx.z, dt, 5.6, .9)) { take(nx, 'pal'); aiState = 'follow'; } } }
+      /* everything that can move */
+      for (const o of objs) { if (o.gone || o.box) continue;
+        if (o.held) { const h = o.held === 'me' ? me : pal, hp = h.g.position; o.x = hp.x + Math.sin(h.face) * .55; o.z = hp.z + Math.cos(h.face) * .55; o.y = (o.T.tote ? .5 : .75) + h.y; }
+        else if (o.fly) { o.fly += dt; o.vy -= 14 * dt; o.x += o.vx * dt; o.z += o.vz * dt; o.y += o.vy * dt; o.x = clamp(o.x, B[0], V[1] - .3); o.z = clamp(o.z, B[2], B[3]);
+          const mine = o.owner === 'me';
+          if (mine && !o.T.tote && o.fly > .12) { const bx = boxNear(o.x, o.z, 1.05); if (bx && bx.vol + o.T.vol <= CAP && o.y < 1.7) { putIn(o, bx); ctx.send('put', [o.id, bx.id]); UI.pop('in the box!'); continue; } }   // thrown straight into a tote, held or not
+          if (o.y <= 0) { o.y = 0; o.fly = 0; if (mine) ctx.send('drop', [o.id, +o.x.toFixed(2), +o.z.toFixed(2)]); } }
+        else if (o.T.big) { if (o.owner !== 'me') { o.x = lerp(o.x, o.tx, 1 - Math.exp(-10 * dt)); o.z = lerp(o.z, o.tz, 1 - Math.exp(-10 * dt)); } o.col.x = o.x; o.col.z = o.z; }
+        if (!o.held && !o.fly && inVan(o.x, o.z) && (o.owner === 'me' || (!ctx.twoP && o.owner))) { deliver(o, true); ctx.send('del', o.id); if (o.gone) continue; }
+        o.g.position.set(o.x, o.y, o.z); if (o.fly) o.g.rotation.y += dt * 9; }
+      /* the guard: simulated by the host (or solo), mirrored on the other phone */
+      const gp = G.c.g.position;
+      if (ctx.twoP && !ctx.isHost) { gp.x = lerp(gp.x, G.nx, 1 - Math.exp(-10 * dt)); gp.z = lerp(gp.z, G.nz, 1 - Math.exp(-10 * dt)); G.c.face = G.nf; G.c.anim(dt, G.st === 'daze' ? 0 : .8); }
+      else {
+        if (G.st === 'daze') { G.t -= dt; G.c.anim(dt, 0); if (G.t <= 0) G.st = 'patrol'; }
+        else if (G.st === 'chase') { const tg = (G.who === 'pal' ? pal : me).g.position; nav(G.c, tg.x, tg.z, dt, P.guard.chase, .2); G.t -= dt; G.lost = sees(G.who === 'pal' ? pal : me) ? 0 : G.lost + dt; if (G.t <= 0 || G.lost > 2.2) G.st = 'patrol'; }
+        else { const w = P.patrol[G.wp]; if (steer(ctx, G.c, w[0], w[1], dt, P.guard.walk, .3)) G.wp = (G.wp + 1) % P.patrol.length;
+          const who = sees(me) ? 'me' : (ctx.twoP && sees(pal) ? 'pal' : null); if (who) { G.st = 'chase'; G.who = who; G.t = 6; G.lost = 0; UI.pop('!'); Sfx.bad(); } }
+        gdT += dt; if (ctx.twoP && gdT > .12) { gdT = 0; ctx.send('gd', [+gp.x.toFixed(2), +gp.z.toFixed(2), +G.c.face.toFixed(2), G.st]); }
+      }
+      cone.material.opacity = G.st === 'chase' ? .42 : G.st === 'daze' ? .05 : .2; cone.material.color.setHex(G.st === 'chase' ? 0xff5a4a : 0xfff2a0);
+      if (G.st !== 'daze' && stun <= 0 && dash <= 0 && Math.hypot(gp.x - p.x, gp.z - p.z) < .95) {          // caught: drop what you carry, pay a fine
+        stun = 1.6; const o = dropHeld('me', p.x, p.z); if (o) ctx.send('drop', [o.id, o.x, o.z]); ctx.cash(-P.fine); rumble(160, .5); Sfx.bad(); UI.pop('busted! -$' + P.fine); G.st = 'daze'; G.t = 2.6; ctx.send('bust', 0); }
+      /* hud */
+      const h2 = hand.me, nb = h2 && !h2.T.tote ? boxNear(p.x, p.z, 2.2) : null;
+      note(stun > 0 ? '' : !h2 ? 'A grab · B dash · lean on big gear to push it' : h2.T.tote ? `box ${h2.vol}/${CAP} · $${value(h2)} · A set down · B throw` : `${h2.T.label} $${h2.T.price} · ${nb ? 'A put in box' : 'A drop'} · B throw`);
+      UI.time(T); if (T <= 0 && !over) { over = true; ctx.finish(); }
       this.cam();
     },
   };

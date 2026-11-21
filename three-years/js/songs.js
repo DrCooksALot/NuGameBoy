@@ -19,9 +19,8 @@ const song = (seed, bpm, root, chords, motifs, o = {}) => ({ bpm, root, beats: 4
 export const SONGS = {
   title:      song(11, 92, 60, [0, 5, 3, 4, 0, 5, 3, 4], ['x-x-x---', 'x-x-x-x-'], { wave: 'triangle', drums: 'none' }),
   lightscape: song(23, 104, 64, [0, 3, 5, 4, 0, 3, 4, 0], ['x.x.x.xx', 'x-x.x---'], { wave: 'triangle' }),
-  jitney:     song(37, 132, 67, [0, 3, 4, 3, 0, 3, 4, 0], ['xxx.xxx.', 'x.xxx-x.'], { drums: 'drive' }),
+  heist:      song(37, 124, 62, [0, 3, 4, 3, 0, 5, 3, 4], ['x.x.xx.x', 'xx.x.x..'], { swing: .3 }),
   metah:      song(41, 112, 65, [0, 4, 5, 3, 0, 4, 3, 4], ['x-xx-xx.', 'x.x.x-x-']),
-  powwow:     song(53, 120, 62, [0, 3, 0, 4, 0, 3, 4, 0], ['xx.xx.x.', 'x-x-xx--']),
   wedding:    song(67, 112, 69, [0, 5, 3, 4, 0, 5, 3, 4], ['x.xx.x.x', 'xx.x.xx.'], { drums: 'drive' }),
   nola:       song(71, 126, 58, [0, 5, 1, 4, 0, 5, 1, 4], ['x.xx.xx.', 'x-.x.x--'], { swing: .33 }),
   godot:      song(83, 140, 57, [0, 3, 4, 0, 5, 3, 4, 0], ['xxxx.x.x', 'x.x.xxx-'], { drums: 'drive' }),
