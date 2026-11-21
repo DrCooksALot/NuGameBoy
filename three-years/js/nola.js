@@ -47,7 +47,7 @@ const CAT = {
 const WALLET = 300, OBJ_PTS = 10, TIP_PTS = 2;
 const BOOKINGS = [
   { id: GATOR, n: 'Alligator ride', $: 50, done: 'Swamp tour, tomorrow, 9 a.m. Keep your hands in the boat.' },
-  { id: HILTON, n: 'The Hilton trip', $: 30, done: 'Hilton trip, you are on the sheet. Meet at the Riverside lobby.' },
+  { id: HILTON, n: 'The Hilton trip', $: 0, done: 'Hilton it is. A short presentation, they said. It is a timeshare pitch and it runs two hours.' },
   { id: BOAT, n: 'Steamboat ride', $: 60, done: 'Two for the Natchez jazz cruise. She boards right here at the Toulouse wharf.' },
 ];
 /* row: which block face the shop sits on (N = far side of Bourbon, A faces Royal, B faces Chartres, C faces Decatur). items: [name, price, points] */
@@ -303,7 +303,7 @@ export function errands(ctx) {
   const spots = [];                                                                     // everything A does something at
   for (const s of shops) { const [x, z] = s.at || [s.kx, s.kz]; s.c = npc({ ...anyone(x | 0), ...s.look }, x, z); spots.push({ x, z, r: 1.9, label: s.name, act: () => openShop(s), c: s.c }); }
   const guy = npc({ ...anyone(2), ...DOCK.look }, DOCK.x, DOCK.z);
-  spots.push({ x: DOCK.x, z: DOCK.z, r: 2, label: DOCK.name, c: guy, act: () => speak([[DOCK.name, done[GATOR] && done[HILTON] && done[BOAT] ? 'You are signed up for all three. Do not be late.' : 'Gators, the Hilton trip, the steamboat. I book all three, right here on the clipboard.']], openDock) });
+  spots.push({ x: DOCK.x, z: DOCK.z, r: 2, label: DOCK.name, c: guy, act: () => speak([[DOCK.name, done[GATOR] && done[HILTON] && done[BOAT] ? 'You are signed up for all three. Do not be late.' : 'Gators, the steamboat, and a free trip to the Hilton if you sit through a little presentation. I book all three, right here on the clipboard.']], openDock) });
   const band = [0, 1, 2, 3].map((k) => npc(anyone(k + 4, { top: [0xf2efe6, 0x2a2a33][k % 2], cap: k % 2 ? 0x2a2a33 : undefined }), 7.5 + k * 1.25, -16.9));
   const dancers = [0, 1, 2].map((k) => npc(anyone(k + 9, { top: [0xb04ad9, 0xffd27a, 0x4fae6a][k] }), -12, -30, 0, false));
   const statue = npc({ skin: 0xc8c8d0, hair: 0xa8a8b4, top: 0xb8b8c4, legs: 0x9a9aa6, cap: 0xa8a8b4 }, 23.2, -1.3); statue.g.position.y = .4; statue.sh.visible = false;
@@ -327,7 +327,7 @@ export function errands(ctx) {
       { label: 'LEAVE', fn: closeMenu }] }); };
   const openDock = () => { mode = 'menu';
     UI.menu({ kicker: `find adventure · you have $${wallet}`, title: 'Sign-up sheet', text: 'Three lines on the clipboard. Put your names down.', clear: true, back: closeMenu, items: [
-      ...BOOKINGS.map((k) => ({ label: k.n, hint: done[k.id] ? 'signed up' : `$${k.$}`, off: done[k.id], fn: () => {
+      ...BOOKINGS.map((k) => ({ label: k.n, hint: done[k.id] ? 'signed up' : k.$ ? '$' + k.$ : 'free', off: done[k.id], fn: () => {
         if (!afford(k.$, k.id)) { Sfx.back(); UI.toast('not enough cash'); return; }
         wallet -= k.$; score(OBJ_PTS, DOCK.x, DOCK.z); guy.cheer = .6; closeMenu(); mark(k.id, true); draw();
         if (mode !== 'say') speak([[DOCK.name, k.done]], () => { if ([GATOR, HILTON, BOAT].some((i) => !done[i])) openDock(); }); } })),
