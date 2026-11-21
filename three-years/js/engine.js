@@ -22,10 +22,17 @@ const screenEl = $('#screen');
 let canvas = $('#gl');
 // Deliberately plain: no shadow maps, no post-processing, default power preference. Phone GPU drivers are the thing that
 // kills WebGL contexts, so the fewer exotic features the better. `safe` drops resolution and MSAA after a crash.
-let safe = 0;
+// What went wrong last time is kept in localStorage so it can be read off the DIAGNOSTICS screen after a reload.
+export const Diag = { gpu: '?',
+  list() { return Store.get('diag', []); },
+  add(kind, msg) { const l = this.list(); l.push({ k: kind, m: String(msg).slice(0, 140), t: new Date().toISOString().slice(5, 16).replace('T', ' ') }); Store.set('diag', l.slice(-8)); console.warn('[three-years]', kind, msg); },
+  clear() { Store.set('diag', []); } };
+// start in safe mode (low resolution, no MSAA) if asked with ?safe, or if graphics died twice or more in earlier sessions
+let safe = (params.has('safe') || Diag.list().filter((x) => x.k === 'graphics lost').length >= 2) ? 1 : 0;
 function makeRenderer(cv) {
   const r = new THREE.WebGLRenderer({ canvas: cv, antialias: safe < 1, stencil: false, alpha: false });
   r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.15; r.shadowMap.enabled = false;
+  try { const gl = r.getContext(), x = gl.getExtension('WEBGL_debug_renderer_info'); Diag.gpu = String(x ? gl.getParameter(x.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)).slice(0, 90); } catch (e) {}
   return r;
 }
 export let renderer = makeRenderer(canvas);
@@ -51,12 +58,12 @@ resize(true);
    if it does not, throw the canvas away and build a fresh renderer on a new one (the scene itself is untouched). */
 let lost = false, rebuilds = 0, loop = null;
 function watch(cv) {
-  cv.addEventListener('webglcontextlost', (e) => { e.preventDefault(); if (lost) return; lost = true; UI.toast('graphics hiccup, recovering…'); setTimeout(() => { if (lost) rebuild(); }, 1200); });
+  cv.addEventListener('webglcontextlost', (e) => { e.preventDefault(); if (lost) return; lost = true; Diag.add('graphics lost', Diag.gpu); UI.toast('graphics hiccup, recovering…'); setTimeout(() => { if (lost) rebuild(); }, 1200); });
   cv.addEventListener('webglcontextrestored', () => { if (!lost) return; lost = false; resize(true); UI.toast('and we are back'); });
 }
 function rebuild() {
   if (++rebuilds > 6) { UI.toast('graphics keep failing: reload the page'); return; }
-  safe = rebuilds >= 2 ? 1 : 0;                                                    // second crash: lower resolution, no MSAA
+  safe = safe || rebuilds >= 2 ? 1 : 0;                                                    // second crash: lower resolution, no MSAA
   try { renderer.setAnimationLoop(null); renderer.dispose(); } catch (e) {}
   const fresh = document.createElement('canvas'); fresh.id = 'gl'; fresh.setAttribute('aria-label', 'Game screen'); canvas.replaceWith(fresh); canvas = fresh;
   try { renderer = makeRenderer(canvas); } catch (e) { UI.toast('this browser will not start WebGL'); return; }
@@ -239,6 +246,58 @@ export const Net = {
 };
 let peerLib = null;
 function loadPeer() { return peerLib || (peerLib = new Promise((res, rej) => { const s = document.createElement('script'); s.src = './vendor/peerjs.min.js'; s.onload = res; s.onerror = () => { peerLib = null; rej(new Error('offline')); }; document.head.appendChild(s); })); }
+let relayOK = null;
+/* server.js relays messages between the two players over one WebSocket each: no WebRTC, no third-party matchmaking, works on any network the page loads on */
+function relay(net, hosting, code) {
+  return new Promise((res, rej) => {
+    let ws, opened = false; try { ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ty-ws?room=' + code + '&role=' + (hosting ? 'host' : 'join')); } catch (e) { return rej(e); }
+    const to = setTimeout(() => { if (!opened) { try { ws.close(); } catch (e) {} rej(new Error('no relay')); } }, 2500);
+    ws.onopen = () => { opened = true; clearTimeout(to); net.status(hosting ? 'room is open · waiting for player 2' : 'knocking on room ' + code + '…');
+      res({ send: (m) => ws.readyState === 1 && ws.send(JSON.stringify(m)), close: () => { try { ws.close(); } catch (e) {} } }); };
+    ws.onmessage = (e) => { let m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      if (m.t === '_ok') { net.status('connected'); net._up(); } else if (m.t === '_bye') net._down(); else if (m.t === '_noroom') { net.status('no room with that code'); UI.toast('no room with that code'); } else net._recv(m); };
+    ws.onerror = () => { if (!opened) { clearTimeout(to); rej(new Error('no relay')); } };
+    ws.onclose = () => { if (opened) net._down(); };
+  });
+}
+/* Works from any static host (GitHub Pages included): both players talk through public MQTT brokers over secure WebSockets.
+   Outbound connections only, so home routers and mobile carriers cannot block it the way they block phone-to-phone WebRTC.
+   A tiny MQTT 3.1.1 client: CONNECT, SUBSCRIBE, PUBLISH (QoS 0), PINGREQ. Every reachable broker is used at once and duplicates are dropped. */
+const BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/mqtt'];
+const _enc = new TextEncoder(), _dec = new TextDecoder();
+const mStr = (t) => { const b = _enc.encode(t); return [b.length >> 8, b.length & 255, ...b]; };
+const mPkt = (type, body) => { const len = []; let n = body.length; do { let d = n % 128; n = Math.floor(n / 128); if (n > 0) d |= 128; len.push(d); } while (n > 0); return new Uint8Array([type, ...len, ...body]); };
+function brokerRelay(net, hosting, code) {
+  return new Promise((res, rej) => {
+    const base = 'nugb/ty/' + code + '/', pubT = base + (hosting ? 'h' : 'g'), subT = base + (hosting ? 'g' : 'h'), sid = Math.random().toString(36).slice(2, 10);
+    const socks = [], timers = []; let settled = false, closed = false, linked = false, seq = 0, lastIn = 0, peerSid = null, heard = 0;
+    const publish = (m) => { const p = mPkt(0x30, [...mStr(pubT), ..._enc.encode(JSON.stringify({ s: sid, n: ++seq, m }))]); for (const k of socks) if (k.ok && k.ws.readyState === 1) try { k.ws.send(p); } catch (e) {} };
+    const down = (why) => { if (!linked) return; linked = false; net.status(why); net._down(); };
+    const onMsg = (o) => { if (!o || typeof o.n !== 'number' || !o.m) return;
+      if (o.s !== peerSid) { peerSid = o.s; lastIn = 0; }                              // the other player reloaded: start counting again
+      if (o.n <= lastIn) return; lastIn = o.n; heard = Date.now(); const m = o.m;       // same message arriving through a second broker
+      if (m.t === '_hi') { if (hosting) { publish({ t: '_ok' }); if (!linked) { linked = true; net.status('connected'); net._up(); } } }
+      else if (m.t === '_ok') { if (!hosting && !linked) { linked = true; net.status('connected'); net._up(); } }
+      else if (m.t === '_bye') down('the other player left');
+      else if (m.t !== '_hb' && linked) net._recv(m); };
+    const begin = () => { net.status(hosting ? 'room is open · waiting for player 2' : 'knocking on room ' + code + '…'); heard = Date.now();
+      if (!hosting) { publish({ t: '_hi' }); timers.push(setTimeout(() => { if (!linked && !closed) net.status('no answer yet. is the code right, and is the host still on the room screen?'); }, 9000)); }
+      timers.push(setInterval(() => { for (const k of socks) if (k.ok && k.ws.readyState === 1) try { k.ws.send(new Uint8Array([0xc0, 0])); } catch (e) {}
+        if (linked) { publish({ t: '_hb' }); if (Date.now() - heard > 12000) down('lost the other player'); } else if (!hosting) publish({ t: '_hi' }); }, 2000)); };
+    const api = { send: (m) => { if (linked) publish(m); }, close: () => { if (closed) return; closed = true; if (linked) publish({ t: '_bye' }); timers.forEach((t) => { clearInterval(t); clearTimeout(t); }); setTimeout(() => socks.forEach((k) => { try { k.ws.close(); } catch (e) {} }), 200); } };
+    net.status('reaching the relay…');
+    for (const url of BROKERS) { let ws; try { ws = new WebSocket(url, 'mqtt'); } catch (e) { continue; } ws.binaryType = 'arraybuffer'; const k = { ws, ok: false, buf: new Uint8Array(0) }; socks.push(k);
+      ws.onopen = () => ws.send(mPkt(0x10, [...mStr('MQTT'), 4, 2, 0, 30, ...mStr('ty' + sid + socks.indexOf(k))]));          // CONNECT, clean session, 30 s keep-alive
+      ws.onmessage = (e) => { const inb = new Uint8Array(e.data), buf = new Uint8Array(k.buf.length + inb.length); buf.set(k.buf); buf.set(inb, k.buf.length); k.buf = buf;
+        for (;;) { const b = k.buf; if (b.length < 2) return; let len = 0, mul = 1, i = 1, done = false; for (; i < b.length && i < 5; i++) { len += (b[i] & 127) * mul; mul *= 128; if (!(b[i] & 128)) { done = true; i++; break; } }
+          if (!done || b.length < i + len) return; const type = b[0] >> 4, body = b.subarray(i, i + len); k.buf = b.slice(i + len);
+          if (type === 2) { if (body[1] === 0) ws.send(mPkt(0x82, [0, 1, ...mStr(subT), 0])); else try { ws.close(); } catch (x) {} }                // CONNACK -> SUBSCRIBE
+          else if (type === 9) { k.ok = true; if (!settled) { settled = true; begin(); res(api); } }                                              // SUBACK: this broker is live
+          else if (type === 3) { const tl = (body[0] << 8) | body[1]; try { onMsg(JSON.parse(_dec.decode(body.subarray(2 + tl)))); } catch (x) {} } } };       // PUBLISH
+      ws.onerror = () => {}; ws.onclose = () => { k.ok = false; if (settled && !closed && socks.every((x) => !x.ok)) down('lost the relay'); }; }
+    setTimeout(() => { if (!settled) { settled = true; closed = true; socks.forEach((k) => { try { k.ws.close(); } catch (e) {} }); rej(new Error('no relay')); } }, 7000);
+  });
+}
 async function makeTransport(net, hosting, code) {
   if (params.get('net') === 'local') { // same-browser tabs; used for testing without a signalling server
     const ch = new BroadcastChannel('ty-' + code);
@@ -246,6 +305,8 @@ async function makeTransport(net, hosting, code) {
     if (!hosting) ch.postMessage({ t: '_hi' });
     return { send: (m) => ch.postMessage(m), close: () => { ch.postMessage({ t: '_bye' }); ch.close(); } };
   }
+  if (relayOK !== false) { try { const t = await relay(net, hosting, code); relayOK = true; return t; } catch (e) { relayOK = false; } }   // same-origin relay first; public PeerJS otherwise
+  if (params.get('net') !== 'p2p') { try { return await brokerRelay(net, hosting, code); } catch (e) {} }                    // public relay next; direct WebRTC only as a last resort
   net.status('loading…');
   await loadPeer();
   net.status('reaching the matchmaking server…');
@@ -311,7 +372,7 @@ Input.onDown = (a) => {
   App.mode && App.mode.down && App.mode.down(a);
 };
 let last = 0, errShown = 0;
-function report(e) { console.error('[three-years]', e); if (errShown++ < 3) UI.toast('oops: ' + String(e && e.message || e).slice(0, 60)); }
+function report(e) { console.error('[three-years]', e); Diag.add('error', (e && e.message || e) + ' @ ' + String(e && e.stack || '').split('\n')[1]); if (errShown++ < 3) UI.toast('oops: ' + String(e && e.message || e).slice(0, 60)); }
 addEventListener('error', (e) => report(e.error || e.message)); addEventListener('unhandledrejection', (e) => report(e.reason));
 export function start() {
   loop = (ms) => {

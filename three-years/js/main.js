@@ -1,5 +1,5 @@
 // Three Years — flow: title → menu → (lobby) → level intro → play → memory card → finale.
-import { THREE, $, world, renderer, clearWorld, killTweens, tween, wait, fade, Cam, Input, Sfx, Net, UI, Store, App, setMode, start, snapshot, bakeShadows, Music, rng, params, lerp } from './engine.js';
+import { THREE, $, world, renderer, clearWorld, killTweens, tween, wait, fade, Cam, Input, Sfx, Net, UI, Store, App, Diag, setMode, start, snapshot, bakeShadows, Music, rng, params, lerp } from './engine.js';
 import { Batch, makeChar, FX, prop } from './kit.js';
 import { LEVELS, titleScene } from './levels.js';
 import * as GAMES from './games.js';
@@ -38,6 +38,7 @@ function menu() {
     { label: 'MEMORIES', hint: 'pick a level', fn: select },
     Net.open ? { label: 'LEAVE ROOM', hint: Net.code, fn: () => { Net.close(); menu(); } } : { label: 'TWO PLAYER', hint: '2 phones', fn: lobby },
     { label: Sfx.muted ? 'SOUND: OFF' : 'SOUND: ON', hint: 'select', fn: () => { Sfx.toggleMute(); menu(); } },
+    { label: 'DIAGNOSTICS', hint: Diag.list().length ? Diag.list().length + ' logged' : 'ok', fn: diagnostics },
   ] });
 }
 let bFn = null; const setB = (f) => { bFn = f; };
@@ -60,13 +61,37 @@ async function host() {
     setB(() => { Net.close(); lobby(); });
   } catch (e) { UI.toast(String(e.message || 'could not open a room')); lobby(); }
 }
+/* joining: an on-screen code pad, so no phone keyboard is ever needed. d-pad + A works, and so does tapping the keys */
+const CODE_KEYS = 'BCDFGHJKMNPQRTVWXYZ2346789';
+async function joinRoom(c) {
+  UI.panel('<div class="kicker">joining room ' + c + '</div><p id="netStatus">starting…</p><div class="hint">this can take up to half a minute on mobile data · B to cancel</div>'); setB(() => { Net.close(); lobby(); });
+  try { await Net.join(c); setTimeout(() => { if (!Net.open && Net.code === c) { UI.toast('could not link to that room'); Net.close(); lobby(); } }, 40000); } catch (e) { UI.toast(String(e.message || 'could not connect')); lobby(); }
+}
 function joinForm(pre) {
-  UI.panel(`<div class="kicker">join a room</div><input id="code" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="····" value="${pre || ''}"/><div class="row"><div class="item sel" data-i="0" id="join">JOIN</div></div><div class="hint">B to cancel</div>`);
-  const inp = $('#code'), doJoin = async () => { const c = inp.value.trim().toUpperCase(); if (c.length < 4) return UI.toast('4 letters'); inp.blur();
-    UI.panel('<div class="kicker">joining room ' + c + '</div><p id="netStatus">starting…</p><div class="hint">this can take up to half a minute on mobile data · B to cancel</div>'); setB(() => { Net.close(); lobby(); });
-    try { await Net.join(c); setTimeout(() => { if (!Net.open && Net.code === c) { UI.toast('could not link to that room'); Net.close(); lobby(); } }, 40000); } catch (e) { UI.toast(String(e.message || 'could not connect')); lobby(); } };
-  $('#join').onpointerdown = doJoin; inp.onkeydown = (e) => { if (e.key === 'Enter') doJoin(); };
-  setB(lobby); if (pre) doJoin(); else if (!('ontouchstart' in window)) inp.focus();
+  if (pre && pre.length === 4) return joinRoom(pre);
+  let code = '', cur = 0; const COLS = 7, keys = [...CODE_KEYS, '⌫', 'JOIN'];
+  const draw = () => { UI.panel(`<div class="kicker">enter the room code</div>
+      <div class="code">${[0, 1, 2, 3].map((i) => code[i] || '·').join('')}</div>
+      <div class="pad">${keys.map((k, i) => `<div class="key${i === cur ? ' sel' : ''}${k.length > 1 ? ' wide' : ''}" data-i="${i}">${k}</div>`).join('')}</div>
+      <div class="hint">tap the letters, or d-pad + A · B erases</div>`);
+    UI._menu = pad; document.querySelector('#panel .pad').onpointerdown = (e) => { const el = e.target.closest('[data-i]'); if (!el) return; cur = +el.dataset.i; hit(); }; };
+  const hit = () => { const k = keys[cur];
+    if (k === 'JOIN') { if (code.length < 4) { Sfx.back(); UI.toast('4 characters'); return; } Sfx.ok(); return joinRoom(code); }
+    if (k === '⌫') { code = code.slice(0, -1); Sfx.back(); } else if (code.length < 4) { code += k; Sfx.move(); if (code.length === 4) cur = keys.length - 1; }
+    draw(); };
+  const pad = { input(a) { const n = keys.length;
+      if (a === 'LEFT') cur = (cur + n - 1) % n; else if (a === 'RIGHT') cur = (cur + 1) % n; else if (a === 'UP') cur = Math.max(0, cur - COLS); else if (a === 'DOWN') cur = Math.min(n - 1, cur + COLS);
+      else if (a === 'A' || a === 'START') return hit();
+      else if (a === 'B') { if (code) { code = code.slice(0, -1); Sfx.back(); } else { Sfx.back(); return lobby(); } }
+      else return;
+      if (a !== 'B') Sfx.move(); draw(); } };
+  draw();
+}
+function diagnostics() {
+  const l = Diag.list();
+  UI.menu({ kicker: 'diagnostics', title: l.length ? `${l.length} problem${l.length > 1 ? 's' : ''} logged` : 'Nothing logged', text: `GPU: ${Diag.gpu}`, back: menu, items: [
+    ...l.slice(-3).reverse().map((x) => ({ label: `${x.k}`, hint: `${x.t} · ${x.m.slice(0, 26)}`, fn: () => UI.toast(x.m.slice(0, 70)) })),
+    { label: 'CLEAR LOG', fn: () => { Diag.clear(); diagnostics(); } }, { label: 'BACK', fn: menu } ] });
 }
 Net.onStatus = (t) => { const e = $('#netStatus'); if (e) e.textContent = t; };
 Net.onOpen = () => { Sfx.big(); UI.toast('player 2 connected'); if (Net.isHost) Net.send('hello', { who: S.who }); menu(); };
@@ -128,7 +153,7 @@ async function play(i, seed) {
   UI.pop('GO'); Sfx.beep(880, .3, 'square', .16);
   let acc = 0;
   setMode({ update(dt, t) { common(dt, t); if (ctx.done) return; game.update(dt, t);
-      acc += dt; if (Net.open && acc > .07) { acc = 0; const p = me.g.position; Net.send('pos', { x: +p.x.toFixed(2), z: +p.z.toFixed(2), f: +me.face.toFixed(2), y: +me.y.toFixed(2), s: Math.min(1.2, Math.hypot(Input.axis.x, Input.axis.y) + (L.game === 'runner' ? 1 : 0)) }); } },
+      acc += dt; if (Net.open && acc > .1) { acc = 0; const p = me.g.position; Net.send('pos', { x: +p.x.toFixed(2), z: +p.z.toFixed(2), f: +me.face.toFixed(2), y: +me.y.toFixed(2), s: Math.min(1.2, Math.hypot(Input.axis.x, Input.axis.y) + (L.game === 'runner' ? 1 : 0)) }); } },
     down(k) { if (k === 'START') pause(tok); } });
 }
 function pause(tok) {
