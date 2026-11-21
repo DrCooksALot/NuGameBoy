@@ -3,13 +3,13 @@
 Read this before changing anything visual in `three-years/`. It records what was decided, what was rejected, and why.
 The short version: **16-bit pixel people in a soft, rounded 3D toy world, with blue RPG windows. Cute first. Real places, real objects.**
 
-Sections marked **TEK to fill in** are open questions only the owner can answer. Until they are filled, follow the defaults given.
+The owner's answers so far are in the table near the end. The "Still open" list after it is what to ask next.
 
 ---
 
 ## 1. The look in one paragraph
 
-A classic 16-bit RPG feeling (the reference named was *Secret of Mana*), rebuilt in three.js. Characters and background people are pixel-art sprites with a dark one-pixel outline, standing in a 3D world made of smooth, rounded, brightly coloured shapes on a checkerboard lawn. All UI is the blue gradient window with a white border from SNES-era RPGs. Nothing cinematic is layered on top: no letterbox, no vignette, no film grain, no bloom.
+A classic 16-bit RPG feeling, rebuilt in three.js as a small diorama you look down into. References named by the owner: *Secret of Mana* (sprites, windows, warmth), *Tunic* (the tilted toy-box view, clean rounded shapes), *Little Devil Inside* (small figures in a big readable scene), *The Legend of Zelda* (walk-around levels with things to find). The diorama view is the part the owner loves most: every level should read as a little model of a real place. Characters and background people are pixel-art sprites with a dark one-pixel outline, standing in a 3D world made of smooth, rounded, brightly coloured shapes on a checkerboard lawn. All UI is the blue gradient window with a white border from SNES-era RPGs. Nothing cinematic is layered on top: no letterbox, no vignette, no film grain, no bloom.
 
 ## 2. Hard rules
 
@@ -37,8 +37,9 @@ Drawn procedurally in `three-years/js/kit.js` (`drawFrame`, `atlas`, `makeChar`)
 - **Proportions:** chibi. The head is roughly half the height. Two-by-three pixel eyes with a one-pixel white highlight, a pink blush pixel pair, a one-pixel mouth.
 - **Animation:** two-frame walk with a small bob. Idle breathes very slightly. Keep it this simple.
 - **The two leads** (defaults in `three-years/config.js`):
-  - **Ahanu:** big curly auburn hair in two tones (`0x6b3a24`, highlights `0x9a5a30`), warm tan skin, burgundy dress shape by default.
-  - **TEK:** short dark hair, dark beard, dark top, blue jeans.
+  - **Ahanu:** big curly **pink** hair in two tones (`0xff5fa8`, highlights `0xffa6cf`), light skin with a slight tan (`0xecc4a0`), teal top.
+  - **TEK:** short **blue** hair and beard (`0x3a82f6`), fair skin (`0xf6dcc6`) with freckles, dark top, blue jeans.
+  - The pink and blue hair is deliberate. It makes the two leads readable at a glance in any scene and keeps them stylised instead of lookalikes of real people. Do not "correct" it to natural colours.
 - **Outfits change per level** through the level's `outfit` field, never by editing the defaults. Examples in use: tan jacket and tan hat with a leather jacket (Lightscape), suit and floral dress (Metah's wedding), red trousers (Anthony & Nicka's), all black with beanies (The Heist).
 - **Everyone else** (guests, visitors, the guard, couples) uses the same sprite system with varied skin, hair and tops, so the whole cast matches.
 
@@ -58,7 +59,9 @@ Built with the `Batch` helper in `kit.js`: every static piece of a level is merg
 ## 5. Colour
 
 - **Saturated and warm**, in the SNES register. Daytime levels: blue sky into a cream horizon, greens around `0x6fc25a`.
-- **Night levels are dusk-blue, not black.** Sky around `0x1c2470` into `0x6a66d0`. If you cannot read the scene on a phone outdoors, it is too dark.
+- **Only three levels are at night:** Lightscape and the two weddings. Everything else, including the title screen and the finale, is daytime. Do not turn a level to night without being asked.
+- **Night means properly dark, but readable.** Sky near `0x05071c` into `0x151d58`, hemisphere light about 1.5, sun (moon) about 1.1, fog matched to the horizon. The glowing things in the level (fairy lights, installations, lamps) should be what stands out. A first pass with light levels near 1.0 was called too dark; the original dusk-blue (`0x1c2470` sky, lights at 2.5) was called too bright.
+- **Night levels set `tint`** on the level object (around `0xc8ccf4`), which cools the character sprites so they sit in the scene instead of glowing.
 - **Accent set** used for party lights and UI highlights: gold `0xffd27a`, pink `0xff7ab6`, sky `0x7ad7ff`, mint `0x9bff9b`.
 - **Recurring materials:** brick `0xa8604e`, stone `0xd8cab8`, wood `0x8a5a36`, iron `0x24222c`, steel `0x9aa0a8`.
 - Tone mapping is ACES at exposure 1.15, applied by the renderer. That is the only "grade".
@@ -100,7 +103,7 @@ Measured with `renderer.info` during play. Stay inside these.
 | | Target | Heaviest level today |
 |---|---|---|
 | Draw calls | under 50 | 46 |
-| Triangles | under 75k | about 70k (Lightscape) |
+| Triangles | under 75k | about 70k (Lightscape). New Orleans is a known exception at about 111k: it is five sets in one merged mesh. Do not add to it. |
 
 - Static scenery: one merged mesh per level, plus one for unlit glow.
 - Repeated moving things: pooled `InstancedMesh` via `items()`. Never one mesh per pickup for the whole level.
@@ -123,36 +126,22 @@ Synthesized with Web Audio; no audio files except one. Each level has its own up
 
 ---
 
-## TEK to fill in
+## Answered by the owner
 
-Answering these would remove most of the guessing. Replace each line with your answer.
+| Question | Answer |
+|---|---|
+| Reference games | *Secret of Mana*, *Tunic*, *Little Devil Inside*, *The Legend of Zelda*. |
+| "How we usually do our cool 3D games" | An earlier 3D game with a diorama feel, probably deleted. The diorama view is the thing to keep building on. |
+| The two leads | See section 3. Stylised on purpose: pink hair and blue hair. |
+| How dark is night | See section 5. Night only for Lightscape and the weddings. |
+| Voice | The deadpan NPC tone is right. |
 
-1. **Reference games.** *Secret of Mana* is the only one named. List two or three more, and say what to take from each (colour, sprites, UI, camera).
-   - _answer:_
-2. **"How we usually do our cool 3D games."** This was said once and never found in the repos. Name the project or attach a screenshot.
-   - _answer:_
-3. **The two leads, exactly.** Hair length and colour, skin tone, usual clothes, anything always worn (glasses, hat, jewellery). Current values are read off a handful of photos.
-   - Ahanu: _answer_
-   - TEK: _answer_
-4. **Colour likes and dislikes.** Any colour that should lead the palette, and any to avoid. Lightscape was called too teal and too bright for a December night; how dark is right?
-   - _answer:_
-5. **Sprite detail.** Keep 24 × 30, or go larger for more expression (faces, clothing detail)? Should the leads get more animation: four-direction walk, sitting, hugging, dancing?
-   - _answer:_
-6. **Camera.** Is the current tilted view right, or would a flatter top-down view (closer to Mana) be better for walk-around levels?
-   - _answer:_
-7. **Type.** Stay with Courier New, or use a real pixel font? A bundled font file would be added to `three-years/vendor/`.
-   - _answer:_
-8. **Shell colour.** Keep the periwinkle body, or match a real handheld you own?
-   - _answer:_
-9. **Per-level mood, one line each.** Time of day, weather, and the single thing that must be recognisable.
-   - Lightscape: _answer_
-   - The Heist: _answer_
-   - Metah's Wedding: _answer_
-   - Anthony & Nicka's Wedding: _answer_
-   - New Orleans: _answer_
-   - Waiting for Godot: _answer_
-   - Happy Birthday: _answer_
-10. **Things that are off limits.** People, places, jokes or details that should never appear.
-    - _answer:_
-11. **Voice.** Is the deadpan NPC tone right for her, or should it be warmer? Paste two or three lines in the voice you want.
-    - _answer:_
+## Still open
+
+Ask about these one level at a time; do not guess in bulk.
+
+1. **Per-level mood, one line each:** weather and the single thing that must be recognisable. Lightscape, The Heist, Metah's Wedding, Anthony & Nicka's Wedding, New Orleans, Waiting for Godot, Happy Birthday.
+2. **Sprite detail:** keep 24 × 30, or go larger? More animation for the leads (sitting, hugging, dancing)?
+3. **Type:** stay with Courier New, or bundle a real pixel font?
+4. **Shell colour:** keep the periwinkle body?
+5. **Off limits:** people, places, jokes or details that should never appear.

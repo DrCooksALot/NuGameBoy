@@ -18,6 +18,7 @@ Read `instructions.md`. It defines the graphics style and lists rules that came 
 - `three-years/config.js`: names, character looks, the ending text. Personal content lives here and in `js/levels.js`.
 - `three-years/js/levels.js`: the levels (set dressing and parameters).
 - `three-years/js/games.js`: the game modes (`explore`, `heist`, `collect`, `catcher`, `runner`, `rhythm`).
+- `three-years/js/nola.js`: the New Orleans level and its `errands` mode (hotel room, French Quarter, Hilton pitch, airboat races, steamboat), all in one file.
 - `three-years/js/kit.js`: sprites, the `Batch` mesh builder, object models, signs.
 - `three-years/js/engine.js`: renderer, input, audio and music, networking, UI.
 
