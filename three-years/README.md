@@ -4,7 +4,7 @@ Seven short 3D levels, one per memory, playable solo or with two phones.
 
 | # | Level | Memory | Game |
 |---|-------|--------|------|
-| 1 | Lightscape | Brooklyn Botanic Garden, Dec 2023 | explore the garden, find a couple to take your picture, lead them to the fountain |
+| 1 | Lightscape | Brooklyn Botanic Garden, Dec 2023 | take photos together at the sights, dodge visitors and squirrels, find a couple to take your picture |
 | 2 | The Jitney Years | Brooklyn ⇄ the East End | 3-lane runner |
 | 3 | Metah's Wedding | Portland, Aug 24, 2024 | catch petals, dodge rain |
 | 4 | Pow Wow | Shinnecock, Labor Day 2024 | collect in rounds, dodge gulls |

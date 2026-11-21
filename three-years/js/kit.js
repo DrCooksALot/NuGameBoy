@@ -108,7 +108,8 @@ function drawFrame(G, o, dir, step, cheer) {
   // body
   const by = 17 + bob;
   if (dress) { for (let y = by; y < 26; y++) { const w = (side ? 3 : 4) + Math.floor((y - by) * .55); rect(12 - w, y, w * 2, 1, y > 23 ? topD : top); } if (o.dots && dir !== 'back') { const d = hexCss(o.dots); put(10, by + 3, d); put(13, by + 5, d); put(11, by + 6, d); put(14, by + 2, d); } else if (dir === 'front') { put(11, by + 3, '#ffd77e'); put(13, by + 5, '#ffd77e'); } }
-  else { rect(side ? 9 : 7, by, side ? 6 : 10, 24 - by, top); rect(side ? 9 : 7, 22, side ? 6 : 10, 2, topD); if (o.tie && dir === 'front') { rect(11, by, 2, 2, '#f2efe6'); rect(11, by + 2, 2, 3, hexCss(o.tie)); } }
+  else { rect(side ? 9 : 7, by, side ? 6 : 10, 24 - by, top); rect(side ? 9 : 7, 22, side ? 6 : 10, 2, topD); if (o.tie && dir === 'front') { rect(11, by, 2, 2, '#f2efe6'); rect(11, by + 2, 2, 3, hexCss(o.tie)); }
+    if (o.zip && dir === 'front') { const z = hexCss(o.zip); rect(12, by, 1, 24 - by, z); rect(9, by, 2, 1, z); rect(13, by, 2, 1, z); rect(8, by + 3, 2, 1, z); rect(14, by + 3, 2, 1, z); } }
   // arms
   if (cheer) { rect(4, 11, 2, 7, top); rect(18, 11, 2, 7, top); rect(4, 9, 2, 2, skin); rect(18, 9, 2, 2, skin); }
   else if (side) { rect(11, by + 1, 2, 5, topD); rect(11, by + 6, 2, 1, skin); }
@@ -120,12 +121,13 @@ function drawFrame(G, o, dir, step, cheer) {
   else ell(side ? 11.4 : 12, 8 + hy, 7.5, 7, hair);
   if (o.style === 'bun') ell(12, 1.5 + hy, 2.6, 2.4, hair);
   if (dir === 'back') { ell(12, 10.5 + hy, 6.6, 6.2, hair); rect(9, 16 + hy, 6, 1, skin);
-    if (curly) for (const [x, y, c] of [[8, 7, hair2], [13, 5, hair2], [16, 10, hair2], [10, 12, hair2], [14, 14, hair]]) ell(x, y + hy, 2.2, 2, c); return; }
+    if (curly) for (const [x, y, c] of [[8, 7, hair2], [13, 5, hair2], [16, 10, hair2], [10, 12, hair2], [14, 14, hair]]) ell(x, y + hy, 2.2, 2, c);
+    if (o.cap) { const c = hexCss(o.cap); rect(5, 1 + hy, 14, 5, c); rect(5, 6 + hy, 14, 1, hexCss(o.cap, .8)); } return; }
   ell(fx, 10.5 + hy, 6.6, 6.2, skin);
   if (curly) { for (const [x, y, c] of [[7, 5, hair2], [10.5, 4, hair], [14, 4, hair2], [17, 5, hair], [5.5, 8, hair], [18.5, 8, hair2]]) if (!side || x < 17) ell(x + (side ? .6 : 0), y + hy, 2.3, 2.1, c); for (const [x, y] of [[4, 4], [9, 1], [3, 10]]) { put(x, y + hy, hair2); put(x + 1, y + hy, hair2); } if (side) rect(5, 7 + hy, 4, 9, hair); }
   else if (dress) { rect(fx - 6, 4 + hy, 12, 3, hair); if (side) rect(4, 6 + hy, 4, 11, hair); }
   else { rect(fx - 6, 3 + hy, 12, 3, hair); rect(fx - 7, 5 + hy, 3, 3, hair); if (!side) rect(16, 5 + hy, 3, 3, hair); else rect(5, 5 + hy, 4, 7, hair); rect(fx - 4, 3 + hy, 5, 1, hair2); }
-  if (o.cap) { const c = hexCss(o.cap); rect(fx - 7, 2 + hy, 14, 4, c); rect(side ? fx : fx - 8, 6 + hy, side ? 9 : 16, 1, c); }
+  if (o.cap) { const c = hexCss(o.cap); rect(fx - 7, 1 + hy, 14, 5, c); rect(side ? fx - 2 : fx - 8, 6 + hy, side ? 11 : 16, 1, hexCss(o.cap, .8)); }
   // face
   if (side) { rect(16, 10 + hy, 2, 3, eye); put(16, 10 + hy, '#fff'); rect(17, 13 + hy, 2, 1, '#f58f8a'); }
   else { rect(8, 10 + hy, 2, 3, eye); rect(14, 10 + hy, 2, 3, eye); put(8, 10 + hy, '#fff'); put(14, 10 + hy, '#fff'); rect(6, 13 + hy, 2, 1, '#f58f8a'); rect(16, 13 + hy, 2, 1, '#f58f8a'); }
@@ -263,10 +265,13 @@ const MODELS = {
   ticket(b) { b.box(0, -.16, 0, .56, .32, .05, 0xffd77e); b.box(0, -.16, .03, .4, .06, .01, 0xa8742a); b.box(0, -.04, .03, .4, .1, .01, 0xffffff); },
   puck(b) { b.cyl(0, 0, 0, .42, .16, 0xffffff, 1, 10); b.cyl(0, .16, 0, .26, .04, 0xfff6c8, 1, 10); },
   key(b) { for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; b.ball(Math.cos(a) * .15, .16 + Math.sin(a) * .15, 0, .06, 0xffd77e); } b.box(0, -.34, 0, .07, .36, .07, 0xffd77e); b.box(.08, -.3, 0, .1, .06, .06, 0xffd77e); b.box(.08, -.18, 0, .1, .06, .06, 0xffd77e); },
+  koi(b) { b.ball(0, 0, .1, .11, 0xffffff, 0, .5); b.ball(0, 0, -.08, .09, 0xffffff, 0, .5); b.box(0, -.02, -.3, .14, .04, .14, 0xffffff, .78); },
+  frame(b) { for (const sx of [-1, 1]) for (const sz of [-1, 1]) { b.box(sx * .86, 0, sz * 1.1, .56, .05, .12, 0xffe27a); b.box(sx * 1.1, 0, sz * .86, .12, .05, .56, 0xffe27a); } b.ball(0, .03, 0, .12, 0xffffff, 0, .3); },     // camera viewfinder corners on the ground
+  glove(b) { b.box(0, -.2, 0, .3, .36, .14, 0x3a2a22); for (let k = 0; k < 4; k++) b.box(-.11 + k * .074, .16, 0, .06, .2, .12, 0x3a2a22); b.box(-.2, -.06, 0, .08, .2, .12, 0x3a2a22, 0, 0, 0, .5); b.box(0, -.26, 0, .34, .1, .16, 0x8a6a4a); },
   pine(b) { pine(b, 0, 0, 1); },
   lamp(b) { b.cyl(0, 0, 0, .07, 3, 0x3b3b4a, 1, 6); b.box(-.4, 2.9, 0, .9, .07, .07, 0x3b3b4a); b.box(-.8, 2.74, 0, .34, .14, .2, 0xffe9a0); },
 };
-const UNLIT = new Set(['lantern', 'beads', 'ticket', 'puck', 'key']), TINT = new Set(['car', 'puck']), modelGeo = new Map();
+const UNLIT = new Set(['lantern', 'beads', 'ticket', 'puck', 'key', 'frame', 'glove']), TINT = new Set(['car', 'puck', 'koi']), modelGeo = new Map();
 function modelGeometry(shape) { let g = modelGeo.get(shape); if (!g) { const b = new Batch(); b.lo = true; MODELS[shape](b); g = keep(b.geo()); modelGeo.set(shape, g); } return g; }
 
 export function items(n, shape = 'coin', col = 0xffd77e, k = 2) {

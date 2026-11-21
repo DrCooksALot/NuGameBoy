@@ -77,34 +77,40 @@ export function collect(ctx) {
   };
 }
 
-/* ============ EXPLORE: a real place to walk around, people to ask, someone to bring back ============
-   Find the couple who will take your picture, then lead them to the photo spot. Lanterns on the way are the score. */
+/* ============ EXPLORE: a real place to walk around ============
+   Take photos together at the sights (the score), dodge other visitors and squirrels, warm up at the drinks cart,
+   find the lost glove, and get a couple to take THE picture: ask until one says yes, then lead them to the photo spot. */
 export function explore(ctx) {
-  const P = ctx.P, me = ctx.me, pal = ctx.pal, B = ctx.bounds = P.bounds, spots = [];
-  for (let guard = 0; spots.length < P.count && guard < 6000; guard++) {
-    const x = B[0] + 1 + ctx.rnd() * (B[1] - B[0] - 2), z = B[2] + 1 + ctx.rnd() * (B[3] - B[2] - 2);
-    if (Math.hypot(x - ctx.spawn.x, z - ctx.spawn.z) < 3 || ctx.colliders.some((c) => Math.hypot(x - c.x, z - c.z) < c.r + .8) || spots.some((s) => Math.hypot(x - s.x, z - s.z) < 3.4)) continue;
-    spots.push({ x, z, on: true }); }
-  ctx.spots = spots;
-  const it = items(spots.length, P.shape || 'lantern');
+  const P = ctx.P, me = ctx.me, pal = ctx.pal, B = ctx.bounds = P.bounds;
+  const shots = P.photos.map((s) => ({ ...s, done: false })), marks = items(shots.length, 'frame');
+  ctx.spots = shots;
   const haz = (P.hazAt || []).map(([x, z, r], i) => { const o = P.hazard(i); world.add(o); return { o, cx: x, cz: z, r, a: ctx.rnd() * 6.283, w: (i % 2 ? -1 : 1) * (.5 + ctx.rnd() * .3) }; });
+  // other visitors, strolling up and down the paths
+  const walkers = (P.walkers || []).map((w, i) => { const c = makeChar(w.look); world.add(c.g); return { ...w, c, k: ctx.rnd(), len: Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]) }; });
   const couples = P.couples.map((c, i) => { const a = makeChar(c.looks[0]), b = makeChar(c.looks[1]); a.g.position.set(c.x - .42, 0, c.z); b.g.position.set(c.x + .42, 0, c.z); a.face = b.face = c.face || 0; world.add(a.g, b.g);
     const col = { x: c.x, z: c.z, r: .8 }; ctx.colliders.push(col); return { ...c, i, a, b, col, asked: 0 }; });
   const yes = P.yesFrom[Math.floor(ctx.rnd() * P.yesFrom.length)];      // seeded, so both phones agree on who says yes
   ctx.yes = yes;
-  let stage = 0, chosen = null, leader = me, say = null, dash = 0, cd = 0, stun = 0, beacon = null, done = false;
+  const gl = P.gloveAt ? P.gloveAt[Math.floor(ctx.rnd() * P.gloveAt.length)] : null, glove = gl ? items(1, 'glove') : null; let gloveOn = !!gl;
+  let stage = 0, chosen = null, leader = me, say = null, dash = 0, cd = 0, stun = 0, beacon = null, done = false, taken = 0, toddies = 0, warm = 0, T = 0, noteNow = '', opened = false;
+  const note = (t) => { if (t !== noteNow) { noteNow = t; UI.note(t); } };
   const speak = (lines, after) => { say = { lines, i: 0, after }; UI.say(lines[0][0], lines[0][1]); Sfx.move(); };
   const accept = (ci, mine) => { if (stage) return; stage = 1; chosen = couples[ci]; leader = mine ? me : pal; ctx.colliders.splice(ctx.colliders.indexOf(chosen.col), 1);
-    UI.note(P.escortNote || ''); Sfx.big(); UI.pop('they said yes!'); beacon = items(1, 'ring', 0xffd77e, 1.2); if (mine) ctx.send('yes', ci); };
+    Sfx.big(); UI.pop('they said yes!'); beacon = items(1, 'ring', 0xffd77e, 1.2); if (mine) ctx.send('yes', ci); };
   const finish = (mine) => { if (done) return; done = true; if (mine) ctx.send('fin', 0); ctx.finish(); };
-  ctx.on('pick', (i) => { const s = spots[i]; if (s && s.on) { s.on = false; FX.burst(s.x, .8, s.z, 0xffd77e, 8); Sfx.pick(); } });
-  ctx.on('yes', (ci) => accept(ci, false)); ctx.on('fin', () => finish(false));
-  ctx.onPhoto = (cx, cz) => { if (beacon) { beacon.set(0, 0, -9, 0, 0); beacon.flush(); } if (chosen) { chosen.a.g.position.set(cx - .5, 0, cz + 9); chosen.b.g.position.set(cx + .5, 0, cz + 9); } };      // they are behind the camera now
-  UI.note(P.note || '');
+  const snap = (i, pts, mine) => { const s = shots[i]; if (!s || s.done) return; s.done = true; taken++; marks.set(i, 0, -9, 0, 0); Sfx.noise(.06, .3); Sfx.beep(1800, .05, 'square', .08); FX.burst(s.x, 1.6, s.z, [0xffffff, 0xffe9a0], 14, 3, 3, .5, 1.2);
+    me.cheer = pal.cheer = .7; if (mine) { ctx.add(pts, s.x, 1.2, s.z); UI.pop(pts > 1 ? 'perfect shot!' : 'nice shot'); ctx.send('snap', [i, pts]); } else UI.pop('photo: ' + s.name); };
+  const bump = (pop) => { stun = .55; ctx.add(-1); rumble(70, .35); Sfx.bad(); UI.pop(pop); };
+  ctx.on('snap', ([i]) => snap(i, 0, false)); ctx.on('yes', (ci) => accept(ci, false)); ctx.on('fin', () => finish(false));
+  ctx.on('glove', () => { gloveOn = false; glove.set(0, 0, -9, 0, 0); glove.flush(); UI.pop('the glove!'); });
+  ctx.onPhoto = (cx, cz) => { if (beacon) { beacon.set(0, 0, -9, 0, 0); beacon.flush(); } marks.m.visible = false; for (const w of walkers) w.c.g.visible = false; if (chosen) { chosen.a.g.position.set(cx - .5, 0, cz + 9); chosen.b.g.position.set(cx + .5, 0, cz + 9); } };
   return {
     cam() { const p = me.g.position; Cam.set(p.x, 8.8, p.z + 9.4, p.x, .6, p.z); },
     update(dt, t) {
-      const p = me.g.position, g = P.goal;
+      const p = me.g.position, g = P.goal; T += dt; warm -= dt;
+      if (!opened) { opened = true; if (P.opening) speak(P.opening); }
+      const near = shots.findIndex((s) => !s.done && Math.hypot(s.x - p.x, s.z - p.z) < 1.5);
+      const cart = P.cart && Math.hypot(P.cart.x - p.x, P.cart.z - p.z) < 2.3;
       if (say) { me.anim(dt, 0); if (Input.just.has('A') || Input.just.has('B')) { if (++say.i < say.lines.length) { UI.say(say.lines[say.i][0], say.lines[say.i][1]); Sfx.move(); } else { const after = say.after; say = null; UI.say(); after && after(); } } }
       else if (stun > 0) { stun -= dt; me.body.rotation.z = Math.sin(t * 40) * .2; me.anim(dt, 0); if (stun <= 0) me.body.rotation.z = 0; }
       else {
@@ -115,21 +121,31 @@ export function explore(ctx) {
             if (stage) speak([[c.name, c.bye || 'have a good night, you two.']]);
             else if (c.i === yes) speak(P.yesLines(c.name), () => accept(c.i, true));
             else speak([[c.name, c.no[c.asked++ % c.no.length]]]); }
+          else if (cart) { toddies++; warm = 14; ctx.add(1, P.cart.x, 1.4, P.cart.z); Sfx.big(); speak([[P.cart.name, P.cart.lines[Math.min(toddies, P.cart.lines.length) - 1]]]); }
+          else if (near >= 0) { const s = shots[near];
+            if (ctx.twoP && Math.hypot(s.x - pal.g.position.x, s.z - pal.g.position.z) > 2.8) { UI.pop('both of you in the frame!'); Sfx.back(); }
+            else snap(near, Math.abs(Math.sin(t * 2.6 + near)) > .72 ? 3 : 1, true); }
           else if (cd <= 0) { dash = .22; cd = .7; Sfx.dash(); FX.burst(p.x, .3, p.z, 0xffffff, 5, 2, 2, .4, 1); }
         }
-        walk(ctx, me, dt, dash > 0 ? 12 : 5.4);
+        if (toddies > 2 && Math.hypot(Input.axis.x, Input.axis.y) > .1) p.x += Math.sin(t * 4.5) * dt * Math.min(toddies - 2, 3) * .5;         // a lot of hot toddies
+        walk(ctx, me, dt, dash > 0 ? 12 : 5.4 * (warm > 0 ? 1.3 : 1));
       }
       if (ctx.twoP) ctx.palNet(dt); else follow(pal, p.x, p.z, dt);
       for (const c of couples) { if (c !== chosen) { c.a.anim(dt, 0); c.b.anim(dt, 0); } }
       if (chosen) { const l = leader.g.position; follow(chosen.a, l.x, l.z, dt, 2.2, 5.6); follow(chosen.b, chosen.a.g.position.x, chosen.a.g.position.z, dt, .9, 5.8);
         if (leader === me && !say && Math.hypot(g.x - p.x, g.z - p.z) < 1.5 && Math.hypot(g.x - chosen.a.g.position.x, g.z - chosen.a.g.position.z) < 5) finish(true); }
-      for (let i = 0; i < spots.length; i++) { const s = spots[i];
-        if (s.on && Math.hypot(s.x - p.x, s.z - p.z) < .95) { s.on = false; ctx.add(1, s.x, .8, s.z); ctx.send('pick', i); me.cheer = .35; }
-        it.set(i, s.x, .8 + Math.sin(t * 3 + i) * .15, s.z, s.on ? 1.4 : 0, t * 2 + i); }
-      it.flush();
+      for (let i = 0; i < shots.length; i++) { const s = shots[i]; if (!s.done) marks.set(i, s.x, .06, s.z, 1 + Math.abs(Math.sin(t * 2.6 + i)) * .35, t * .6); }
+      marks.flush();
+      if (gloveOn) { glove.set(0, gl[0], .5 + Math.sin(t * 3) * .12, gl[1], 1.5, t * 2); glove.flush();
+        if (!say && Math.hypot(gl[0] - p.x, gl[1] - p.z) < 1) { gloveOn = false; glove.set(0, 0, -9, 0, 0); glove.flush(); ctx.add(5, gl[0], .8, gl[1]); ctx.send('glove', 0); UI.pop('the glove!'); if (P.gloveLines) speak(P.gloveLines); } }
+      const hit = stun <= 0 && dash <= 0 && !say;
       for (const h of haz) { h.a += h.w * dt; const x = h.cx + Math.cos(h.a) * h.r, z = h.cz + Math.sin(h.a) * h.r; h.o.position.set(x, Math.abs(Math.sin(t * 6 + h.r)) * .12, z); h.o.rotation.y = -h.a + (h.w > 0 ? Math.PI : 0);
-        if (stun <= 0 && dash <= 0 && !say && Math.hypot(x - p.x, z - p.z) < .8) { stun = .7; ctx.add(-1); rumble(80, .4); Sfx.bad(); UI.pop(P.hazPop || 'oof'); } }
+        if (hit && stun <= 0 && Math.hypot(x - p.x, z - p.z) < .8) bump(P.hazPop || 'oof'); }
+      for (const w of walkers) { const u = ((T * w.speed / w.len + w.k * 2) % 2), f = u < 1 ? u : 2 - u, x = w.a[0] + (w.b[0] - w.a[0]) * f, z = w.a[1] + (w.b[1] - w.a[1]) * f;       // there and back again
+        w.c.g.position.set(x, 0, z); w.c.face = Math.atan2((w.b[0] - w.a[0]) * (u < 1 ? 1 : -1), (w.b[1] - w.a[1]) * (u < 1 ? 1 : -1)); w.c.anim(dt, .7);
+        if (hit && stun <= 0 && Math.hypot(x - p.x, z - p.z) < .75) bump(w.pop || 'excuse me!'); }
       if (beacon) { beacon.set(0, g.x, 2.6 + Math.sin(t * 3) * .2, g.z, 1.7, t * 2); beacon.flush(); }
+      if (!say) note(cart ? 'A · hot toddy' : near >= 0 ? `A · photo at ${shots[near].name}` : stage ? (P.escortNote || '') : `photos ${taken}/${shots.length} · ${P.note || ''}`);
       this.cam();
     },
   };
