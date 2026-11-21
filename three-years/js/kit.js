@@ -129,8 +129,9 @@ function drawFrame(G, o, dir, step, cheer) {
   else { rect(fx - 6, 3 + hy, 12, 3, hair); rect(fx - 7, 5 + hy, 3, 3, hair); if (!side) rect(16, 5 + hy, 3, 3, hair); else rect(5, 5 + hy, 4, 7, hair); rect(fx - 4, 3 + hy, 5, 1, hair2); }
   if (o.cap) { const c = hexCss(o.cap); rect(fx - 7, 1 + hy, 14, 5, c); rect(side ? fx - 2 : fx - 8, 6 + hy, side ? 11 : 16, 1, hexCss(o.cap, .8)); }
   // face
-  if (side) { rect(16, 10 + hy, 2, 3, eye); put(16, 10 + hy, '#fff'); rect(17, 13 + hy, 2, 1, '#f58f8a'); }
-  else { rect(8, 10 + hy, 2, 3, eye); rect(14, 10 + hy, 2, 3, eye); put(8, 10 + hy, '#fff'); put(14, 10 + hy, '#fff'); rect(6, 13 + hy, 2, 1, '#f58f8a'); rect(16, 13 + hy, 2, 1, '#f58f8a'); }
+  if (side) { rect(16, 10 + hy, 2, 3, eye); put(16, 10 + hy, '#fff'); rect(17, 13 + hy, 2, 1, '#f58f8a'); if (o.freckles) { put(15, 13 + hy, '#c98a62'); put(17, 12 + hy, '#c98a62'); } }
+  else { rect(8, 10 + hy, 2, 3, eye); rect(14, 10 + hy, 2, 3, eye); put(8, 10 + hy, '#fff'); put(14, 10 + hy, '#fff'); rect(6, 13 + hy, 2, 1, '#f58f8a'); rect(16, 13 + hy, 2, 1, '#f58f8a');
+    if (o.freckles) for (const [x, y] of [[7, 12], [9, 13], [6, 14], [16, 12], [14, 13], [17, 14], [11, 12], [12, 12]]) put(x, y + hy, '#c98a62'); }
   if (o.beard) { const b = hexCss(o.beard); for (let y = 13; y <= 16; y++) for (let x = fx - 6; x <= fx + 6; x++) if (((x + .5 - fx) / 6.4) ** 2 + ((y + .5 - 10.5) / 6.2) ** 2 <= 1 && (y > 13 || x < fx - 4 || x > fx + 3) && !(side && x < fx - 2 && y < 15)) put(x, y + hy, b);
     rect(side ? 15 : 10, 14 + hy, side ? 3 : 4, 1, cheer ? '#fff' : '#f6dccb'); }
   else if (cheer) rect(side ? 15 : 11, 14 + hy, 2, 2, '#b4483f'); else rect(side ? 16 : 11, 14 + hy, 2, 1, '#b4483f');
@@ -146,11 +147,14 @@ function atlas(o) {
       if (c) { cx.fillStyle = c; cx.fillRect(f * FW + x, y, 1, 1); } } });
   t = new THREE.CanvasTexture(cv); t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.colorSpace = THREE.SRGBColorSpace; t.userData.keep = true; atlasCache.set(key, t); return t;
 }
+let TINT_NOW = 0xffffff;
+/* sprites are unlit, so on dark levels they are tinted a little toward the night colour to sit in the scene */
+export function setTint(hex) { TINT_NOW = hex; }
 export function makeChar(o = {}) {
   o = { skin: 0xe6b596, hair: 0x241a16, top: 0xff6a6a, legs: 0x3b4a8a, style: 'short', ...o };
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const map = atlas(o).clone(); map.userData = {}; map.needsUpdate = true; map.repeat.set(1 / NF, 1);
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map, alphaTest: .5, fog: false })); sp.center.set(.5, 0); sp.scale.set(1.44, 1.8, 1); body.add(sp);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map, alphaTest: .5, fog: false, color: TINT_NOW })); sp.center.set(.5, 0); sp.scale.set(1.44, 1.8, 1); body.add(sp);
   const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.position.y = .03; g.add(sh);
   if (o.scale) g.scale.setScalar(o.scale);
   return { g, body, sp, sh, ph: Math.random() * 6, face: 0, y: 0, vy: 0, cheer: 0, hold: null,

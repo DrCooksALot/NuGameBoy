@@ -1,6 +1,6 @@
 // Three Years — flow: title → menu → (lobby) → level intro → play → memory card → finale.
 import { THREE, $, world, renderer, clearWorld, killTweens, tween, wait, fade, Cam, Input, Sfx, Net, UI, Store, App, Diag, setMode, start, snapshot, bakeShadows, Music, rng, params, lerp } from './engine.js';
-import { Batch, makeChar, FX, prop } from './kit.js';
+import { Batch, makeChar, FX, prop, setTint } from './kit.js';
 import { LEVELS, titleScene } from './levels.js';
 import * as GAMES from './games.js';
 import { SONGS } from './songs.js';
@@ -19,7 +19,7 @@ function reset() { S.run++; killTweens(); if (S.game && S.game.dispose) S.game.d
 /* ───────── title ───────── */
 async function title(first) {
   const tok = reset(); S.story = false;
-  Music.track();
+  Music.track(); setTint(0xffffff);
   const sc = titleScene(CONFIG.her.look, CONFIG.him.look); S.amb = [sc.amb]; bakeShadows();
   Cam.k = 2; let a = .6;
   setMode({ update(dt, t) { common(dt, t); a += dt * .12; Cam.set(Math.sin(a) * 13, 4.6 + Math.sin(a * .7), Math.cos(a) * 13, 0, 1.4, 0); for (const c of sc.chars) c.anim(dt, 0); },
@@ -109,6 +109,7 @@ async function play(i, seed) {
   const tok = reset(), L = LEVELS[i], two = Net.open;
   const other = S.who === 'her' ? 'him' : 'her', fit = L.outfit || {};
   const meLook = { ...CONFIG[S.who].look, ...fit[S.who] }, palLook = { ...CONFIG[other].look, ...fit[other] };
+  setTint(L.tint || 0xffffff);                                  // night levels tint the sprites a little
   const me = makeChar(meLook), pal = makeChar(palLook);
   let mine = 0; S.theirs = 0; S.theirReady = false;
   const net = { x: 0, z: 0, f: 0, y: 0, s: 0, has: false };

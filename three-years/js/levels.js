@@ -2,6 +2,7 @@
 // Everything static is baked into one mesh per level, so detail costs vertices, not draw calls.
 import { THREE, scene, world } from './engine.js';
 import { turf, island, tree, pine, lamp, house, stringLights, sky, lights, orb, ambient, makeChar, critter, sign, items, Batch } from './kit.js';
+import { NOLA } from './nola.js';
 
 const fog = (c, a, b) => { scene.fog = new THREE.Fog(c, a, b); };
 const ring = (n, r, fn, off = 0) => { for (let i = 0; i < n; i++) { const a = off + i / n * Math.PI * 2; fn(Math.cos(a) * r, Math.sin(a) * r, a, i); } };
@@ -38,7 +39,7 @@ export const LEVELS = [
      Laid out from satellite views. Lily Pool Terrace (two long pools, the round fountain between them, the Palm House
      alongside) is the start. A path west runs through the Winter Cathedral to Cherry Esplanade, with the Cranford Rose
      Garden beside it. North is up the screen. */
-  { id: 'lightscape', shot: [4, 2.9], prop: 'lantern', outfit: { her: { top: 0xc8a878, cap: 0xc8a878 }, him: { top: 0x1c1a1e, zip: 0x9a9aa4 } },   // what you wore: tan jacket and tan hat; leather jacket
+  { id: 'lightscape', tint: 0xc8ccf4, shot: [4, 2.9], prop: 'lantern', outfit: { her: { top: 0xc8a878, cap: 0xc8a878 }, him: { top: 0x1c1a1e, zip: 0x9a9aa4 } },   // what you wore: tan jacket and tan hat; leather jacket
     caption: 'taken by two strangers who also love Spirited Away', kicker: 'December 2023 · Brooklyn Botanic Garden', title: 'Lightscape', sub: 'photos, hot toddies, and one missing glove.',
     game: 'explore', icon: '✦', stars: [8, 16, 24],
     how: 'Take photos together at the glowing frames around the garden: stand in one and press A.\nThen ask couples (A) until one will take a picture of you both, and lead them to the fountain.\nMind the other visitors and the squirrels; dash (A) past them. There is a hot toddy cart. Somewhere there is a glove.',
@@ -70,8 +71,8 @@ export const LEVELS = [
         { x: -14.3, z: -12.4, name: 'couple by the pergola', looks: [{ skin: 0x9a6a48, hair: 0x1a1412, top: 0x7ad7ff, legs: 0x2a2a33, style: 'curly' }, { skin: 0xe6b596, hair: 0xc8a050, top: 0x8a5ad0, legs: 0x3b4a8a, beard: 0xa88040 }], no: ['we are mid-argument about whether roses count as lights. give us a minute.', 'they do not count. he is wrong.'] },
         { x: -18.8, z: -22.2, name: 'couple in the rose garden', looks: [{ skin: 0xe6b596, hair: 0x555060, top: 0xf2efe6, legs: 0x2a2a33, style: 'long' }, { skin: 0xb9794f, hair: 0x555060, top: 0x6a7ac8, legs: 0x6a5240 }], no: ['oh, we are terrible at phones. you would get our thumbs.', 'we tried. it was our thumbs.'] }] },
     build(b, c) {
-      sky(0x0b1040, 0x2c3690, 0x283080, 600); lights(0x8f9cf0, 0x3a6a5a, 2.1, 0xcfd8ff, 1.6, -4, 9, 5); fog(0x283080, 30, 88); orb(-40, 46, -90, 5, 0xdfe6ff, 1.2);
-      turf(150, 150, 0x2c7458, -7, -10);
+      sky(0x05071c, 0x151d58, 0x111742, 800); lights(0x7684dc, 0x26483e, 1.45, 0xb4c0ff, 1.05, -4, 9, 5); fog(0x111742, 26, 82); orb(-40, 46, -90, 5, 0xdfe6ff, 1.2);
+      turf(150, 150, 0x225a4a, -7, -10);
       const BRICK = 0xa8604e, STONE = 0xd8cab8, WATER = 0x161e52, PATH = 0x8f90a4, GLOBE = [0xff7ab6, 0x7ad7ff, 0xffd77e, 0x9bffb0];
       /* Lily Pool Terrace */
       b.box(4, 0, 1, 9.6, .06, 24.8, BRICK);
@@ -98,7 +99,7 @@ export const LEVELS = [
       b.box(-4.9, .02, .65, 8.4, .05, 2.3, PATH); b.box(-9, .02, -4.6, 2.3, .05, 12.6, PATH);
       for (let a = 0; a < 9; a++) { const x = -1.6 - a * .8; for (let k = 0; k <= 14; k++) { const t = k / 14 * Math.PI; b.dot(x, .1 + Math.sin(t) * 3.1, .65 + Math.cos(t) * 1.55, .06, 0xfff2c8, 1.25); } }
       /* Cherry Esplanade: a long lawn between double rows of cherry trees, Sea of Light across it, the Supernova at the far end */
-      b.box(-9, .016, -21.6, 6.6, .03, 23.4, 0x3a8a66);
+      b.box(-9, .016, -21.6, 6.6, .03, 23.4, 0x2c6e56);
       [-13.7, -12.3, -5.7, -4.3].forEach((x, r) => { for (let i = 0; i < 7; i++) { const z = -11.2 - i * 3.4 - (r % 2) * 1.2; cherry(b, x, z, i + r * 3); c.colliders.push({ x, z, r: .35 }); } });
       for (let gx = -11.4; gx <= -6.6; gx += .8) for (let gz = -31.4; gz <= -11.4; gz += .95) { const j = Math.sin(gx * 12.9 + gz * 78.2) * .25; b.dot(gx + j, .16, gz - j, .045, [0x7ad7ff, 0x9bffe0, 0xb8c0ff, 0x7aa8ff][Math.abs(Math.round(gx * 3 + gz * 5)) % 4], 1.2); }
       b.cyl(-9, 0, -32.6, .07, 3.4, 0x3b3b4a, 1, 6); for (let k = 0; k < 8; k++) b.box(-9, 3.1, -32.6, .07, 2.8, .07, 0xfff0b0, k * .8, 1.25, k * 1.1, k * .7); b.ball(-9, 4.5, -32.6, .28, 0xffffff, 1.25); c.colliders.push({ x: -9, z: -32.6, r: .4 });
@@ -185,17 +186,17 @@ export const LEVELS = [
     } },
 
   /* ───────────── 3 · METAH'S WEDDING — a garden ceremony in Portland ───────────── */
-  { id: 'metah', shot: [0, .4], prop: 'toast', caption: 'dressed up, glass up',
+  { id: 'metah', tint: 0xd0ccf6, shot: [0, .4], prop: 'toast', caption: 'dressed up, glass up',
     outfit: { him: { top: 0x2a2a33, legs: 0x2a2a33, tie: 0xc9b6e6 }, her: { top: 0xf2c9c2, dots: 0xd9628a } },
-    kicker: 'August 24, 2024 · Portland, Oregon', title: "Metah's Wedding", sub: 'a hectic week. one perfect afternoon.',
+    kicker: 'August 24, 2024 · Portland, Oregon', title: "Metah's Wedding", sub: 'a hectic week. one perfect night.',
     game: 'catcher', icon: '❀', stars: [40, 80, 120],
     how: 'Petals are coming down over the aisle.\nCatch them, and the bouquet for +3. Dodge the bees.\nSTICK move · A dash',
     P: { time: 38, every: .55, width: 6, shapes: ['petal', 'bouquet', 'bee'], col: 0xff9ab8, gold: 0xffffff, badCol: 0xffd23a, bad: .2, badPop: 'bee!', goldPop: 'bouquet! +3', note: '' },
     build(b, c) {
-      sky(0x6fb2e8, 0xfff0d0, 0xfff0d0); lights(0xdfeeff, 0x7a9a5a, 1.7, 0xfff2d0, 2.2, -5, 10, 7); fog(0xfff0d8, 40, 140); orb(-50, 44, -120, 9, 0xfff6c8, 1.2);
-      turf(200, 200, 0x6fc25a); b.box(0, 0, 1, 3, .03, 11, 0xf6ecd8);                                                         // lawn + aisle runner
-      b.cone(-30, 0, -110, 30, 34, 0x8fa4c4, 8); b.cone(-30, 21.5, -110, 11, 12.6, 0xffffff, 8);                              // Mt. Hood
-      for (const [x, z, r2] of [[30, -90, 26], [70, -80, 22], [-80, -84, 24]]) b.ball(x, -8, z, r2, 0x4f9a5a, 0, .5);
+      sky(0x06071e, 0x1a1c58, 0x141640, 700); lights(0x8088dc, 0x2a4a3c, 1.5, 0xffd8b0, 1.15, -5, 10, 7); fog(0x141640, 34, 110); orb(-50, 44, -120, 6, 0xe8ecff, 1.2);
+      turf(200, 200, 0x2c6a4c); b.box(0, 0, 1, 3, .03, 11, 0xf6ecd8);                                                         // lawn + aisle runner
+      b.cone(-30, 0, -110, 30, 34, 0x2c3668, 8); b.cone(-30, 21.5, -110, 11, 12.6, 0xaab4e0, 8);                              // Mt. Hood
+      for (const [x, z, r2] of [[30, -90, 26], [70, -80, 22], [-80, -84, 24]]) b.ball(x, -8, z, r2, 0x183a34, 0, .5);
       for (let i = 0; i < 11; i++) { const x = -20 + i * 4; b.box(x, 0, -4.8, 3.9, 1.5 + (i % 2) * .3, 1.2, i % 2 ? 0x4f8f52 : 0x5a9a58);                                      // flowering hedge
         for (let k = 0; k < 5; k++) b.ball(x - 1.6 + k * .8, 1.35 + ((i + k) % 3) * .2, -4.15, .16, [0xff9ab8, 0xffffff, 0xffd27a, 0xd9628a][(i + k) % 4]); }
       b.box(-1.7, 0, -3.4, .2, 3.4, .2, 0xffffff); b.box(1.7, 0, -3.4, .2, 3.4, .2, 0xffffff); b.box(0, 3.4, -3.4, 3.9, .24, .24, 0xffffff);                                    // the arch
@@ -208,13 +209,13 @@ export const LEVELS = [
     } },
 
   /* ───────────── 4 · ANTHONY & NICKA'S WEDDING — the reception ───────────── */
-  { id: 'wedding', shot: [0, 1.2], prop: 'toast', caption: 'we closed the dance floor', outfit: { him: { top: 0x2a2a33, tie: 0x8a2a3a, legs: 0xc2313a } }, kicker: 'September 7, 2024', title: "Anthony & Nicka's Wedding", sub: 'red pants. rain jacket. no regrets.',
+  { id: 'wedding', tint: 0xd0ccf6, shot: [0, 1.2], prop: 'toast', caption: 'we closed the dance floor', outfit: { him: { top: 0x2a2a33, tie: 0x8a2a3a, legs: 0xc2313a } }, kicker: 'September 7, 2024', title: "Anthony & Nicka's Wedding", sub: 'red pants. rain jacket. no regrets.',
     game: 'rhythm', icon: '♪', stars: [80, 200, 320],
     how: 'Own the dance floor.\n◀ and ▶ on the stick, A in the middle — hit each one as it reaches the line.',
     P: { time: 36, bpm: 112 },
     build(b, c) {
-      sky(0x231a66, 0x7a52c0, 0x4a3a98, 400); lights(0xc4b8ff, 0x5a8a6a, 2.5, 0xffd8b8, 2.2, 3, 8, 6); fog(0x5a48b0, 34, 110);
-      island(b, 26, 0x4aa870, { woods: 0x2f8a5c, hills: 0x3a5a98 });
+      sky(0x07061e, 0x221a5c, 0x181244, 700); lights(0x8c82dc, 0x2a4a3e, 1.55, 0xffcca8, 1.3, 3, 8, 6); fog(0x181244, 30, 96);
+      island(b, 26, 0x2a6a50, { woods: 0x1a4a3a, hills: 0x181c50 });
       b.box(0, 0, -7, 9.6, .05, 19.6, 0x6a4a30);                                                                             // parquet dance floor
       for (let x = -3; x < 3; x++) for (let z = -10; z < 2; z++) b.box(x * 1.5 + .75, .05, z * 1.6 + .2, 1.46, .03, 1.56, (x + z) & 1 ? 0xc89a62 : 0xb5854f);
       for (const x of [-2.25, -.75, .75, 2.25]) b.box(x, .081, -7, .05, .01, 18.6, 0xfff6e0);
@@ -227,30 +228,8 @@ export const LEVELS = [
       c.amb.push(ambient({ n: 50, col: 0xffe9a0, size: .1, area: 10, h: 6 }));
     } },
 
-  /* ───────────── 5 · NEW ORLEANS — Frenchmen Street in a thunderstorm ───────────── */
-  { id: 'nola', shot: [0, .4], prop: 'beignet', caption: 'powdered sugar in a thunderstorm', kicker: 'April 2025 · French Quarter', title: 'New Orleans', sub: 'a wedding, a steamboat, a thunderstorm.',
-    game: 'catcher', icon: '⚜', stars: [40, 80, 120],
-    how: 'Frenchmen Street after the wedding. They are throwing from the gallery.\nCatch beignets and beads. Dodge the raindrops.\nSTICK move · A dash',
-    P: { time: 40, every: .58, width: 6, shapes: ['beignet', 'beads', 'drop'], col: 0xfff1d6, gold: 0xb04ad9, badCol: 0x7ab8f0, bad: .2, badPop: 'soaked!', goldPop: 'beads! +3', note: '' },
-    build(b, c) {
-      sky(0x2a2a78, 0x8a62b8, 0x4a4290); lights(0xc0b8ff, 0x6a6088, 2.6, 0xffd8a8, 2.2, -3, 8, 8); fog(0x5a4a98, 34, 100);
-      b.box(0, -.4, 4, 80, .4, 30, 0x5a5870); b.box(0, 0, -3.5, 80, .2, 2.6, 0xa8a4b8); b.box(0, 0, -2.16, 80, .2, .1, 0xd8d4e0);                                          // wet street, sidewalk, curb
-      for (const [x, z, r2] of [[-3, 1.6, 1.1], [4.5, 2.6, .8], [-7.5, 3.2, .6]]) b.cyl(x, .005, z, r2, .012, 0x7a80a8, 1, 12);                                             // puddles
-      const cols = [0xe89a78, 0xf2d27a, 0x9ac0cc, 0xd98a9a, 0xb8d0a0];
-      for (let i = -2; i <= 2; i++) { const x = i * 8.3, col = cols[i + 2], H = 8;
-        b.box(x, 0, -7.6, 8.1, H, 5, col); b.box(x, H, -7.6, 8.4, .34, 5.3, 0xf2efe6); b.box(x, H + .34, -7.6, 8.1, .5, 5, col);
-        for (let f = 0; f < 3; f++) for (let k = -1; k <= 1; k++) { const wx = x + k * 2.5, wy = .2 + f * 2.6;                                                              // tall doors with shutters on every floor
-          b.box(wx, wy, -5.06, .9, 2, .06, f ? 0xffd9a0 : 0x3a2a26, 0, f && (i + k + f) % 3 ? 1.15 : 0); b.box(wx - .68, wy, -5.04, .4, 2, .08, 0x2f6a58); b.box(wx + .68, wy, -5.04, .4, 2, .08, 0x2f6a58); }
-        for (const gy of [2.7, 5.3]) { b.box(x, gy, -4.2, 8.1, .12, 1.7, 0x3a3540); b.box(x, gy + .86, -3.38, 8.1, .06, .06, IRON);                                             // cast-iron galleries
-          for (let k = -9; k <= 9; k++) b.box(x + k * .44, gy + .12, -3.38, .04, .74, .04, IRON); for (let k = -3; k <= 3; k += 2) b.ball(x + k * 1.2, gy - .32, -3.5, .3, 0x3f9a52, 0, .8); }
-        for (const px of [-3.9, -1.3, 1.3, 3.9]) b.cyl(x + px, .2, -3.38, .05, 6.1, IRON, 1, 6); }
-      sign('THE MAISON', 0, 2.25, -3.3, 3.6, .6, { bg: '#1c1a24', fg: '#ffd27a', border: '#ffd27a', glow: true });
-      sign('LIVE JAZZ', -8.3, 2.25, -3.3, 2.6, .6, { bg: '#7a1f3a', fg: '#ffe9a0', border: '#ffe9a0', glow: true }); sign('BEIGNETS', 8.3, 2.25, -3.3, 2.6, .6, { bg: '#1f5a45', fg: '#ffffff', glow: true });
-      for (const x of [-12.4, -4.15, 4.15, 12.4]) { b.cyl(x, .2, -2.6, .06, 2.6, IRON, 1, 6); b.box(x, 2.8, -2.6, .26, .36, .26, 0xffd9a0, 0, 1.25); b.cone(x, 3.16, -2.6, .2, .16, IRON, 4); }                           // gas lamps
-      for (let k = 0; k < 5; k++) person(k + 3, -3.2 + k * 1.6, -3.75, 0, 2.82, k === 2 ? { top: 0xb04ad9 } : {});                                                           // the party on the gallery
-      c.amb.push(ambient({ n: 260, col: 0xaec6ff, size: .07, area: 13, h: 11, vy: -15, drift: 0, add: false, opacity: .55 }));
-      c.storm = true;
-    } },
+  /* ───────────── 5 · NEW ORLEANS — a TO DO list in the French Quarter (the whole level lives in nola.js) ───────────── */
+  NOLA,
 
   /* ───────────── 6 · WAITING FOR GODOT — West 44th Street to the Hudson Theatre ───────────── */
   { id: 'godot', shot: [0, 0], prop: 'playbill', caption: 'nothing happens, twice. we loved it.', kicker: 'October 22, 2025 · Hudson Theatre', title: 'Waiting for Godot', sub: 'he never shows. we did, barely.',
@@ -284,8 +263,8 @@ export const LEVELS = [
         { x: 5, z: -1.5, name: 'npc', look: { skin: 0xe0b890, hair: 0x7a4a2a, top: 0x6a7ac8, legs: 0x3b3030, style: 'bun' }, lines: ['he loves you more than pizza.', 'i am told you love pizza more. this is fine.', 'saw seven blue jays today. felt like a sign.'] },
         { x: -4.2, z: -6.2, name: 'npc', look: { skin: 0xb9794f, hair: 0x15100e, top: 0x4fae6a, legs: 0x2b2b3a }, lines: ['the dock used to lead nowhere. now there is a box on it.', 'time is not real. three years is, though.'] }] },
     build(b, c) {
-      sky(0x1c2470, 0x6a66d0, 0x3f48a8, 600); lights(0xb4bcff, 0x4a8a70, 2.6, 0xe4e0ff, 2.2, -4, 9, 5); fog(0x4a52b8, 34, 110); orb(30, 44, -100, 6, 0xfff0d0, 1.2);
-      island(b, 12, 0x58b870, { edge: 'fence', woods: 0, hills: 0x3a5a98 });
+      sky(0x5aa2e8, 0xffe8c8, 0xffe8c8); lights(0xdfeeff, 0x7a9a5a, 1.8, 0xfff0d0, 2.2, -4, 9, 5); fog(0xffe8d0, 40, 130); orb(30, 44, -100, 6, 0xfff0d0, 1.2);
+      island(b, 12, 0x6fc25a, { edge: 'fence', woods: 0, hills: 0x5aa870 });
       b.box(0, .015, -52, 160, .02, 80, 0x4a78d0); b.box(0, .02, -12.3, 160, .03, .9, 0xe8d8a8);                                // the lake and its shore
       for (let i = 0; i < 9; i++) (i % 2 ? tree : pine)(b, (i < 5 ? -1 : 1) * (15 + (i % 5) * 3.4), 4 - (i % 5) * 4.2, 1.6 + (i % 3) * .5, 0x2f8a5c);
       b.box(0, .02, 0, 2, .03, 16, 0xe8d8b0); b.box(0, .021, 1, 16, .03, 2, 0xe8d8b0);                                          // crossing paths
@@ -305,13 +284,13 @@ export const LEVELS = [
     } },
 ];
 
-/* the title screen: a little house on a hill at night */
+/* the title screen: a little house on a hill */
 export function titleScene(look1, look2) {
-  sky(0x1c2470, 0x6a66d0, 0x3f48a8, 700); lights(0xb4bcff, 0x4a8a70, 2.6, 0xffe0c0, 2.2, 4, 8, 6); fog(0x4a52b8, 30, 95); orb(-26, 22, -60, 5, 0xfff0d0, 1.2);
+  sky(0x5aa2e8, 0xffe8c8, 0xffe8c8); lights(0xdfeeff, 0x7a9a5a, 1.8, 0xfff0d0, 2.2, 4, 8, 6); fog(0xffe8d0, 36, 110); orb(-26, 22, -60, 5, 0xfff0d0, 1.2);
   const b = new Batch();
-  island(b, 7, 0x4aa870, { woods: 0, hills: 0 });
+  island(b, 7, 0x6fc25a, { woods: 0, hills: 0 });
   ring(22, 24, (x, z, a, i) => (i % 3 ? pine : tree)(b, x * (1 + (i % 4) * .14), z * (1 + (i % 4) * .14), 1.8 + (i % 3) * .6, 0x2f8a5c));
-  ring(7, 70, (x, z) => b.ball(x, -8, z, 26, 0x3a5a98, 0, .5), .4);
+  ring(7, 70, (x, z) => b.ball(x, -8, z, 26, 0x5aa870, 0, .5), .4);
   house(b, -1.8, -1.6, 3, 2.3, 2.6, 0xf6e6c8, 0xd8584a, .3); b.cyl(-1.8, 2.48, -1.6, 2.4, 1.3, 0xe0685a, .001, 4); b.box(-1.8 + Math.sin(.3) * 1.32, 0, -1.6 + Math.cos(.3) * 1.32, .7, 1.3, .06, 0x7a4a2a, .3); b.box(-1, 2.8, -2.1, .44, 1.2, .44, 0xb86a5a);
   tree(b, 3.2, -1.4, 1.5); pine(b, -4.2, 1.2, 1.2); pine(b, 4.2, 2.2, .9); lamp(b, 1.2, 1.8);
   stringLights(b, -1.8, -.2, 3.2, -1.4, 2.7, PARTY, 12, .7);
