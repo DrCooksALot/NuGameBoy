@@ -3,6 +3,7 @@
 import { THREE, world, Input, Cam, UI, Sfx, Music, rumble, clamp, lerp } from './engine.js';
 import { SONGS } from './songs.js';
 import { items, FX, makeChar, Batch } from './kit.js';
+export { errands } from './nola.js';      // New Orleans has its own mechanic, kept beside its level
 
 /* shared: stick-relative free movement with circle colliders */
 function walk(ctx, ch, dt, speed) {

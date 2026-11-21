@@ -2,6 +2,7 @@
 // Everything static is baked into one mesh per level, so detail costs vertices, not draw calls.
 import { THREE, scene, world } from './engine.js';
 import { turf, island, tree, pine, lamp, house, stringLights, sky, lights, orb, ambient, makeChar, critter, sign, items, Batch } from './kit.js';
+import { NOLA } from './nola.js';
 
 const fog = (c, a, b) => { scene.fog = new THREE.Fog(c, a, b); };
 const ring = (n, r, fn, off = 0) => { for (let i = 0; i < n; i++) { const a = off + i / n * Math.PI * 2; fn(Math.cos(a) * r, Math.sin(a) * r, a, i); } };
@@ -227,30 +228,8 @@ export const LEVELS = [
       c.amb.push(ambient({ n: 50, col: 0xffe9a0, size: .1, area: 10, h: 6 }));
     } },
 
-  /* ───────────── 5 · NEW ORLEANS — Frenchmen Street in a thunderstorm ───────────── */
-  { id: 'nola', shot: [0, .4], prop: 'beignet', caption: 'powdered sugar in a thunderstorm', kicker: 'April 2025 · French Quarter', title: 'New Orleans', sub: 'a wedding, a steamboat, a thunderstorm.',
-    game: 'catcher', icon: '⚜', stars: [40, 80, 120],
-    how: 'Frenchmen Street after the wedding. They are throwing from the gallery.\nCatch beignets and beads. Dodge the raindrops.\nSTICK move · A dash',
-    P: { time: 40, every: .58, width: 6, shapes: ['beignet', 'beads', 'drop'], col: 0xfff1d6, gold: 0xb04ad9, badCol: 0x7ab8f0, bad: .2, badPop: 'soaked!', goldPop: 'beads! +3', note: '' },
-    build(b, c) {
-      sky(0x2a2a78, 0x8a62b8, 0x4a4290); lights(0xc0b8ff, 0x6a6088, 2.6, 0xffd8a8, 2.2, -3, 8, 8); fog(0x5a4a98, 34, 100);
-      b.box(0, -.4, 4, 80, .4, 30, 0x5a5870); b.box(0, 0, -3.5, 80, .2, 2.6, 0xa8a4b8); b.box(0, 0, -2.16, 80, .2, .1, 0xd8d4e0);                                          // wet street, sidewalk, curb
-      for (const [x, z, r2] of [[-3, 1.6, 1.1], [4.5, 2.6, .8], [-7.5, 3.2, .6]]) b.cyl(x, .005, z, r2, .012, 0x7a80a8, 1, 12);                                             // puddles
-      const cols = [0xe89a78, 0xf2d27a, 0x9ac0cc, 0xd98a9a, 0xb8d0a0];
-      for (let i = -2; i <= 2; i++) { const x = i * 8.3, col = cols[i + 2], H = 8;
-        b.box(x, 0, -7.6, 8.1, H, 5, col); b.box(x, H, -7.6, 8.4, .34, 5.3, 0xf2efe6); b.box(x, H + .34, -7.6, 8.1, .5, 5, col);
-        for (let f = 0; f < 3; f++) for (let k = -1; k <= 1; k++) { const wx = x + k * 2.5, wy = .2 + f * 2.6;                                                              // tall doors with shutters on every floor
-          b.box(wx, wy, -5.06, .9, 2, .06, f ? 0xffd9a0 : 0x3a2a26, 0, f && (i + k + f) % 3 ? 1.15 : 0); b.box(wx - .68, wy, -5.04, .4, 2, .08, 0x2f6a58); b.box(wx + .68, wy, -5.04, .4, 2, .08, 0x2f6a58); }
-        for (const gy of [2.7, 5.3]) { b.box(x, gy, -4.2, 8.1, .12, 1.7, 0x3a3540); b.box(x, gy + .86, -3.38, 8.1, .06, .06, IRON);                                             // cast-iron galleries
-          for (let k = -9; k <= 9; k++) b.box(x + k * .44, gy + .12, -3.38, .04, .74, .04, IRON); for (let k = -3; k <= 3; k += 2) b.ball(x + k * 1.2, gy - .32, -3.5, .3, 0x3f9a52, 0, .8); }
-        for (const px of [-3.9, -1.3, 1.3, 3.9]) b.cyl(x + px, .2, -3.38, .05, 6.1, IRON, 1, 6); }
-      sign('THE MAISON', 0, 2.25, -3.3, 3.6, .6, { bg: '#1c1a24', fg: '#ffd27a', border: '#ffd27a', glow: true });
-      sign('LIVE JAZZ', -8.3, 2.25, -3.3, 2.6, .6, { bg: '#7a1f3a', fg: '#ffe9a0', border: '#ffe9a0', glow: true }); sign('BEIGNETS', 8.3, 2.25, -3.3, 2.6, .6, { bg: '#1f5a45', fg: '#ffffff', glow: true });
-      for (const x of [-12.4, -4.15, 4.15, 12.4]) { b.cyl(x, .2, -2.6, .06, 2.6, IRON, 1, 6); b.box(x, 2.8, -2.6, .26, .36, .26, 0xffd9a0, 0, 1.25); b.cone(x, 3.16, -2.6, .2, .16, IRON, 4); }                           // gas lamps
-      for (let k = 0; k < 5; k++) person(k + 3, -3.2 + k * 1.6, -3.75, 0, 2.82, k === 2 ? { top: 0xb04ad9 } : {});                                                           // the party on the gallery
-      c.amb.push(ambient({ n: 260, col: 0xaec6ff, size: .07, area: 13, h: 11, vy: -15, drift: 0, add: false, opacity: .55 }));
-      c.storm = true;
-    } },
+  /* ───────────── 5 · NEW ORLEANS — a TO DO list in the French Quarter (the whole level lives in nola.js) ───────────── */
+  NOLA,
 
   /* ───────────── 6 · WAITING FOR GODOT — West 44th Street to the Hudson Theatre ───────────── */
   { id: 'godot', shot: [0, 0], prop: 'playbill', caption: 'nothing happens, twice. we loved it.', kicker: 'October 22, 2025 · Hudson Theatre', title: 'Waiting for Godot', sub: 'he never shows. we did, barely.',
