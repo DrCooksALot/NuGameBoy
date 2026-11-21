@@ -82,7 +82,7 @@ All UI is HTML over the canvas, styled in `three-years/index.html`.
 
 - Vertical field of view 54° when the screen is squarer than 1.2 : 1 (phones in portrait), otherwise 44°.
 - Walk-around levels: the camera sits about 9 units up and 9 units south of the player, looking slightly down at them, and follows smoothly.
-- Fixed-view levels (catch, rhythm, runner) use one static camera each; see each game's `cam()` in `games.js`.
+- Fixed-view levels (dance, catch, runner) use one camera each; see each game's `cam()`. The dance camera sits close on the couple and drifts with them.
 - Level openings are a short push-in from higher and further back. No orbiting.
 
 ## 8. Tone and writing
@@ -142,13 +142,27 @@ Synthesized with Web Audio; no audio files except one. Each level has its own up
 |---|---|
 | Lightscape | Neon lights covering the botanic garden. An Alice in Wonderland light show in a secret garden. Cool and fun. Built as: neon-edged paths, colour-lit trees, oversized glowing mushrooms and flowers, a rainbow light tunnel, drifting pink and cyan lights. |
 | The Heist | Super goofy, not tense. The grow room is grey and white, with orange shelving being taken apart, lots of grow lights, and pumps. The guard is a friend: if he catches you he says something and looks away. No fine, no dropped gear, no stun. |
-| Metah's Wedding | A small white tent next to a lake. A giant hill on one side. On the other side, a small bathroom up its own hill. The reception was on a big lawn right next to the lake. Built with the camera looking across the lawn at the tent, lake behind it, hill left, bathroom right. Night is assumed, not confirmed. |
+| Metah's Wedding | A small white tent next to a lake. A giant hill on one side. On the other side, a small bathroom up its own hill. The reception was on a big lawn right next to the lake. Built with the camera looking across the lawn at the tent, lake behind it, hill left, bathroom right. At night (confirmed). |
+| Anthony & Nicka's Wedding | At night. Mood details still to ask. |
+| Noah & Chloe's Wedding | In New Orleans, at night. It was the reason for the New Orleans trip. Its own level, right after New Orleans. The courtyard and brass band are a guess. |
+
+## Weddings are dances (from the owner)
+
+Every wedding level is a dance, and it is a **couples dance**: the two leads dance with each other, not side by side in time. The old three-lane falling-note game was rejected as a "guitar hero rip off" and removed. Do not bring back lanes or falling notes.
+
+How it works (`three-years/js/dance.js`):
+
+- The two stand close, facing each other. One leads a move on the beat; the other answers the same move on the next strong beat; then both do it together.
+- The lead swaps every four moves. Every fifth move has no leader: both press A together.
+- Moves: step left, step right, spin, dip, jump. A level can limit the set (`P.moves`); the slow dance by the lake has no spin.
+- What the player sees: one line saying whose turn it is, one bubble over the couple with the move, one ring closing on the bubble as the beat arrives. Hearts along the bottom count how well it is going.
+- Two phones: the leader's phone sends the move, the follower's phone sends back whether they kept up. Each phone answers on its own beat, because their clocks never match exactly.
 
 ## Still open
 
 Ask about these one level at a time; do not guess in bulk.
 
-1. **Per-level mood, one line each:** weather and the single thing that must be recognisable. Still to ask: Anthony & Nicka's Wedding, New Orleans, Waiting for Godot, Happy Birthday.
+1. **Per-level mood, one line each:** weather and the single thing that must be recognisable. Still to ask: Anthony & Nicka's Wedding (what it looked like), Noah & Chloe's Wedding (what it looked like), New Orleans, Waiting for Godot, Happy Birthday.
 2. **Sprite detail:** keep 24 × 30, or go larger? More animation for the leads (sitting, hugging, dancing)?
 3. **Type:** stay with Courier New, or bundle a real pixel font?
 4. **Shell colour:** keep the periwinkle body?

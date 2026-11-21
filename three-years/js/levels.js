@@ -224,12 +224,12 @@ export const LEVELS = [
     } },
 
   /* ───────────── 3 · METAH'S WEDDING — a garden ceremony in Portland ───────────── */
-  { id: 'metah', tint: 0xd0ccf6, shot: [0, .4], prop: 'toast', caption: 'dressed up, glass up',
+  { id: 'metah', tint: 0xd0ccf6, shot: [0, .4], prop: 'toast', caption: 'a slow dance by the lake',
     outfit: { him: { top: 0x2a2a33, legs: 0x2a2a33, tie: 0xc9b6e6 }, her: { top: 0xf2c9c2, dots: 0xd9628a } },
     kicker: 'August 24, 2024 · Portland, Oregon', title: "Metah's Wedding", sub: 'a white tent, a lake, a bathroom up a hill.',
-    game: 'catcher', icon: '❀', stars: [40, 80, 120],
-    how: 'Petals are coming down over the lawn by the lake.\nCatch them, and the bouquet for +3. Dodge the bees.\nSTICK move · A dash',
-    P: { time: 38, every: .55, width: 6, shapes: ['petal', 'bouquet', 'bee'], col: 0xff9ab8, gold: 0xffffff, badCol: 0xffd23a, bad: .2, badPop: 'bee!', goldPop: 'bouquet! +3', note: '' },
+    game: 'dance', icon: '❀', stars: [25, 50, 80],
+    how: 'A slow dance on the lawn by the lake. You dance together: one of you leads a move, the other answers it on the next beat.\nWhen it is your lead, pick any move as the ring closes. When you follow, copy the move in the bubble as the ring closes.\n◀ ▶ step · ▼ dip · A when it says together',
+    P: { time: 46, bpm: 112, moves: ['LEFT', 'RIGHT', 'DOWN', 'A'], at: [0, 1.4], cam: [0, 4.2, 11.6, 0, 2.5, 0], col: 0xff9ab8 },
     build(b, c) {
       sky(0x06071e, 0x1a1c58, 0x141640, 700); lights(0x8088dc, 0x2a4a3c, 1.5, 0xffd8b0, 1.15, -5, 10, 7); fog(0x141640, 34, 110); orb(-50, 44, -120, 6, 0xe8ecff, 1.2);
       turf(200, 200, 0x2c6a4c);                                                                                               // the big lawn: the reception is right here, next to the lake
@@ -269,15 +269,14 @@ export const LEVELS = [
 
   /* ───────────── 4 · ANTHONY & NICKA'S WEDDING — the reception ───────────── */
   { id: 'wedding', tint: 0xd0ccf6, shot: [0, 1.2], prop: 'toast', caption: 'we closed the dance floor', outfit: { him: { top: 0x2a2a33, tie: 0x8a2a3a, legs: 0xc2313a } }, kicker: 'September 7, 2024', title: "Anthony & Nicka's Wedding", sub: 'red pants. rain jacket. no regrets.',
-    game: 'rhythm', icon: '♪', stars: [80, 200, 320],
-    how: 'Own the dance floor.\n◀ and ▶ on the stick, A in the middle — hit each one as it reaches the line.',
-    P: { time: 36, bpm: 112 },
+    game: 'dance', icon: '♪', stars: [25, 50, 80],
+    how: 'Own the dance floor, together. One of you leads a move, the other answers it on the next beat, and the lead swaps.\nYour lead: pick any move as the ring closes. Following: copy the move in the bubble as the ring closes.\n◀ ▶ step · ▲ spin · ▼ dip · A jump',
+    P: { time: 48, bpm: 112, at: [0, -2.4], col: 0xffd77e },
     build(b, c) {
       sky(0x07061e, 0x221a5c, 0x181244, 700); lights(0x8c82dc, 0x2a4a3e, 1.55, 0xffcca8, 1.3, 3, 8, 6); fog(0x181244, 30, 96);
       island(b, 26, 0x2a6a50, { woods: 0x1a4a3a, hills: 0x181c50 });
       b.box(0, 0, -7, 9.6, .05, 19.6, 0x6a4a30);                                                                             // parquet dance floor
       for (let x = -3; x < 3; x++) for (let z = -10; z < 2; z++) b.box(x * 1.5 + .75, .05, z * 1.6 + .2, 1.46, .03, 1.56, (x + z) & 1 ? 0xc89a62 : 0xb5854f);
-      for (const x of [-2.25, -.75, .75, 2.25]) b.box(x, .081, -7, .05, .01, 18.6, 0xfff6e0);
       for (const sx of [-1, 1]) for (const z of [-17.4, 3.6]) b.cyl(sx * 5.4, 0, z, .09, 4.2, 0xfff6e6, 1, 6);                 // tent poles and strings of lights overhead
       for (let k = 0; k < 6; k++) { const z = 3.6 - k * 4.2; for (let i = 0; i <= 14; i++) { const t = i / 14; b.dot(-5.4 + t * 10.8, 4.2 - Math.sin(t * Math.PI) * .9, z, .06, 0xffe9a0, 1.25); } }
       b.box(0, 0, -18.6, 3.4, 1, 1, 0x2a2a33); for (const sx of [-1, 1]) { b.box(sx * 2.6, 0, -18.6, 1, 2, .9, 0x1c1a24); b.cyl(sx * 2.6, 1.3, -18.14, .32, .04, 0x55555f, 1, 10); }                                  // DJ booth + speakers
@@ -290,7 +289,39 @@ export const LEVELS = [
   /* ───────────── 5 · NEW ORLEANS — a TO DO list in the French Quarter (the whole level lives in nola.js) ───────────── */
   NOLA,
 
-  /* ───────────── 6 · WAITING FOR GODOT — West 44th Street to the Hudson Theatre ───────────── */
+  /* ───────────── 6 · NOAH & CHLOE'S WEDDING — the reason for the trip: a courtyard in the Quarter, a brass band ───────────── */
+  { id: 'noahchloe', tint: 0xd0ccf6, shot: [0, .6], prop: 'toast', caption: 'the reason we came', outfit: { him: { top: 0x2a2a33, tie: 0x4fae6a }, her: { top: 0x3fb8a8, dots: 0xfff2a8, collar: 0xffffff } },
+    kicker: 'April 2025 · New Orleans', title: "Noah & Chloe's Wedding", sub: 'the whole reason we went. also the beignets.',
+    game: 'dance', icon: '♫', stars: [25, 50, 80],
+    how: 'A courtyard in the French Quarter and a brass band that will not slow down.\nYour lead: pick any move as the ring closes. Following: copy the move in the bubble as the ring closes.\n◀ ▶ step · ▲ spin · ▼ dip · A jump',
+    P: { time: 48, bpm: 120, at: [0, -.6], col: 0xffd27a },
+    build(b, c) {
+      sky(0x07061e, 0x221a5c, 0x181244, 600); lights(0x8c82dc, 0x3a3a4a, 1.55, 0xffcca8, 1.3, 3, 8, 6); fog(0x181244, 30, 90);
+      const BRICK = 0xa8604e, IRON = 0x24222c, CREAM = 0xf2e6c8;
+      b.box(0, -.3, -4, 60, .3, 60, 0x55535e);
+      b.box(0, 0, -3, 15, .05, 14, 0x9a5a48); for (let x = -7; x < 7; x++) for (let z = -9; z < 4; z++) if ((x + z) & 1) b.box(x + .5, .05, z + .5, .96, .02, .96, 0xb06a54);   // the brick courtyard
+      /* the house at the back: stucco wall, tall shuttered doors, an iron gallery above with ferns and beads on the rail */
+      b.box(0, 0, -11.4, 17, 7.4, 1.4, 0xe8b86a); b.box(0, 7.4, -11.4, 17.4, .3, 1.8, 0x6a4a40);
+      for (let k = -2; k <= 2; k++) { const x = k * 3.2; b.box(x, 0, -10.66, 1.3, 2.7, .06, 0x2f6a58); b.box(x, 0, -10.63, .06, 2.7, .06, 0x1f4a3e); b.box(x, 3.9, -10.66, 1.3, 2.3, .06, 0x2f6a58); b.box(x, 3.95, -10.6, 1, 1.5, .04, 0xffe9b0, 0, 1.1); }
+      b.box(0, 3.5, -10, 17, .14, 1.5, 0x3a3540); for (let k = 0; k <= 34; k++) b.box(-8.4 + k * .494, 3.64, -9.3, .05, .85, .05, IRON); b.box(0, 4.46, -9.3, 17, .07, .07, IRON);
+      for (let k = -3; k <= 3; k++) { b.box(k * 2.7, 0, -9.3, .1, 3.5, .1, IRON); b.ball(k * 2.7 + 1.35, 3.95, -9.4, .34, 0x3f9a52, 0, .7); }
+      for (let k = 0; k < 22; k++) b.dot(-8 + k * .76, 4.3 - Math.abs(Math.sin(k * 1.57)) * .3, -9.22, .07, [0xb04ad9, 0xffd27a, 0x4fae6a][k % 3], 1.2);
+      sign('N ♥ C', 0, 5.9, -10.62, 2.6, .9, { bg: '#2a1f5c', fg: '#ffd77e', border: '#ffd77e', glow: true });
+      /* side walls, a fountain, palms in pots, lights strung across */
+      for (const sx of [-1, 1]) { b.box(sx * 8.2, 0, -4, .6, 3.4, 15, BRICK); for (let k = 0; k < 4; k++) b.ball(sx * 7.8, 3.2, -9 + k * 3.4, .7, 0x2f7a4a, 0, .7);
+        b.cyl(sx * 6.6, 0, -8.2, .5, .7, 0xb86a4a, .8, 8); b.cyl(sx * 6.6, .7, -8.2, .1, 2.3, 0x8a7a5a, .8, 5); for (let k = 0; k < 5; k++) b.ball(sx * 6.6 + Math.cos(k * 1.257) * .5, 3.05, -8.2 + Math.sin(k * 1.257) * .5, .5, 0x3f9a52, 0, .35); }
+      b.cyl(-5.2, 0, -6.6, 1.1, .5, 0xd8cab8, 1, 12); b.cyl(-5.2, .5, -6.6, .9, .04, 0x2a3a8a, 1, 12); b.cyl(-5.2, .5, -6.6, .16, .9, 0xd8cab8, .8, 8); b.ball(-5.2, 1.5, -6.6, .22, 0xd8cab8);
+      for (let k = 0; k < 4; k++) { const z = 2.4 - k * 3.6; for (let i = 0; i <= 16; i++) { const t = i / 16; b.dot(-7.9 + t * 15.8, 4.4 - Math.sin(t * Math.PI) * 1, z, .06, i % 4 ? 0xffe9a0 : [0xb04ad9, 0x4fae6a][k % 2], 1.25); } }
+      /* the brass band, on the right, and everyone else around the edge */
+      b.box(5.4, 0, -7.6, 3.6, .25, 2, 0x3a3540); for (let k = 0; k < 4; k++) { person(30 + k, 4.1 + k * .85, -7.6, -.3, .25, { top: k % 2 ? 0xf2efe6 : 0x2a2a33, cap: 0x2a2a33 }); b.cyl(4.1 + k * .85, 1.05, -7.2, .13, .34, 0xffd23a, .5, 6, .4); }
+      b.cyl(6.9, .25, -6.9, .45, .6, 0xe5484d, 1, 10); b.cyl(6.9, .85, -6.9, .46, .04, 0xf2efe6, 1, 10);
+      let n = 0; for (const sx of [-1, 1]) for (let i = 0; i < 2; i++) { const x = sx * 6.2, z = 1.6 - i * 3.6; roundTable(b, x, z); person(n++ + 12, x - sx * 1, z - .9, sx > 0 ? -1.2 : 1.2); person(n++ + 15, x + sx * .3, z - 1.3, sx > 0 ? -.6 : .6); }
+      for (const [x, z, f] of [[-3.4, -8.4, .3], [-2.2, -8.9, .1], [1.2, -8.8, -.1], [2.6, -8.3, -.3], [-6.6, -3.4, 1.2], [6.8, -3.2, -1.2]]) person(n++ + 20, x, z, f);
+      b.box(-6.4, 0, -9.6, 2.2, .8, .8, 0xfff6e6); for (let k = 0; k < 6; k++) b.ball(-7.1 + k * .28, .92, -9.6, .11, 0xf2e6c8);                                                  // a table of beignets, obviously
+      c.amb.push(ambient({ n: 50, col: 0xffe9a0, size: .1, area: 9, h: 6 }));
+    } },
+
+  /* ───────────── 7 · WAITING FOR GODOT — West 44th Street to the Hudson Theatre ───────────── */
   { id: 'godot', shot: [0, 0], prop: 'playbill', caption: 'nothing happens, twice. we loved it.', kicker: 'October 22, 2025 · Hudson Theatre', title: 'Waiting for Godot', sub: 'he never shows. we did, barely.',
     game: 'runner', icon: '★', stars: [30, 70, 110],
     how: 'Curtain is at 2:00 and West 44th is jammed.\n◀ ▶ change lane around the cabs · A jumps the barricades · grab the tickets',

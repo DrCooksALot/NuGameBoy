@@ -3,6 +3,7 @@
 import { THREE, world, Input, Cam, UI, Sfx, Music, rumble, clamp, lerp } from './engine.js';
 import { SONGS } from './songs.js';
 import { items, FX, makeChar, Batch } from './kit.js';
+export { dance } from './dance.js';        // every wedding: a couples dance
 export { errands } from './nola.js';      // New Orleans has its own mechanic, kept beside its level
 
 /* shared: stick-relative free movement with circle colliders */
@@ -364,38 +365,4 @@ export function runner(ctx) {
 const _dash = new THREE.Matrix4();
 
 /* ============ RHYTHM: ◀  A  ▶ on the beat ============ */
-export function rhythm(ctx) {
-  const P = ctx.P, me = ctx.me, pal = ctx.pal, beat = 60 / P.bpm, LX = [-1.5, 0, 1.5], LC = [0x7ad7ff, 0xffd77e, 0xff7ab6], TRAVEL = 1.7, Z0 = -17, Z1 = 2;
-  const notes = [], beats = Math.floor(P.time / beat);
-  for (let b = 6; b < beats - 2; b++) { const r = ctx.rnd(); if (r < .2) continue; const l = Math.floor(ctx.rnd() * 3); notes.push({ t: b * beat, l, st: 0 });
-    if (b > 20 && r > .78) notes.push({ t: (b + .5) * beat, l: (l + 1 + Math.floor(ctx.rnd() * 2)) % 3, st: 0 }); }
-  const it = items(notes.length, 'puck'); notes.forEach((n, i) => it.color(i, LC[n.l], 1));
-  const pads = items(3, 'ring', LC, 1.2), flash = [0, 0, 0];
-  me.g.position.set(-3.1, 0, 2); pal.g.position.set(3.1, 0, 2);
-  let t0 = null, combo = 0, done = false;
-  UI.note('◀    A    ▶');
-    ctx.on('hit', () => { pal.cheer = .25; });
-  return {
-    cam() { Cam.set(0, 6.4, 10.5, 0, .4, -3); },
-    update(dt, t) {
-      // the chart is locked to the level's song: restart it on the first frame of play and read time off the audio clock
-      if (t0 === null) { Music.play(SONGS[ctx.L.id], .7); t0 = Sfx.ctx ? Music.t0 : Sfx.now() + .7; }
-      const now = Sfx.now() - t0;
-      for (const a of ['LEFT', 'A', 'RIGHT']) if (Input.just.has(a) || (a === 'A' && (Input.just.has('UP') || Input.just.has('DOWN')))) {
-        const l = a === 'LEFT' ? 0 : a === 'A' ? 1 : 2; flash[l] = 1; let best = null, bd = .2;
-        for (const n of notes) if (!n.st && n.l === l) { const d = Math.abs(n.t - now); if (d < bd) { bd = d; best = n; } }
-        if (best) { best.st = 1; combo++; const perfect = bd < .08; ctx.add(perfect ? 3 : 1, LX[l], .8, Z1); ctx.send('hit', l); me.cheer = .25; me.face += 1.57;
-          UI.pop(perfect ? (combo > 7 ? `PERFECT ×${combo}` : 'PERFECT') : 'good'); }
-        else { combo = 0; ctx.miss(); Sfx.beep(140, .05, 'square', .05); } }
-      notes.forEach((n, i) => { const k = 1 - (n.t - now) / TRAVEL;
-        if (n.st || k < 0 || k > 1.12) { if (!n.st && k > 1.12) { n.st = 2; combo = 0; ctx.miss(); } it.set(i, 0, -9, 0, 0); return; }
-        it.set(i, LX[n.l], .08, lerp(Z0, Z1, k), 1.25 + Math.max(0, k - .9) * 2, 0); });
-      for (let l = 0; l < 3; l++) { flash[l] = Math.max(0, flash[l] - dt * 5); pads.set(l, LX[l], .08, Z1, 1.9 + flash[l] * .8, 0); pads.m.setMatrixAt(l, _dash.makeRotationX(Math.PI / 2).scale(_sc.setScalar(1.9 + flash[l] * .8)).setPosition(LX[l], .08, Z1)); }
-      it.flush(); pads.flush();
-      const bop = Math.abs(Math.sin(now / beat * Math.PI)) * .12; me.anim(dt, .2); me.body.position.y += bop;
-      if (ctx.twoP) { pal.anim(dt, .2); pal.body.position.y += bop; } else { pal.anim(dt, .2); pal.body.position.y += bop; pal.face = Math.sin(now / beat * Math.PI / 2) * 1.2; if (Math.random() < dt * .6) pal.cheer = .3; }
-      UI.time(P.time - now); if (now >= P.time && !done) { done = true; ctx.finish(); }
-    },
-  };
-}
-const _sc = new THREE.Vector3();
+

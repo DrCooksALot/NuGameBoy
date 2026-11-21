@@ -23,6 +23,7 @@ export const SONGS = {
   metah:      song(41, 112, 65, [0, 4, 5, 3, 0, 4, 3, 4], ['x-xx-xx.', 'x.x.x-x-']),
   wedding:    song(67, 112, 69, [0, 5, 3, 4, 0, 5, 3, 4], ['x.xx.x.x', 'xx.x.xx.'], { drums: 'drive' }),
   nola:       song(71, 126, 58, [0, 5, 1, 4, 0, 5, 1, 4], ['x.xx.xx.', 'x-.x.x--'], { swing: .33 }),
+  noahchloe:  song(73, 120, 58, [0, 3, 4, 0, 5, 3, 4, 0], ['x.xx.x.x', 'xx.x.x--'], { swing: .33, drums: 'drive' }),
   godot:      song(83, 140, 57, [0, 3, 4, 0, 5, 3, 4, 0], ['xxxx.x.x', 'x.x.xxx-'], { drums: 'drive' }),
   birthday:   song(97, 118, 60, [0, 0, 3, 3, 4, 4, 0, 0], ['x.x.xx.x', 'xx-x.x--']),
   hbd: { bpm: 104, root: 60, beats: 3, wave: 'square', chords: [0, 4, 4, 0, 0, 3, 0, 0], lead: [

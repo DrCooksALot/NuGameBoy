@@ -114,7 +114,7 @@ async function play(i, seed) {
   let mine = 0; S.theirs = 0; S.theirReady = false;
   const net = { x: 0, z: 0, f: 0, y: 0, s: 0, has: false };
   const ctx = S.ctx = { L, P: L.P, R: L.R || 12, rnd: rng(seed), me, pal, colliders: [], amb: [], spawn: { x: 0, z: 4 }, storm: false, done: false,
-    get twoP() { return Net.open; },
+    get twoP() { return Net.open; }, names: { me: CONFIG[S.who].name, pal: CONFIG[other].name },
     send(k, d) { Net.send(k, d); }, on(k, fn) { Net.on(k, fn); },
     // every good thing in a row builds a streak; every 5 raises the multiplier (max x4). getting hit resets it.
     streak: 0, get mult() { return Math.min(4, 1 + Math.floor(this.streak / 5)); },
@@ -161,7 +161,7 @@ async function play(i, seed) {
 }
 function pause(tok) {
   if (Net.open) return UI.toast('no pausing in 2 player');
-  if (S.ctx.L.game === 'rhythm') return UI.toast('the band plays on');
+  if (S.ctx.L.game === 'dance') return UI.toast('the band plays on');
   const before = App.mode, resume = () => { UI.panel(null); setMode(before); };
   setMode({ update() {} });
   UI.menu({ kicker: 'paused', title: 'Take a breath', back: resume, items: [{ label: 'RESUME', fn: resume }, { label: 'QUIT TO MENU', fn: () => title(false) }] });
