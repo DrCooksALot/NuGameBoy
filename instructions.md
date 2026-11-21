@@ -142,12 +142,13 @@ Synthesized with Web Audio; no audio files except one. Each level has its own up
 |---|---|
 | Lightscape | Neon lights covering the botanic garden. An Alice in Wonderland light show in a secret garden. Cool and fun. Built as: neon-edged paths, colour-lit trees, oversized glowing mushrooms and flowers, a rainbow light tunnel, drifting pink and cyan lights. |
 | The Heist | Super goofy, not tense. The grow room is grey and white, with orange shelving being taken apart, lots of grow lights, and pumps. The guard is a friend: if he catches you he says something and looks away. No fine, no dropped gear, no stun. |
+| Metah's Wedding | A small white tent next to a lake. A giant hill on one side. On the other side, a small bathroom up its own hill. The reception was on a big lawn right next to the lake. Built with the camera looking across the lawn at the tent, lake behind it, hill left, bathroom right. Night is assumed, not confirmed. |
 
 ## Still open
 
 Ask about these one level at a time; do not guess in bulk.
 
-1. **Per-level mood, one line each:** weather and the single thing that must be recognisable. Still to ask: Metah's Wedding, Anthony & Nicka's Wedding, New Orleans, Waiting for Godot, Happy Birthday.
+1. **Per-level mood, one line each:** weather and the single thing that must be recognisable. Still to ask: Anthony & Nicka's Wedding, New Orleans, Waiting for Godot, Happy Birthday.
 2. **Sprite detail:** keep 24 × 30, or go larger? More animation for the leads (sitting, hugging, dancing)?
 3. **Type:** stay with Courier New, or bundle a real pixel font?
 4. **Shell colour:** keep the periwinkle body?

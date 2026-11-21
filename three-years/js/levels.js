@@ -226,23 +226,44 @@ export const LEVELS = [
   /* ───────────── 3 · METAH'S WEDDING — a garden ceremony in Portland ───────────── */
   { id: 'metah', tint: 0xd0ccf6, shot: [0, .4], prop: 'toast', caption: 'dressed up, glass up',
     outfit: { him: { top: 0x2a2a33, legs: 0x2a2a33, tie: 0xc9b6e6 }, her: { top: 0xf2c9c2, dots: 0xd9628a } },
-    kicker: 'August 24, 2024 · Portland, Oregon', title: "Metah's Wedding", sub: 'a hectic week. one perfect night.',
+    kicker: 'August 24, 2024 · Portland, Oregon', title: "Metah's Wedding", sub: 'a white tent, a lake, a bathroom up a hill.',
     game: 'catcher', icon: '❀', stars: [40, 80, 120],
-    how: 'Petals are coming down over the aisle.\nCatch them, and the bouquet for +3. Dodge the bees.\nSTICK move · A dash',
+    how: 'Petals are coming down over the lawn by the lake.\nCatch them, and the bouquet for +3. Dodge the bees.\nSTICK move · A dash',
     P: { time: 38, every: .55, width: 6, shapes: ['petal', 'bouquet', 'bee'], col: 0xff9ab8, gold: 0xffffff, badCol: 0xffd23a, bad: .2, badPop: 'bee!', goldPop: 'bouquet! +3', note: '' },
     build(b, c) {
       sky(0x06071e, 0x1a1c58, 0x141640, 700); lights(0x8088dc, 0x2a4a3c, 1.5, 0xffd8b0, 1.15, -5, 10, 7); fog(0x141640, 34, 110); orb(-50, 44, -120, 6, 0xe8ecff, 1.2);
-      turf(200, 200, 0x2c6a4c); b.box(0, 0, 1, 3, .03, 11, 0xf6ecd8);                                                         // lawn + aisle runner
-      b.cone(-30, 0, -110, 30, 34, 0x2c3668, 8); b.cone(-30, 21.5, -110, 11, 12.6, 0xaab4e0, 8);                              // Mt. Hood
-      for (const [x, z, r2] of [[30, -90, 26], [70, -80, 22], [-80, -84, 24]]) b.ball(x, -8, z, r2, 0x183a34, 0, .5);
-      for (let i = 0; i < 11; i++) { const x = -20 + i * 4; b.box(x, 0, -4.8, 3.9, 1.5 + (i % 2) * .3, 1.2, i % 2 ? 0x4f8f52 : 0x5a9a58);                                      // flowering hedge
-        for (let k = 0; k < 5; k++) b.ball(x - 1.6 + k * .8, 1.35 + ((i + k) % 3) * .2, -4.15, .16, [0xff9ab8, 0xffffff, 0xffd27a, 0xd9628a][(i + k) % 4]); }
-      b.box(-1.7, 0, -3.4, .2, 3.4, .2, 0xffffff); b.box(1.7, 0, -3.4, .2, 3.4, .2, 0xffffff); b.box(0, 3.4, -3.4, 3.9, .24, .24, 0xffffff);                                    // the arch
-      for (let i = 0; i < 11; i++) b.ball(-1.75 + i * .35, 3.6 + Math.sin(i * 1.3) * .14, -3.3, .26, [0xff9ab8, 0xffffff, 0xd9628a, 0x8fbf7a][i % 4]);
-      for (const sx of [-1, 1]) { b.ball(sx * 1.7, .3, -3.2, .34, 0xff9ab8); b.ball(sx * 1.9, .5, -3.3, .24, 0xffffff); }
-      let n = 0; for (const sx of [-1, 1]) for (let r = 0; r < 3; r++) for (let k = 0; k < 4; k++) { const x = sx * (2.6 + k * 1.05), z = -1.4 - r * 1.15; chair(b, x, z, Math.PI); if ((n++ * 7) % 3) person(n, x, z + .05, Math.PI); }   // guests, facing the arch
-      for (const [x, z, sc] of [[-10, -7.5, 2.2], [10, -8, 2.5], [-16, -9, 2], [16, -8, 2.1], [0, -10, 2.6], [-24, -7, 2.3], [24, -9, 2]]) tree(b, x, z, sc, 0x4f9a5a);
-      for (const sx of [-1, 1]) b.cyl(sx * 9.5, 0, -3.8, .08, 4.5, 0xfff6e6, 1, 6); stringLights(b, -9.5, -3.8, 9.5, -3.8, 4.5, [0xffd27a, 0xffffff], 20, 1);
+      turf(200, 200, 0x2c6a4c);                                                                                               // the big lawn: the reception is right here, next to the lake
+      /* the lake, straight ahead, with the moon on it */
+      b.box(0, .02, -52, 240, .04, 84, 0x223a8c); b.box(0, .03, -9.9, 240, .05, .9, 0x7a7460);
+      for (let k = 0; k < 16; k++) b.box(-9 - k * 2.1 + Math.sin(k * 2.1) * 1.4, .05, -13 - k * 4.4, 1.6 - k * .05, .02, .16, 0xdfe6ff, 0, 1.1);
+      for (const [x, z, r2] of [[40, -108, 26], [86, -100, 22], [-84, -104, 24], [0, -116, 20]]) b.ball(x, -8, z, r2, 0x14302e, 0, .45);      // the far shore
+      /* one side: a giant hill */
+      b.ball(-24, -4, -14, 19, 0x1f5242, 0, .85); b.ball(-40, -4, -30, 20, 0x1a4638, 0, .7);
+      /* the other side: a small bathroom, up its own little hill, with steps and a light on */
+      const HX = 9.6, HZ = -10.5, hillY = (x, z) => -2.2 + 4.5 * Math.sqrt(Math.max(0, 1 - ((x - HX) ** 2 + (z - HZ) ** 2) / 56.25));
+      b.ball(HX, -2.2, HZ, 7.5, 0x2a6650, 0, .6);
+      b.box(HX, 2.2, HZ, 2.6, 2, 2, 0xe8e0d0); b.box(HX, 4.2, HZ, 3, .22, 2.4, 0x6a5a50); b.box(HX - .5, 2.25, HZ + 1.01, .7, 1.5, .05, 0x5a4030); b.box(HX + .65, 3.2, HZ + 1.01, .5, .4, .05, 0xffe9b0, 0, 1.2);
+      b.cyl(HX - 1.7, 2.1, HZ + 1.2, .05, 2, 0x3b3b4a, 1, 5); b.ball(HX - 1.7, 4.2, HZ + 1.2, .18, 0xffe9b0, 1.25);
+      sign('RESTROOM', HX, 3.85, HZ + 1.03, 1.5, .3, { bg: '#f2efe6', fg: '#2a3a6a', border: '#2a3a6a' });
+      for (let k = 0; k < 8; k++) { const t = k / 7, x = 7.6 + (HX - .5 - 7.6) * t, z = -4 + (HZ + 1.6 + 4) * t; b.box(x, Math.max(0, hillY(x, z)) - .1, z, .9, .16, .6, 0xb8ae9c, .6); }
+      /* the small white tent on the shore, where the ceremony was */
+      const TZ = -6;
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.cyl(sx * 3.3, 0, TZ + sz * 2.3, .09, 2.7, 0xffffff, 1, 6);
+      b.cyl(0, 2.7, TZ, 4.9, 1.9, 0xffffff, .001, 4); b.ball(0, 4.65, TZ, .14, 0xffe9b0, 1.25);
+      for (const sz of [-1, 1]) b.box(0, 2.42, TZ + sz * 2.3, 6.8, .34, .06, 0xf2efe6); for (const sx of [-1, 1]) b.box(sx * 3.3, 2.42, TZ, .06, .34, 4.7, 0xf2efe6);
+      for (let k = 0; k <= 12; k++) b.dot(-3.3 + k * .55, 2.34, TZ + 2.36, .06, 0xffe9b0, 1.25);
+      b.box(0, .01, TZ + 3.4, 1.6, .03, 6.6, 0xf6ecd8);                                                                          // the aisle runner, out of the tent and onto the lawn
+      b.box(-1.1, 0, TZ - 1.7, .12, 2.1, .12, 0xffffff); b.box(1.1, 0, TZ - 1.7, .12, 2.1, .12, 0xffffff); b.box(0, 2.1, TZ - 1.7, 2.4, .14, .14, 0xffffff);   // a small arch at the back of it, the lake behind
+      for (let i = 0; i < 7; i++) b.ball(-1.05 + i * .35, 2.26 + Math.sin(i * 1.3) * .1, TZ - 1.62, .2, [0xff9ab8, 0xffffff, 0xd9628a, 0x8fbf7a][i % 4]);
+      person(3, 0, TZ - 1.2, 0, 0, { top: 0x2a2a33 });
+      let n = 0; for (const sx of [-1, 1]) for (let r = 0; r < 2; r++) for (let k = 0; k < 2; k++) { const x = sx * (1.5 + k * .95), z = TZ + .9 - r * 1.1; chair(b, x, z, Math.PI); if ((n++ * 7) % 4) person(n, x, z + .05, Math.PI); }
+      /* the reception: round tables on the lawn, lights strung from the tent out over them */
+      [[-7.4, -2.2], [7.6, -2], [-10.4, 1.2]].forEach(([x, z], i) => { b.cyl(x, 0, z, .12, .72, 0x8a8a96, 1, 6); b.cyl(x, .72, z, 1, .07, 0xf6f2ea, 1, 12); b.cyl(x, .5, z, 1.02, .22, 0xe8e2d6, 1, 12); b.cyl(x, .79, z, .1, .2, 0xff9ab8, .7, 6); b.dot(x + .3, .9, z + .1, .06, 0xffe9b0, 1.25);
+        person(20 + i * 3, x - .9, z - .7, .6); person(21 + i * 3, x + .95, z - .55, -.7); if (i % 2) person(22 + i * 3, x, z - 1.15, 0); });
+      b.box(-5.6, 0, -4.6, 2.4, .8, .8, 0xf6f2ea); for (let k = 0; k < 5; k++) b.cyl(-6.5 + k * .45, .8, -4.6, .09, .24, [0xffd27a, 0xff9ab8, 0xc9b6e6][k % 3], .8, 6);   // the drinks table
+      for (const sx of [-1, 1]) { b.cyl(sx * 10.5, 0, -1.2, .08, 4.2, 0xfff6e6, 1, 6); stringLights(b, sx * 3.3, TZ + 2.3, sx * 10.5, -1.2, 3.4, [0xffd27a, 0xffffff], 12, .8); }
+      stringLights(b, -10.5, -1.2, 10.5, -1.2, 4.2, [0xffd27a, 0xffffff, 0xff9ab8], 22, 1.2);
+      for (const [x, z, sc] of [[20.5, -6, 2], [24, -13, 2.4]]) tree(b, x, z, sc, 0x2c6a4c);
       c.amb.push(ambient({ n: 60, col: 0xffb3d1, size: .12, area: 11, h: 9, vy: -.7, add: false, opacity: .85 }));
     } },
 
