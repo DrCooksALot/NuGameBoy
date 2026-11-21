@@ -3,6 +3,7 @@
 import { THREE, world, Input, Cam, UI, Sfx, Music, rumble, clamp, lerp } from './engine.js';
 import { SONGS } from './songs.js';
 import { items, FX, makeChar, Batch } from './kit.js';
+export { dance } from './dance.js';        // every wedding: a couples dance
 export { errands } from './nola.js';      // New Orleans has its own mechanic, kept beside its level
 
 /* shared: stick-relative free movement with circle colliders */
@@ -194,7 +195,7 @@ export function heist(ctx) {
   ctx.on('del', (id) => { const o = objs[id]; if (o) deliver(o, false); });
   ctx.on('mv', ([id, x, z]) => { const o = objs[id]; if (o) { o.tx = x; o.tz = z; o.owner = 'pal'; } });
   /* the guard */
-  const G = { c: makeChar(P.guard.look), wp: 0, st: 'patrol', t: 0, who: null, lost: 0, nx: 0, nz: 0, nf: 0 }; G.c.g.position.set(P.patrol[0][0], 0, P.patrol[0][1]); world.add(G.c.g);
+  const G = { c: makeChar(P.guard.look), wp: 0, st: 'patrol', t: 0, who: null, lost: 0, hi: 0, nx: 0, nz: 0, nf: 0 }; G.c.g.position.set(P.patrol[0][0], 0, P.patrol[0][1]); world.add(G.c.g);
   const cone = new THREE.Mesh(new THREE.CircleGeometry(P.guard.range, 12, Math.PI / 2 - P.guard.fov, P.guard.fov * 2).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xfff2a0, transparent: true, opacity: .2, depthWrite: false })); cone.position.y = .06; G.c.g.add(cone);
   const blocked = (ax, az, bx, bz) => { for (let k = 1; k < 9; k++) { const x = ax + (bx - ax) * k / 9, z = az + (bz - az) * k / 9; for (const r of P.racks) if (x > r[0] && x < r[1] && z > r[2] && z < r[3]) return true; } return false; };
   const sees = (ch) => { const g = G.c.g.position, p = ch.g.position, dx = p.x - g.x, dz = p.z - g.z, d = Math.hypot(dx, dz); if (d > P.guard.range) return false;
@@ -210,7 +211,7 @@ export function heist(ctx) {
       const zc = Math.abs(p.z - zS) + Math.abs(gz - zS) <= Math.abs(p.z - zN) + Math.abs(gz - zN) ? zS : zN;
       if (Math.abs(p.z - zc) > .35) { wx = p.x; wz = zc; } else { wx = gx; wz = zc; } }
     const direct = wx === tx && wz === tz, there = steer(ctx, ch, wx, wz, dt, speed, direct ? gap : .12); return direct && there; };
-  ctx.on('gd', ([x, z, f, st]) => { G.nx = x; G.nz = z; G.nf = f; if (st !== G.st && st === 'chase') { UI.pop('!'); Sfx.bad(); } G.st = st; }); ctx.on('bust', () => { G.st = 'daze'; G.t = 2.6; });
+  ctx.on('gd', ([x, z, f, st]) => { G.nx = x; G.nz = z; G.nf = f; if (st !== G.st && st === 'chase') { UI.pop('oh hey!'); Sfx.move(); } G.st = st; }); ctx.on('bust', () => { G.st = 'daze'; G.t = 3.2; G.c.cheer = .9; });
   /* state */
   let T = P.time, stun = 0, dash = 0, cd = 0, mvT = 0, gdT = 0, noteNow = '', aiState = 'follow', aiBox = null, over = false;
   const note = (t) => { if (t !== noteNow) { noteNow = t; UI.note(t); } };
@@ -272,12 +273,12 @@ export function heist(ctx) {
         if (G.st === 'daze') { G.t -= dt; G.c.anim(dt, 0); if (G.t <= 0) G.st = 'patrol'; }
         else if (G.st === 'chase') { const tg = (G.who === 'pal' ? pal : me).g.position; nav(G.c, tg.x, tg.z, dt, P.guard.chase, .2); G.t -= dt; G.lost = sees(G.who === 'pal' ? pal : me) ? 0 : G.lost + dt; if (G.t <= 0 || G.lost > 2.2) G.st = 'patrol'; }
         else { const w = P.patrol[G.wp]; if (steer(ctx, G.c, w[0], w[1], dt, P.guard.walk, .3)) G.wp = (G.wp + 1) % P.patrol.length;
-          const who = sees(me) ? 'me' : (ctx.twoP && sees(pal) ? 'pal' : null); if (who) { G.st = 'chase'; G.who = who; G.t = 6; G.lost = 0; UI.pop('!'); Sfx.bad(); } }
+          const who = sees(me) ? 'me' : (ctx.twoP && sees(pal) ? 'pal' : null); if (who) { G.st = 'chase'; G.who = who; G.t = 6; G.lost = 0; UI.pop('oh hey!'); Sfx.move(); } }
         gdT += dt; if (ctx.twoP && gdT > .12) { gdT = 0; ctx.send('gd', [+gp.x.toFixed(2), +gp.z.toFixed(2), +G.c.face.toFixed(2), G.st]); }
       }
-      cone.material.opacity = G.st === 'chase' ? .42 : G.st === 'daze' ? .05 : .2; cone.material.color.setHex(G.st === 'chase' ? 0xff5a4a : 0xfff2a0);
-      if (G.st !== 'daze' && stun <= 0 && dash <= 0 && Math.hypot(gp.x - p.x, gp.z - p.z) < .95) {          // caught: drop what you carry, pay a fine
-        stun = 1.6; const o = dropHeld('me', p.x, p.z); if (o) ctx.send('drop', [o.id, o.x, o.z]); ctx.cash(-P.fine); rumble(160, .5); Sfx.bad(); UI.pop('busted! -$' + P.fine); G.st = 'daze'; G.t = 2.6; ctx.send('bust', 0); }
+      cone.material.opacity = G.st === 'chase' ? .42 : G.st === 'daze' ? .05 : .2; cone.material.color.setHex(G.st === 'chase' ? 0x9bffb0 : 0xfff2a0);
+      if (G.st !== 'daze' && Math.hypot(gp.x - p.x, gp.z - p.z) < .95) {          // caught. he is a friend: he says something, looks the other way, and you carry on
+        const hi = P.guard.hi; UI.pop(hi[G.hi++ % hi.length]); Sfx.ok(); G.c.cheer = .9; G.st = 'daze'; G.t = 3.2; ctx.send('bust', 0); }
       /* hud */
       const h2 = hand.me, nb = h2 && !h2.T.tote ? boxNear(p.x, p.z, 2.2) : null;
       note(stun > 0 ? '' : !h2 ? 'A grab · B dash · lean on big gear to push it' : h2.T.tote ? `box ${h2.vol}/${CAP} · $${value(h2)} · A set down · B throw` : `${h2.T.label} $${h2.T.price} · ${nb ? 'A put in box' : 'A drop'} · B throw`);
@@ -364,38 +365,4 @@ export function runner(ctx) {
 const _dash = new THREE.Matrix4();
 
 /* ============ RHYTHM: ◀  A  ▶ on the beat ============ */
-export function rhythm(ctx) {
-  const P = ctx.P, me = ctx.me, pal = ctx.pal, beat = 60 / P.bpm, LX = [-1.5, 0, 1.5], LC = [0x7ad7ff, 0xffd77e, 0xff7ab6], TRAVEL = 1.7, Z0 = -17, Z1 = 2;
-  const notes = [], beats = Math.floor(P.time / beat);
-  for (let b = 6; b < beats - 2; b++) { const r = ctx.rnd(); if (r < .2) continue; const l = Math.floor(ctx.rnd() * 3); notes.push({ t: b * beat, l, st: 0 });
-    if (b > 20 && r > .78) notes.push({ t: (b + .5) * beat, l: (l + 1 + Math.floor(ctx.rnd() * 2)) % 3, st: 0 }); }
-  const it = items(notes.length, 'puck'); notes.forEach((n, i) => it.color(i, LC[n.l], 1));
-  const pads = items(3, 'ring', LC, 1.2), flash = [0, 0, 0];
-  me.g.position.set(-3.1, 0, 2); pal.g.position.set(3.1, 0, 2);
-  let t0 = null, combo = 0, done = false;
-  UI.note('◀    A    ▶');
-    ctx.on('hit', () => { pal.cheer = .25; });
-  return {
-    cam() { Cam.set(0, 6.4, 10.5, 0, .4, -3); },
-    update(dt, t) {
-      // the chart is locked to the level's song: restart it on the first frame of play and read time off the audio clock
-      if (t0 === null) { Music.play(SONGS[ctx.L.id], .7); t0 = Sfx.ctx ? Music.t0 : Sfx.now() + .7; }
-      const now = Sfx.now() - t0;
-      for (const a of ['LEFT', 'A', 'RIGHT']) if (Input.just.has(a) || (a === 'A' && (Input.just.has('UP') || Input.just.has('DOWN')))) {
-        const l = a === 'LEFT' ? 0 : a === 'A' ? 1 : 2; flash[l] = 1; let best = null, bd = .2;
-        for (const n of notes) if (!n.st && n.l === l) { const d = Math.abs(n.t - now); if (d < bd) { bd = d; best = n; } }
-        if (best) { best.st = 1; combo++; const perfect = bd < .08; ctx.add(perfect ? 3 : 1, LX[l], .8, Z1); ctx.send('hit', l); me.cheer = .25; me.face += 1.57;
-          UI.pop(perfect ? (combo > 7 ? `PERFECT ×${combo}` : 'PERFECT') : 'good'); }
-        else { combo = 0; ctx.miss(); Sfx.beep(140, .05, 'square', .05); } }
-      notes.forEach((n, i) => { const k = 1 - (n.t - now) / TRAVEL;
-        if (n.st || k < 0 || k > 1.12) { if (!n.st && k > 1.12) { n.st = 2; combo = 0; ctx.miss(); } it.set(i, 0, -9, 0, 0); return; }
-        it.set(i, LX[n.l], .08, lerp(Z0, Z1, k), 1.25 + Math.max(0, k - .9) * 2, 0); });
-      for (let l = 0; l < 3; l++) { flash[l] = Math.max(0, flash[l] - dt * 5); pads.set(l, LX[l], .08, Z1, 1.9 + flash[l] * .8, 0); pads.m.setMatrixAt(l, _dash.makeRotationX(Math.PI / 2).scale(_sc.setScalar(1.9 + flash[l] * .8)).setPosition(LX[l], .08, Z1)); }
-      it.flush(); pads.flush();
-      const bop = Math.abs(Math.sin(now / beat * Math.PI)) * .12; me.anim(dt, .2); me.body.position.y += bop;
-      if (ctx.twoP) { pal.anim(dt, .2); pal.body.position.y += bop; } else { pal.anim(dt, .2); pal.body.position.y += bop; pal.face = Math.sin(now / beat * Math.PI / 2) * 1.2; if (Math.random() < dt * .6) pal.cheer = .3; }
-      UI.time(P.time - now); if (now >= P.time && !done) { done = true; ctx.finish(); }
-    },
-  };
-}
-const _sc = new THREE.Vector3();
+

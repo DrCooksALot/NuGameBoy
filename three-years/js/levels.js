@@ -40,7 +40,7 @@ export const LEVELS = [
      alongside) is the start. A path west runs through the Winter Cathedral to Cherry Esplanade, with the Cranford Rose
      Garden beside it. North is up the screen. */
   { id: 'lightscape', tint: 0xc8ccf4, shot: [4, 2.9], prop: 'lantern', outfit: { her: { top: 0xc8a878, cap: 0xc8a878 }, him: { top: 0x1c1a1e, zip: 0x9a9aa4 } },   // what you wore: tan jacket and tan hat; leather jacket
-    caption: 'taken by two strangers who also love Spirited Away', kicker: 'December 2023 · Brooklyn Botanic Garden', title: 'Lightscape', sub: 'photos, hot toddies, and one missing glove.',
+    caption: 'taken by two strangers who also love Spirited Away', kicker: 'December 2023 · Brooklyn Botanic Garden', title: 'Lightscape', sub: 'a secret garden, lit in neon. one missing glove.',
     game: 'explore', icon: '✦', stars: [8, 16, 24],
     how: 'Take photos together at the glowing frames around the garden: stand in one and press A.\nThen ask couples (A) until one will take a picture of you both, and lead them to the fountain.\nMind the other visitors and the squirrels; dash (A) past them. There is a hot toddy cart. Somewhere there is a glove.',
     P: { col: [0xffd77e, 0xff9a62], bounds: [-22.5, 8.4, -33.4, 25.2], goal: { x: 4, z: 2.9 },
@@ -54,13 +54,13 @@ export const LEVELS = [
         { a: [-10.6, -30.6], b: [-10.6, -12.4], speed: 1.8, look: { skin: 0xd59a70, hair: 0x3a2a20, top: 0xff9ab8, legs: 0x2a2a33, style: 'long' } }, { a: [-1.4, 1.5], b: [-12, 1.5], speed: 1.5, look: { skin: 0xf0c8a4, hair: 0x1a1412, top: 0x3d8bd9, legs: 0x6a5240, beard: 0x1a1412 } }],
       cart: { x: -13.2, z: 1.2, name: 'hot toddy cart', lines: ['one hot toddy. for warmth.', 'another one. still for warmth.', 'a third. you two are very warm now.', 'that is a lot of hot toddies. walk carefully.', 'at this point i should just give you the cart.'] },
       gloveAt: [[-20.6, -9.6], [-3.6, -22], [-15.4, 9], [-6.4, -9.4], [-17, 6.4]],
-      gloveLines: [['AHANU', 'found it. your glove. i was absolutely not the one who lost it.'], ['TEK', 'you were absolutely the one who lost it.']],
-      opening: [['TEK', 'wait. where is my other glove?'], ['AHANU', '...we should take some pictures. look, lights.']],
+      gloveLines: [['NUNU', 'found it. your glove. i was absolutely not the one who lost it.'], ['TEK', 'you were absolutely the one who lost it.']],
+      opening: [['TEK', 'wait. where is my other glove?'], ['NUNU', '...we should take some pictures. look. it is like falling down the rabbit hole.']],
       note: 'then find a couple to take yours', escortNote: 'lead them to the fountain between the ponds',
       hazAt: [[-9, -21, 2.8], [-12, 9, 2.6]], hazard: () => critter('squirrel'), hazPop: 'squirrel!', yesFrom: [0],   // it was the couple by the koi pond
-      yesLines: (who) => [[who, 'a picture? of course. we were just watching the koi.'], ['AHANU', 'could you take it by the fountain, between the two ponds?'],
+      yesLines: (who) => [[who, 'a picture? of course. we were just watching the koi.'], ['NUNU', 'could you take it by the fountain, between the two ponds?'],
         [who, 'good choice. with all these lights on the water it looks like Spirited Away.'], ['TEK', 'the bathhouse at night. that is exactly what we said.'],
-        [who, "just don't eat anything in here or you'll turn into pigs."], ['AHANU', 'too late. we already had the hot chocolate.'], [who, 'ha. okay, lead the way. we will follow you.']],
+        [who, "just don't eat anything in here or you'll turn into pigs."], ['NUNU', 'too late. we already had the hot chocolate.'], [who, 'ha. okay, lead the way. we will follow you.']],
       couples: [
         { x: 7.75, z: -6.4, face: -1.57, name: 'couple by the koi pond', looks: [{ skin: 0xe6b596, hair: 0x3a2a20, top: 0x6a7ac8, legs: 0x2a2a33, style: 'long' }, { skin: 0xd59a70, hair: 0x1a1412, top: 0x4fae6a, legs: 0x3b4a8a, beard: 0x1a1412 }], no: [''] },
         { x: 4, z: -10.2, name: 'couple at the wall fountain', looks: [{ skin: 0xd59a70, hair: 0x1a1412, top: 0x3d8bd9, legs: 0x2a2a33, style: 'long' }, { skin: 0xe6b596, hair: 0x6b3a24, top: 0x4fae6a, legs: 0x3b4a8a }], no: ['sorry, we cannot feel our hands. december.', 'still frozen. try the people by the cherry trees.'] },
@@ -73,7 +73,7 @@ export const LEVELS = [
     build(b, c) {
       sky(0x05071c, 0x151d58, 0x111742, 800); lights(0x7684dc, 0x26483e, 1.45, 0xb4c0ff, 1.05, -4, 9, 5); fog(0x111742, 26, 82); orb(-40, 46, -90, 5, 0xdfe6ff, 1.2);
       turf(150, 150, 0x225a4a, -7, -10);
-      const BRICK = 0xa8604e, STONE = 0xd8cab8, WATER = 0x161e52, PATH = 0x8f90a4, GLOBE = [0xff7ab6, 0x7ad7ff, 0xffd77e, 0x9bffb0];
+      const BRICK = 0xa8604e, STONE = 0xd8cab8, WATER = 0x161e52, PATH = 0x8f90a4, GLOBE = [0xff7ab6, 0x7ad7ff, 0xffd77e, 0x9bffb0], NEON = [0xff3fa4, 0x3fe0ff, 0xb46bff, 0x7dff6a, 0xffd23f, 0xff7a3f];
       /* Lily Pool Terrace */
       b.box(4, 0, 1, 9.6, .06, 24.8, BRICK);
       const pool = (z0, z1, round) => { const zc = (z0 + z1) / 2, len = z1 - z0; b.box(4, .06, zc, 4, .1, len + .8, STONE); b.box(4, .1, zc, 3.2, .08, len, WATER);
@@ -97,7 +97,7 @@ export const LEVELS = [
       for (let k = -4; k <= 4; k++) { const a = k * .34; b.box(10.6 - Math.cos(a) * 3.5, 0, .65 + Math.sin(a) * 3.5, .07, 2.9, .07, 0xffffff); b.dot(10.6 - Math.cos(a) * 3.45, 2.2, .65 + Math.sin(a) * 3.45, .07, 0xffe9b0, 1.2); }
       /* the path west through the Winter Cathedral, then north to the esplanade */
       b.box(-4.9, .02, .65, 8.4, .05, 2.3, PATH); b.box(-9, .02, -4.6, 2.3, .05, 12.6, PATH);
-      for (let a = 0; a < 9; a++) { const x = -1.6 - a * .8; for (let k = 0; k <= 14; k++) { const t = k / 14 * Math.PI; b.dot(x, .1 + Math.sin(t) * 3.1, .65 + Math.cos(t) * 1.55, .06, 0xfff2c8, 1.25); } }
+      for (let a = 0; a < 9; a++) { const x = -1.6 - a * .8; for (let k = 0; k <= 14; k++) { const t = k / 14 * Math.PI; b.dot(x, .1 + Math.sin(t) * 3.1, .65 + Math.cos(t) * 1.55, .07, NEON[a % 6], 1.25); } }
       /* Cherry Esplanade: a long lawn between double rows of cherry trees, Sea of Light across it, the Supernova at the far end */
       b.box(-9, .016, -21.6, 6.6, .03, 23.4, 0x2c6e56);
       [-13.7, -12.3, -5.7, -4.3].forEach((x, r) => { for (let i = 0; i < 7; i++) { const z = -11.2 - i * 3.4 - (r % 2) * 1.2; cherry(b, x, z, i + r * 3); c.colliders.push({ x, z, r: .35 }); } });
@@ -110,8 +110,11 @@ export const LEVELS = [
       for (let k = 0; k <= 5; k++) { const x = -21.6 + k * 1.12; for (const z of [-11.5, -12.9]) b.box(x, 0, z, .12, 2.5, .12, 0xf6f2e8); b.box(x, 2.5, -12.2, .12, .12, 2.2, 0xf6f2e8); b.dot(x, 2.36, -12.2, .07, 0xffe9a0, 1.25); b.dot(x + .56, 2.3, -11.5, .06, 0xffe9a0, 1.25); }
       for (const z of [-11.5, -12.9]) b.box(-18.8, 2.5, z, 6, .12, .12, 0xf6f2e8); c.colliders.push({ x: -21.6, z: -12.2, r: .5 }, { x: -16, z: -12.2, r: .5 });
       /* trees: some lit in colour inside the garden, a dark belt of them outside it */
+      let n = 0; const neonTree = (x, z, s2, k) => { const col = NEON[k % 6]; b.cyl(x, .012, z, 1.5 * s2 * .6, .02, col, 1, 12, .5);
+        for (let j = 0; j < 5; j++) b.dot(x + Math.cos(j * 1.3) * .2 * s2, .15 + j * .17 * s2, z + Math.sin(j * 1.3) * .2 * s2, .05, col, 1.25);
+        for (let j = 0; j < 6; j++) { const a = j * 2.4, y = (1.1 + (j % 3) * .42) * s2, rr = (.82 - (j % 3) * .2) * s2; b.dot(x + Math.cos(a) * rr, y, z + Math.sin(a) * rr * .9 + .1, .07, j % 3 ? col : 0xffffff, 1.25); } };
       for (const [x, z, s2, col] of [[-3, -7, 1.8, 0x8a5ad8], [-20.4, -3.4, 1.6, 0x3d8ad8], [-6.4, 11.4, 1.6, 0xd85a9a], [-19.6, 12.4, 1.7, 0x3fa878], [-19.4, 3.6, 1.6, 0x8a5ad8], [-15.4, -5.4, 1.6, 0x3d8ad8], [-2.2, -17, 1.6, 0x3fa878], [-1.6, -27, 1.8, 0x8a5ad8]]) {
-        tree(b, x, z, s2, col); b.dot(x + .6, .14, z + .5, .1, 0xffffff, 1.2); c.colliders.push({ x, z, r: .55 }); }
+        tree(b, x, z, s2, col); neonTree(x, z, s2, n++); c.colliders.push({ x, z, r: .55 }); }
       let s = 3; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
       for (let i = 0; i < 26; i++) { const t = i / 26; (i % 3 ? tree : pine)(b, -26 - r() * 8, -38 + t * 56, 1.8 + r(), 0x1f5a48); (i % 3 ? pine : tree)(b, -25 + t * 40, -37.5 - r() * 8, 1.8 + r(), 0x1f5a48); }                               // nothing along the south edge: that is where the camera looks from
       for (const [x, z, r2] of [[-48, -80, 26], [-8, -92, 34], [40, -84, 28]]) b.ball(x, -8, z, r2, 0x1f4a58, 0, .5);
@@ -125,7 +128,27 @@ export const LEVELS = [
       sign('LIGHTSCAPE', 4, 4.1, 21.14, 3.6, .7, { bg: '#1a1f5c', fg: '#ffe27a', border: '#ffe27a', glow: true });
       b.box(8, 0, 23.4, 1.8, 2.2, 1.6, 0x2f6a58); b.box(8, 2.2, 23.4, 2.2, .16, 2, 0xf2efe6); b.box(7.08, 1, 23.4, .06, .8, 1, 0xffe9b0, 0, 1.15); sign('TICKETS', 7.06, 2, 23.4, 1.4, .34, { bg: '#f2efe6', fg: '#1f5a35', border: '#1f5a35', ry: -Math.PI / 2 });
       for (const [x, z] of [[1.4, 17], [6.6, 17], [1.2, 23.6]]) { lamp(b, x, z, 0xffe9b0, 2.4); c.colliders.push({ x, z, r: .2 }); }
-      for (const [x, z, s2, col] of [[-3, 18.2, 1.7, 0xd85a9a], [-8.4, 17.6, 1.9, 0x3d8ad8], [-14, 18.4, 1.8, 0x8a5ad8], [-19.4, 17.8, 1.9, 0x3fa878]]) { tree(b, x, z, s2, col); c.colliders.push({ x, z, r: .55 }); }
+      for (const [x, z, s2, col] of [[-3, 18.2, 1.7, 0xd85a9a], [-8.4, 17.6, 1.9, 0x3d8ad8], [-14, 18.4, 1.8, 0x8a5ad8], [-19.4, 17.8, 1.9, 0x3fa878]]) { tree(b, x, z, s2, col); neonTree(x, z, s2, n++); c.colliders.push({ x, z, r: .55 }); }
+      /* neon: every path is edged in a line of colour */
+      const tube = (x, z, w, d, col) => b.box(x, .05, z, w, .07, d, col, 0, 1.2);
+      tube(1.75, 16.2, .09, 6, NEON[0]); tube(6.25, 16.2, .09, 6, NEON[1]);                                   // in from the gate
+      tube(-5, -.55, 8.2, .09, NEON[2]); tube(-5, 1.85, 8.2, .09, NEON[3]);                                   // through the light tunnel
+      tube(-10.2, -5.8, .09, 9.6, NEON[1]); tube(-7.8, -5.8, .09, 9.6, NEON[0]);                              // north to the esplanade
+      tube(-12.35, -21.6, .09, 23.4, NEON[0]); tube(-5.65, -21.6, .09, 23.4, NEON[2]);                        // down both sides of the lawn
+      /* the wonderland part: glowing mushrooms and flowers taller than they should be, all through the grass */
+      b.lo = true;
+      const shroom = (x, z, s2, col) => { b.cyl(x, 0, z, .11 * s2, .62 * s2, 0xf2efe6, .7, 6, .75); b.ball(x, .6 * s2, z, .5 * s2, col, 1.15, .62);
+        for (let j = 0; j < 3; j++) b.dot(x + Math.cos(j * 2.09 + x) * .3 * s2, (.82 - .02 * j) * s2, z + Math.sin(j * 2.09 + x) * .3 * s2, .07 * s2, 0xffffff, 1.25); c.colliders.push({ x, z, r: .22 * s2 }); };
+      const bloom = (x, z, s2, col) => { b.cyl(x, 0, z, .05, 1.1 * s2, 0x3fa868, 1, 5, .7); for (let j = 0; j < 5; j++) b.dot(x + Math.cos(j * 1.257) * .24 * s2, 1.12 * s2, z + Math.sin(j * 1.257) * .24 * s2, .15 * s2, col, 1.15); b.dot(x, 1.2 * s2, z, .1 * s2, 0xffe27a, 1.25); c.colliders.push({ x, z, r: .15 }); };
+      [[-2.4, 15.4, 1.5], [-5.6, 13.8, 1], [-10.8, 13.4, 1.7], [-16.4, 14.8, 1.2], [-21, 9, 1.6], [-17.4, -1.8, 1.1], [-6, -3.4, 1.4], [-11.9, -6.6, .9], [-3.4, -12.4, 1.6], [-1.6, -20.4, 1.2], [-3, -31, 1.7],
+        [-11.4, 7.2, 1.3], [-4, 6.4, 1], [-7.6, 9.2, 1.6], [-14.6, 11.6, .9], [-2.6, 3.4, 1.2], [-21.2, -7, 1.3], [-6.2, -7.2, .8], [-15, 6.6, 1], [-1.8, 10.6, 1.4], [-9.4, 16.2, 1.1], [-20.2, 15.6, 1.4]]
+        .forEach(([x, z, s2], i) => (i % 3 === 2 ? bloom : shroom)(x, z, s2, NEON[(i * 5 + 1) % 6]));
+      b.lo = false;
+      /* a signpost that is no help at all */
+      b.cyl(-10.9, 0, -1.3, .06, 2.5, 0x3b3b4a, 1, 6); c.colliders.push({ x: -10.9, z: -1.3, r: .25 });
+      sign('THIS WAY →', -10.9, 2.3, -1.24, 1.7, .34, { bg: '#1a0f3a', fg: '#ff7ad0', border: '#ff3fa4', glow: true });
+      sign('← THAT WAY', -10.9, 1.86, -1.24, 1.7, .34, { bg: '#0f1f3a', fg: '#7af0ff', border: '#3fe0ff', glow: true });
+      c.amb.push(ambient({ n: 70, col: 0xff7ad0, size: .11, area: 16, h: 4, vy: .25, drift: .5, add: false, opacity: .9 }), ambient({ n: 70, col: 0x7af0ff, size: .11, area: 16, h: 4, vy: .2, drift: .6, add: false, opacity: .9 }));
       /* the hot toddy cart */
       b.box(-13.2, .5, 0, 2, .9, 1.1, 0x9a3a2a); b.box(-13.2, 1.4, 0, 2.1, .08, 1.2, 0xd8b88a); for (const sx of [-1, 1]) { b.ball(-13.2 + sx * .8, .4, .58, .4, 0x2a2420, 0, 1); b.cyl(-13.2 + sx * .95, 1.4, -.45, .04, 1.3, 0x6a4a30, 1, 5); b.cyl(-13.2 + sx * .95, 1.4, .45, .04, 1.3, 0x6a4a30, 1, 5); }
       for (let k = -2; k <= 2; k++) b.box(-13.2 + k * .44, 2.7, 0, .44, .12, 1.5, k % 2 ? 0xe5484d : 0xfff6e6); b.cyl(-13.7, 1.48, 0, .22, .3, 0xc8ccd4, 1, 10); for (let k = 0; k < 4; k++) b.dot(-13.7 + Math.sin(k) * .1, 1.95 + k * .16, 0, .05, 0xffffff, 1.1);
@@ -137,16 +160,16 @@ export const LEVELS = [
   /* ───────────── 2 · THE HEIST — an indoor farm, after hours ─────────────
      Grow racks under purple light, gear on the floor, a van backed up to the loading bay, one guard with a flashlight. */
   { id: 'heist', shot: [6.4, 4.2], prop: 'tote', caption: 'we were never here', outfit: { her: { top: 0x1c1a1e, cap: 0x1c1a1e }, him: { top: 0x1c1a1e, cap: 0x1c1a1e } },
-    kicker: 'date night · an indoor farm, after hours', title: 'The Heist', sub: 'in, out, and nobody saw anything.',
+    kicker: 'date night · an indoor farm, after hours', title: 'The Heist', sub: 'the guard is in on it. he is also bad at it.',
     game: 'heist', icon: '$', stars: [1000, 2000, 3200],
-    how: 'Fill plastic totes with gear and get them in the van before time runs out.\nA grab / put in a tote / set down · B throw (or dash, empty-handed)\nOne of you holds the tote, the other fills it. Big gear is worth the most: lean on it to push it. Stay out of the flashlight.',
+    how: 'Fill plastic totes with gear and get them in the van before time runs out.\nA grab / put in a tote / set down · B throw (or dash, empty-handed)\nOne of you holds the tote, the other fills it. Big gear is worth the most: lean on it to push it. The guard is a friend. If he catches you, he says hi.',
     P: { time: 100, cap: 6, fine: 100, bounds: [-11.2, 12.2, -14.1, 7.4], van: [9.5, 13, .9, 5.1], vanDoor: [10.6, 3], door: { x: 9.25, z0: .6, z1: 5.4 },
       racks: [[-7.8, -6.2, -12, -3], [-2.3, -.7, -12, -3], [3.2, 4.8, -12, -3]],
       patrol: [[-9.6, -1.4], [-9.6, -13.1], [-4.25, -13.1], [-4.25, -1.6], [1.25, -1.6], [1.25, -13.1], [6.6, -13.1], [6.6, -1.4], [0, 4.6], [-8, 4.6]],
-      guard: { fov: .6, range: 6.5, walk: 2.3, chase: 4.7, look: { skin: 0xd59a70, hair: 0x1a1412, top: 0x3d5a9a, legs: 0x23252e, cap: 0x23252e, beard: 0x1a1412 } },
+      guard: { fov: .6, range: 6.5, walk: 2.3, chase: 4.7, hi: ['i saw nothing', 'nice antlers', 'need a hand? no? ok', 'you missed a pump', 'shh. i am patrolling', 'is that my flashlight? keep it', 'tell no one. hi though'], look: { skin: 0xd59a70, hair: 0x1a1412, top: 0x3d5a9a, legs: 0x23252e, cap: 0x23252e, beard: 0x1a1412 } },
       itemSpots: [[-9.6, -11], [-9.6, -9], [-9.6, -7], [-9.6, -5], [-9.6, -3.4], [-4.25, -11], [-4.25, -9], [-4.25, -7], [-4.25, -5], [-4.25, -3.4], [1.25, -11], [1.25, -9], [1.25, -7], [1.25, -5], [1.25, -3.4],
         [6.6, -11], [6.6, -9], [6.6, -7], [6.6, -5], [6.6, -3.4], [-8, -13.3], [-1.6, -13.3], [3.4, -13.3], [-6, 1], [-3, 4.2], [0, 1.6], [-8.6, 5.6], [-1, 6]],
-      items: [['light', 4], ['seeds', 2], ['ballast', 3], ['fan', 3], ['meter', 4], ['jug', 4], ['trim', 4]],
+      items: [['light', 5], ['seeds', 2], ['ballast', 3], ['fan', 3], ['meter', 3], ['jug', 3], ['trim', 3], ['pump', 4]],
       bigs: [['dehu', 6.6, -13.2], ['tank', -10, -12.8]], totes: [[4.6, 1.6], [4.6, 3.2], [6.2, 1.6], [6.2, 3.2], [5.4, 5.2]],
       types: {
         tote:    { tote: true, label: 'tote', price: 0, vol: 0, w: 1, build(b) { b.box(0, 0, 0, .9, .08, .6, 0x3d6ad8); b.box(0, .08, .3, .9, .5, .06, 0x3d6ad8); b.box(0, .08, -.3, .9, .5, .06, 0x3d6ad8); b.box(.45, .08, 0, .06, .5, .66, 0x3d6ad8); b.box(-.45, .08, 0, .06, .5, .66, 0x3d6ad8); b.box(0, .54, .33, 1, .07, .08, 0xffd23a); b.box(0, .54, -.33, 1, .07, .08, 0xffd23a); } },
@@ -154,6 +177,7 @@ export const LEVELS = [
         seeds:   { label: 'seed vault', price: 500, vol: 1, w: 1, build(b) { b.box(0, 0, 0, .42, .34, .34, 0x2f6a45); b.box(0, .34, 0, .44, .06, .36, 0xffd77e); b.box(0, .12, .18, .1, .1, .03, 0xffd77e); } },
         ballast: { label: 'ballast', price: 250, vol: 2, w: 4, build(b) { b.box(0, 0, 0, .6, .28, .4, 0x55566a); for (let k = -2; k <= 2; k++) b.box(k * .11, .28, 0, .04, .1, .4, 0x9aa0a8); } },
         fan:     { label: 'clip fan', price: 120, vol: 2, w: 1.5, build(b) { b.cyl(0, 0, 0, .2, .06, 0x2a2a33, 1, 8); b.cyl(0, .06, 0, .04, .34, 0x2a2a33, 1, 5); b.ball(0, .56, 0, .26, 0xf2efe6, 0, 1); b.ball(0, .56, .1, .1, 0x3d8bd9); } },
+        pump:    { label: 'water pump', price: 180, vol: 2, w: 2.5, build(b) { b.box(0, 0, 0, .5, .08, .34, 0x2a2a33); b.cyl(-.08, .08, 0, .17, .3, 0x3d8bd9, 1, 8); b.box(.2, .08, 0, .18, .2, .22, 0x9aa0a8); b.cyl(.2, .28, 0, .05, .14, 0x2a2a33, 1, 5); } },
         meter:   { label: 'pH meter', price: 90, vol: 1, w: .4, build(b) { b.box(0, 0, 0, .2, .42, .1, 0xffd23a); b.box(0, .22, .06, .14, .14, .02, 0x9bffb0, 0, 1.2); b.box(0, -.12, 0, .06, .14, .06, 0x9aa0a8); } },
         jug:     { label: 'nutrient jug', price: 60, vol: 2, w: 3, build(b) { b.cyl(0, 0, 0, .22, .44, 0xf2efe6, 1, 8); b.cyl(0, .44, 0, .08, .1, 0xe5484d, 1, 6); b.box(0, .14, .23, .26, .18, .02, 0x4fae6a); } },
         trim:    { label: 'trimmers', price: 40, vol: 1, w: .3, build(b) { b.box(.06, 0, 0, .05, .04, .4, 0xc8ccd4, .25); b.box(-.06, 0, 0, .05, .04, .4, 0xc8ccd4, -.25); b.ball(.1, .03, -.2, .07, 0xe5484d); b.ball(-.1, .03, -.2, .07, 0xe5484d); } },
@@ -161,19 +185,33 @@ export const LEVELS = [
         tank:    { big: true, r: .6, label: 'CO2 tank', price: 700, vol: 9, w: 4.5, build(b) { b.cyl(0, 0, 0, .34, 1.4, 0x4fae6a, 1, 10); b.ball(0, 1.4, 0, .34, 0x4fae6a, 0, .6); b.cyl(0, 1.56, 0, .1, .2, 0xc8ccd4, 1, 6); b.box(.14, 1.62, 0, .2, .08, .08, 0xe5484d); } },
       } },
     build(b, c) {
-      sky(0x0b0c22, 0x1a1c44, 0x12142e, 200); lights(0xb8a8ff, 0x4a3a6a, 2.3, 0xe8d8ff, 1.5, -3, 10, 6); fog(0x16183a, 30, 70);
-      const FLOOR = 0x8a8c9a, WALL = 0xc8ccd8, STEEL = 0x9aa0a8;
+      sky(0x0b0c22, 0x1a1c44, 0x12142e, 200); lights(0xf4f2ff, 0x8a8a96, 2.5, 0xffffff, 1.7, -3, 10, 6); fog(0x2a2c44, 34, 80);          // dark outside, but the room itself is bright: grey floor, white walls
+      const FLOOR = 0xa6a8b0, WALL = 0xeef0f4, STEEL = 0x9aa0a8, ORANGE = 0xf07a1a;
       b.box(0, -.3, -3.3, 21.4, .3, 22.6, FLOOR); b.box(22, -.32, -3.3, 24, .3, 40, 0x3a3c4a);                              // slab, and the lot outside
-      for (let x = -9; x <= 9; x += 6) b.box(x, .001, -3.3, .06, .012, 22, 0x7a7c8a); b.box(0, .002, -2, 20.6, .014, .12, 0xffd23a);
+      for (let x = -9; x <= 9; x += 6) b.box(x, .001, -3.3, .06, .012, 22, 0x8e9098); b.box(0, .002, -2, 20.6, .014, .12, 0xffd23a);
       b.box(0, 0, -14.9, 22, 4.4, .5, WALL); b.box(-11.9, 0, -3.5, .5, 4.4, 23, WALL);                                       // back and west walls
       b.box(9.25, 0, -6.8, .5, 4.4, 14.6, WALL); b.box(9.25, 0, 6.6, .5, 4.4, 2, WALL); b.box(9.25, 3.3, 3, .5, 1.1, 5.2, WALL); b.box(9.25, 3.2, 3, .6, .14, 5.2, 0xffd23a);   // east wall with the loading bay
       for (let z = -14; z <= .2; z += .9) c.colliders.push({ x: 9.25, z, r: .5 }); for (let z = 5.9; z <= 7.6; z += .8) c.colliders.push({ x: 9.25, z, r: .5 });
-      sign('LOADING', 9.0, 3.85, 3, 2.4, .5, { bg: '#1c1a24', fg: '#ffd23a', border: '#ffd23a', ry: -Math.PI / 2 }); sign('SECTOR 7 · PROPAGATION', 0, 3.4, -14.62, 6, .6, { bg: '#f2efe6', fg: '#2f6a45', border: '#2f6a45' });
+      sign('LOADING', 9.0, 3.85, 3, 2.4, .5, { bg: '#1c1a24', fg: '#ffd23a', border: '#ffd23a', ry: -Math.PI / 2 }); sign('SECTOR 7 · PROPAGATION', 2.6, 3.4, -14.62, 6, .6, { bg: '#f2efe6', fg: '#2f6a45', border: '#2f6a45' });
       for (const r of c.P.racks) { const x = (r[0] + r[1]) / 2;                                                              // grow racks: two shelves of plants under LED bars
         for (let z = r[2] + .4; z <= r[3]; z += 1.05) c.colliders.push({ x, z, r: .95 });
-        for (const z of [r[2] + .15, (r[2] + r[3]) / 2, r[3] - .15]) for (const sx of [-1, 1]) b.box(x + sx * .72, 0, z, .08, 2.7, .08, STEEL);
-        for (const y of [.5, 1.5]) { b.box(x, y, (r[2] + r[3]) / 2, 1.6, .08, 9, 0xf2efe6); for (let z = r[2] + .5; z < r[3]; z += .75) { b.ball(x - .35, y + .3, z, .26, y > 1 ? 0x4fae6a : 0x3f9a52, 0, .9); b.ball(x + .35, y + .28, z + .3, .24, 0x58b870, 0, .9); } }
+        const apart = x > 3;                                                                                                  // the east rack is half taken apart
+        for (const z of [r[2] + .15, (r[2] + r[3]) / 2, r[3] - .15]) for (const sx of [-1, 1]) b.box(x + sx * .72, 0, z, .1, 2.7, .1, ORANGE);
+        for (const y of apart ? [.5] : [.5, 1.5]) for (const sx of [-1, 1]) b.box(x + sx * .72, y - .1, (r[2] + r[3]) / 2, .08, .14, 9, ORANGE);
+        if (apart) { for (let k = 0; k < 4; k++) b.box(x - .3 + k * .2, 1.42 + (k % 2) * .1, (r[2] + r[3]) / 2 + .6, .09, .12, 8.2, ORANGE, 0, 0, 0, .05 * (k - 1.5)); b.box(x, 1.5, r[2] + .15, 1.5, .1, .1, ORANGE, .3); }   // loose beams laid across where the top shelf was
+        for (const y of apart ? [.5] : [.5, 1.5]) { b.box(x, y, (r[2] + r[3]) / 2, 1.6, .08, 9, 0xf2efe6); for (let z = r[2] + .5; z < r[3]; z += .75) { b.ball(x - .35, y + .3, z, .26, y > 1 ? 0x4fae6a : 0x3f9a52, 0, .9); b.ball(x + .35, y + .28, z + .3, .24, 0x58b870, 0, .9); } }
         for (const sx of [-1, 1]) { b.box(x + sx * .45, 2.6, (r[2] + r[3]) / 2, .22, .08, 9, 0x2a2a33); b.box(x + sx * .45, 2.56, (r[2] + r[3]) / 2, .16, .04, 8.8, 0xe06aff, 0, 1.25); } b.box(x, .003, (r[2] + r[3]) / 2, 2.6, .012, 9.6, 0xa87ac8); }
+      // dismantled shelving: beams stacked on the floor, uprights leaning on the walls
+      for (const [x, z, n] of [[8.5, -7, 6], [-11.2, -6, 4]]) { for (let k = 0; k < n; k++) b.box(x + (k % 2) * .2 - .1, .02 + (k >> 1) * .15, z, .12, .13, 2.6, ORANGE, (x > 0 ? .05 : 0) * (k - 2)); c.colliders.push({ x, z: z - .9, r: .4 }, { x, z, r: .4 }, { x, z: z + .9, r: .4 }); }   // kept tight to the walls, out of every route
+      for (let k = 0; k < 5; k++) b.box(-6.4 + k * .34, 0, -14.5, .1, 2.9, .1, ORANGE, 0, 0, -.16);                           // uprights against the back wall
+      for (let k = 0; k < 3; k++) b.box(8.9, 0, -12.6 + k * .4, .1, 2.6, .1, ORANGE, 0, 0, 0, .12);
+      // grow lights everywhere: hung along the back wall, and a stack waiting to be carried out
+      for (let k = 0; k < 7; k++) { const x = -9.6 + k * 2.9; b.box(x, 2.5, -14.55, 1.6, .5, .08, 0x2a2a33); b.box(x, 2.5, -14.5, 1.44, .38, .04, [0xe06aff, 0xff7ad0, 0xb48aff][k % 3], 0, 1.25); }
+      for (let k = 0; k < 4; k++) { b.box(-11.3, .04 + k * .16, 1.2, .6, .12, 1.1, 0x2a2a33, k * .12); b.box(-11.3, .16 + k * .16, 1.2, .46, .02, .9, 0xe06aff, k * .12, 1.2); }
+      // pumps and hoses by the water barrels
+      for (const [x, z] of [[-10.6, 2.4], [-9.5, 6.9]]) { b.box(x, 0, z, .6, .08, .4, 0x2a2a33); b.cyl(x - .1, .08, z, .2, .36, 0x3d8bd9, 1, 8); b.box(x + .24, .08, z, .2, .24, .26, STEEL); }
+      b.box(-10.55, .03, 3, .07, .06, 1.2, 0x23252e); b.box(-10, .03, 6.3, .07, .06, 1.3, 0x23252e, .9); b.box(-10.2, .03, 2.4, 1, .06, .07, 0x4fae6a);
+      sign('EVERYTHING MUST GO', -7, 3.4, -14.62, 4.4, .5, { bg: '#f07a1a', fg: '#ffffff', border: '#ffffff' });
       b.box(-8, 0, 2, 2.6, .9, 1, 0x6a5240); b.box(-8, .9, 2, 2.8, .08, 1.2, STEEL); b.box(-8.6, .98, 2, .5, .3, .4, 0x2a2a33); c.colliders.push({ x: -8.7, z: 2, r: .8 }, { x: -7.3, z: 2, r: .8 });   // workbench
       for (const z of [-1, 1.2]) { b.cyl(-10.5, 0, z + 4.6, .62, 1.3, 0x3d8bd9, 1, 12); b.cyl(-10.5, 1.3, z + 4.6, .64, .06, 0x2a2a33, 1, 12); c.colliders.push({ x: -10.5, z: z + 4.6, r: .7 }); }           // water barrels
       for (let k = 0; k < 4; k++) b.box(-11.6, 3.6, -12 + k * 5, .1, .1, .1, 0x2a2a33); b.box(-11.55, 3.3, 5.6, .14, .34, .5, 0x2a2a33); b.box(-11.46, 3.36, 5.6, .04, .1, .1, 0xff3a30, 0, 1.25);        // a camera, mostly for show
@@ -186,39 +224,59 @@ export const LEVELS = [
     } },
 
   /* ───────────── 3 · METAH'S WEDDING — a garden ceremony in Portland ───────────── */
-  { id: 'metah', tint: 0xd0ccf6, shot: [0, .4], prop: 'toast', caption: 'dressed up, glass up',
+  { id: 'metah', tint: 0xd0ccf6, shot: [0, .4], prop: 'toast', caption: 'a slow dance by the lake',
     outfit: { him: { top: 0x2a2a33, legs: 0x2a2a33, tie: 0xc9b6e6 }, her: { top: 0xf2c9c2, dots: 0xd9628a } },
-    kicker: 'August 24, 2024 · Portland, Oregon', title: "Metah's Wedding", sub: 'a hectic week. one perfect night.',
-    game: 'catcher', icon: '❀', stars: [40, 80, 120],
-    how: 'Petals are coming down over the aisle.\nCatch them, and the bouquet for +3. Dodge the bees.\nSTICK move · A dash',
-    P: { time: 38, every: .55, width: 6, shapes: ['petal', 'bouquet', 'bee'], col: 0xff9ab8, gold: 0xffffff, badCol: 0xffd23a, bad: .2, badPop: 'bee!', goldPop: 'bouquet! +3', note: '' },
+    kicker: 'August 24, 2024 · Portland, Oregon', title: "Metah's Wedding", sub: 'a white tent, a lake, a bathroom up a hill.',
+    game: 'dance', icon: '❀', stars: [25, 50, 80],
+    how: 'A slow dance on the lawn by the lake. You dance together: one of you leads a move, the other answers it on the next beat.\nWhen it is your lead, pick any move as the ring closes. When you follow, copy the move in the bubble as the ring closes.\n◀ ▶ step · ▼ dip · A when it says together',
+    P: { time: 46, bpm: 112, moves: ['LEFT', 'RIGHT', 'DOWN', 'A'], at: [0, 1.4], cam: [0, 4.2, 11.6, 0, 2.5, 0], col: 0xff9ab8 },
     build(b, c) {
       sky(0x06071e, 0x1a1c58, 0x141640, 700); lights(0x8088dc, 0x2a4a3c, 1.5, 0xffd8b0, 1.15, -5, 10, 7); fog(0x141640, 34, 110); orb(-50, 44, -120, 6, 0xe8ecff, 1.2);
-      turf(200, 200, 0x2c6a4c); b.box(0, 0, 1, 3, .03, 11, 0xf6ecd8);                                                         // lawn + aisle runner
-      b.cone(-30, 0, -110, 30, 34, 0x2c3668, 8); b.cone(-30, 21.5, -110, 11, 12.6, 0xaab4e0, 8);                              // Mt. Hood
-      for (const [x, z, r2] of [[30, -90, 26], [70, -80, 22], [-80, -84, 24]]) b.ball(x, -8, z, r2, 0x183a34, 0, .5);
-      for (let i = 0; i < 11; i++) { const x = -20 + i * 4; b.box(x, 0, -4.8, 3.9, 1.5 + (i % 2) * .3, 1.2, i % 2 ? 0x4f8f52 : 0x5a9a58);                                      // flowering hedge
-        for (let k = 0; k < 5; k++) b.ball(x - 1.6 + k * .8, 1.35 + ((i + k) % 3) * .2, -4.15, .16, [0xff9ab8, 0xffffff, 0xffd27a, 0xd9628a][(i + k) % 4]); }
-      b.box(-1.7, 0, -3.4, .2, 3.4, .2, 0xffffff); b.box(1.7, 0, -3.4, .2, 3.4, .2, 0xffffff); b.box(0, 3.4, -3.4, 3.9, .24, .24, 0xffffff);                                    // the arch
-      for (let i = 0; i < 11; i++) b.ball(-1.75 + i * .35, 3.6 + Math.sin(i * 1.3) * .14, -3.3, .26, [0xff9ab8, 0xffffff, 0xd9628a, 0x8fbf7a][i % 4]);
-      for (const sx of [-1, 1]) { b.ball(sx * 1.7, .3, -3.2, .34, 0xff9ab8); b.ball(sx * 1.9, .5, -3.3, .24, 0xffffff); }
-      let n = 0; for (const sx of [-1, 1]) for (let r = 0; r < 3; r++) for (let k = 0; k < 4; k++) { const x = sx * (2.6 + k * 1.05), z = -1.4 - r * 1.15; chair(b, x, z, Math.PI); if ((n++ * 7) % 3) person(n, x, z + .05, Math.PI); }   // guests, facing the arch
-      for (const [x, z, sc] of [[-10, -7.5, 2.2], [10, -8, 2.5], [-16, -9, 2], [16, -8, 2.1], [0, -10, 2.6], [-24, -7, 2.3], [24, -9, 2]]) tree(b, x, z, sc, 0x4f9a5a);
-      for (const sx of [-1, 1]) b.cyl(sx * 9.5, 0, -3.8, .08, 4.5, 0xfff6e6, 1, 6); stringLights(b, -9.5, -3.8, 9.5, -3.8, 4.5, [0xffd27a, 0xffffff], 20, 1);
+      turf(200, 200, 0x2c6a4c);                                                                                               // the big lawn: the reception is right here, next to the lake
+      /* the lake, straight ahead, with the moon on it */
+      b.box(0, .02, -52, 240, .04, 84, 0x223a8c); b.box(0, .03, -9.9, 240, .05, .9, 0x7a7460);
+      for (let k = 0; k < 16; k++) b.box(-9 - k * 2.1 + Math.sin(k * 2.1) * 1.4, .05, -13 - k * 4.4, 1.6 - k * .05, .02, .16, 0xdfe6ff, 0, 1.1);
+      for (const [x, z, r2] of [[40, -108, 26], [86, -100, 22], [-84, -104, 24], [0, -116, 20]]) b.ball(x, -8, z, r2, 0x14302e, 0, .45);      // the far shore
+      /* one side: a giant hill */
+      b.ball(-24, -4, -14, 19, 0x1f5242, 0, .85); b.ball(-40, -4, -30, 20, 0x1a4638, 0, .7);
+      /* the other side: a small bathroom, up its own little hill, with steps and a light on */
+      const HX = 9.6, HZ = -10.5, hillY = (x, z) => -2.2 + 4.5 * Math.sqrt(Math.max(0, 1 - ((x - HX) ** 2 + (z - HZ) ** 2) / 56.25));
+      b.ball(HX, -2.2, HZ, 7.5, 0x2a6650, 0, .6);
+      b.box(HX, 2.2, HZ, 2.6, 2, 2, 0xe8e0d0); b.box(HX, 4.2, HZ, 3, .22, 2.4, 0x6a5a50); b.box(HX - .5, 2.25, HZ + 1.01, .7, 1.5, .05, 0x5a4030); b.box(HX + .65, 3.2, HZ + 1.01, .5, .4, .05, 0xffe9b0, 0, 1.2);
+      b.cyl(HX - 1.7, 2.1, HZ + 1.2, .05, 2, 0x3b3b4a, 1, 5); b.ball(HX - 1.7, 4.2, HZ + 1.2, .18, 0xffe9b0, 1.25);
+      sign('RESTROOM', HX, 3.85, HZ + 1.03, 1.5, .3, { bg: '#f2efe6', fg: '#2a3a6a', border: '#2a3a6a' });
+      for (let k = 0; k < 8; k++) { const t = k / 7, x = 7.6 + (HX - .5 - 7.6) * t, z = -4 + (HZ + 1.6 + 4) * t; b.box(x, Math.max(0, hillY(x, z)) - .1, z, .9, .16, .6, 0xb8ae9c, .6); }
+      /* the small white tent on the shore, where the ceremony was */
+      const TZ = -6;
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.cyl(sx * 3.3, 0, TZ + sz * 2.3, .09, 2.7, 0xffffff, 1, 6);
+      b.cyl(0, 2.7, TZ, 4.9, 1.9, 0xffffff, .001, 4); b.ball(0, 4.65, TZ, .14, 0xffe9b0, 1.25);
+      for (const sz of [-1, 1]) b.box(0, 2.42, TZ + sz * 2.3, 6.8, .34, .06, 0xf2efe6); for (const sx of [-1, 1]) b.box(sx * 3.3, 2.42, TZ, .06, .34, 4.7, 0xf2efe6);
+      for (let k = 0; k <= 12; k++) b.dot(-3.3 + k * .55, 2.34, TZ + 2.36, .06, 0xffe9b0, 1.25);
+      b.box(0, .01, TZ + 3.4, 1.6, .03, 6.6, 0xf6ecd8);                                                                          // the aisle runner, out of the tent and onto the lawn
+      b.box(-1.1, 0, TZ - 1.7, .12, 2.1, .12, 0xffffff); b.box(1.1, 0, TZ - 1.7, .12, 2.1, .12, 0xffffff); b.box(0, 2.1, TZ - 1.7, 2.4, .14, .14, 0xffffff);   // a small arch at the back of it, the lake behind
+      for (let i = 0; i < 7; i++) b.ball(-1.05 + i * .35, 2.26 + Math.sin(i * 1.3) * .1, TZ - 1.62, .2, [0xff9ab8, 0xffffff, 0xd9628a, 0x8fbf7a][i % 4]);
+      person(3, 0, TZ - 1.2, 0, 0, { top: 0x2a2a33 });
+      let n = 0; for (const sx of [-1, 1]) for (let r = 0; r < 2; r++) for (let k = 0; k < 2; k++) { const x = sx * (1.5 + k * .95), z = TZ + .9 - r * 1.1; chair(b, x, z, Math.PI); if ((n++ * 7) % 4) person(n, x, z + .05, Math.PI); }
+      /* the reception: round tables on the lawn, lights strung from the tent out over them */
+      [[-7.4, -2.2], [7.6, -2], [-10.4, 1.2]].forEach(([x, z], i) => { b.cyl(x, 0, z, .12, .72, 0x8a8a96, 1, 6); b.cyl(x, .72, z, 1, .07, 0xf6f2ea, 1, 12); b.cyl(x, .5, z, 1.02, .22, 0xe8e2d6, 1, 12); b.cyl(x, .79, z, .1, .2, 0xff9ab8, .7, 6); b.dot(x + .3, .9, z + .1, .06, 0xffe9b0, 1.25);
+        person(20 + i * 3, x - .9, z - .7, .6); person(21 + i * 3, x + .95, z - .55, -.7); if (i % 2) person(22 + i * 3, x, z - 1.15, 0); });
+      b.box(-5.6, 0, -4.6, 2.4, .8, .8, 0xf6f2ea); for (let k = 0; k < 5; k++) b.cyl(-6.5 + k * .45, .8, -4.6, .09, .24, [0xffd27a, 0xff9ab8, 0xc9b6e6][k % 3], .8, 6);   // the drinks table
+      for (const sx of [-1, 1]) { b.cyl(sx * 10.5, 0, -1.2, .08, 4.2, 0xfff6e6, 1, 6); stringLights(b, sx * 3.3, TZ + 2.3, sx * 10.5, -1.2, 3.4, [0xffd27a, 0xffffff], 12, .8); }
+      stringLights(b, -10.5, -1.2, 10.5, -1.2, 4.2, [0xffd27a, 0xffffff, 0xff9ab8], 22, 1.2);
+      for (const [x, z, sc] of [[20.5, -6, 2], [24, -13, 2.4]]) tree(b, x, z, sc, 0x2c6a4c);
       c.amb.push(ambient({ n: 60, col: 0xffb3d1, size: .12, area: 11, h: 9, vy: -.7, add: false, opacity: .85 }));
     } },
 
   /* ───────────── 4 · ANTHONY & NICKA'S WEDDING — the reception ───────────── */
   { id: 'wedding', tint: 0xd0ccf6, shot: [0, 1.2], prop: 'toast', caption: 'we closed the dance floor', outfit: { him: { top: 0x2a2a33, tie: 0x8a2a3a, legs: 0xc2313a } }, kicker: 'September 7, 2024', title: "Anthony & Nicka's Wedding", sub: 'red pants. rain jacket. no regrets.',
-    game: 'rhythm', icon: '♪', stars: [80, 200, 320],
-    how: 'Own the dance floor.\n◀ and ▶ on the stick, A in the middle — hit each one as it reaches the line.',
-    P: { time: 36, bpm: 112 },
+    game: 'dance', icon: '♪', stars: [25, 50, 80],
+    how: 'Own the dance floor, together. One of you leads a move, the other answers it on the next beat, and the lead swaps.\nYour lead: pick any move as the ring closes. Following: copy the move in the bubble as the ring closes.\n◀ ▶ step · ▲ spin · ▼ dip · A jump',
+    P: { time: 48, bpm: 112, at: [0, -2.4], col: 0xffd77e },
     build(b, c) {
       sky(0x07061e, 0x221a5c, 0x181244, 700); lights(0x8c82dc, 0x2a4a3e, 1.55, 0xffcca8, 1.3, 3, 8, 6); fog(0x181244, 30, 96);
       island(b, 26, 0x2a6a50, { woods: 0x1a4a3a, hills: 0x181c50 });
       b.box(0, 0, -7, 9.6, .05, 19.6, 0x6a4a30);                                                                             // parquet dance floor
       for (let x = -3; x < 3; x++) for (let z = -10; z < 2; z++) b.box(x * 1.5 + .75, .05, z * 1.6 + .2, 1.46, .03, 1.56, (x + z) & 1 ? 0xc89a62 : 0xb5854f);
-      for (const x of [-2.25, -.75, .75, 2.25]) b.box(x, .081, -7, .05, .01, 18.6, 0xfff6e0);
       for (const sx of [-1, 1]) for (const z of [-17.4, 3.6]) b.cyl(sx * 5.4, 0, z, .09, 4.2, 0xfff6e6, 1, 6);                 // tent poles and strings of lights overhead
       for (let k = 0; k < 6; k++) { const z = 3.6 - k * 4.2; for (let i = 0; i <= 14; i++) { const t = i / 14; b.dot(-5.4 + t * 10.8, 4.2 - Math.sin(t * Math.PI) * .9, z, .06, 0xffe9a0, 1.25); } }
       b.box(0, 0, -18.6, 3.4, 1, 1, 0x2a2a33); for (const sx of [-1, 1]) { b.box(sx * 2.6, 0, -18.6, 1, 2, .9, 0x1c1a24); b.cyl(sx * 2.6, 1.3, -18.14, .32, .04, 0x55555f, 1, 10); }                                  // DJ booth + speakers
@@ -231,7 +289,39 @@ export const LEVELS = [
   /* ───────────── 5 · NEW ORLEANS — a TO DO list in the French Quarter (the whole level lives in nola.js) ───────────── */
   NOLA,
 
-  /* ───────────── 6 · WAITING FOR GODOT — West 44th Street to the Hudson Theatre ───────────── */
+  /* ───────────── 6 · NOAH & CHLOE'S WEDDING — the reason for the trip: a courtyard in the Quarter, a brass band ───────────── */
+  { id: 'noahchloe', tint: 0xd0ccf6, shot: [0, .6], prop: 'toast', caption: 'the reason we came', outfit: { him: { top: 0x2a2a33, tie: 0x4fae6a }, her: { top: 0x3fb8a8, dots: 0xfff2a8, collar: 0xffffff } },
+    kicker: 'April 2025 · New Orleans', title: "Noah & Chloe's Wedding", sub: 'the whole reason we went. also the beignets.',
+    game: 'dance', icon: '♫', stars: [25, 50, 80],
+    how: 'A courtyard in the French Quarter and a brass band that will not slow down.\nYour lead: pick any move as the ring closes. Following: copy the move in the bubble as the ring closes.\n◀ ▶ step · ▲ spin · ▼ dip · A jump',
+    P: { time: 48, bpm: 120, at: [0, -.6], col: 0xffd27a },
+    build(b, c) {
+      sky(0x07061e, 0x221a5c, 0x181244, 600); lights(0x8c82dc, 0x3a3a4a, 1.55, 0xffcca8, 1.3, 3, 8, 6); fog(0x181244, 30, 90);
+      const BRICK = 0xa8604e, IRON = 0x24222c, CREAM = 0xf2e6c8;
+      b.box(0, -.3, -4, 60, .3, 60, 0x55535e);
+      b.box(0, 0, -3, 15, .05, 14, 0x9a5a48); for (let x = -7; x < 7; x++) for (let z = -9; z < 4; z++) if ((x + z) & 1) b.box(x + .5, .05, z + .5, .96, .02, .96, 0xb06a54);   // the brick courtyard
+      /* the house at the back: stucco wall, tall shuttered doors, an iron gallery above with ferns and beads on the rail */
+      b.box(0, 0, -11.4, 17, 7.4, 1.4, 0xe8b86a); b.box(0, 7.4, -11.4, 17.4, .3, 1.8, 0x6a4a40);
+      for (let k = -2; k <= 2; k++) { const x = k * 3.2; b.box(x, 0, -10.66, 1.3, 2.7, .06, 0x2f6a58); b.box(x, 0, -10.63, .06, 2.7, .06, 0x1f4a3e); b.box(x, 3.9, -10.66, 1.3, 2.3, .06, 0x2f6a58); b.box(x, 3.95, -10.6, 1, 1.5, .04, 0xffe9b0, 0, 1.1); }
+      b.box(0, 3.5, -10, 17, .14, 1.5, 0x3a3540); for (let k = 0; k <= 34; k++) b.box(-8.4 + k * .494, 3.64, -9.3, .05, .85, .05, IRON); b.box(0, 4.46, -9.3, 17, .07, .07, IRON);
+      for (let k = -3; k <= 3; k++) { b.box(k * 2.7, 0, -9.3, .1, 3.5, .1, IRON); b.ball(k * 2.7 + 1.35, 3.95, -9.4, .34, 0x3f9a52, 0, .7); }
+      for (let k = 0; k < 22; k++) b.dot(-8 + k * .76, 4.3 - Math.abs(Math.sin(k * 1.57)) * .3, -9.22, .07, [0xb04ad9, 0xffd27a, 0x4fae6a][k % 3], 1.2);
+      sign('N ♥ C', 0, 5.9, -10.62, 2.6, .9, { bg: '#2a1f5c', fg: '#ffd77e', border: '#ffd77e', glow: true });
+      /* side walls, a fountain, palms in pots, lights strung across */
+      for (const sx of [-1, 1]) { b.box(sx * 8.2, 0, -4, .6, 3.4, 15, BRICK); for (let k = 0; k < 4; k++) b.ball(sx * 7.8, 3.2, -9 + k * 3.4, .7, 0x2f7a4a, 0, .7);
+        b.cyl(sx * 6.6, 0, -8.2, .5, .7, 0xb86a4a, .8, 8); b.cyl(sx * 6.6, .7, -8.2, .1, 2.3, 0x8a7a5a, .8, 5); for (let k = 0; k < 5; k++) b.ball(sx * 6.6 + Math.cos(k * 1.257) * .5, 3.05, -8.2 + Math.sin(k * 1.257) * .5, .5, 0x3f9a52, 0, .35); }
+      b.cyl(-5.2, 0, -6.6, 1.1, .5, 0xd8cab8, 1, 12); b.cyl(-5.2, .5, -6.6, .9, .04, 0x2a3a8a, 1, 12); b.cyl(-5.2, .5, -6.6, .16, .9, 0xd8cab8, .8, 8); b.ball(-5.2, 1.5, -6.6, .22, 0xd8cab8);
+      for (let k = 0; k < 4; k++) { const z = 2.4 - k * 3.6; for (let i = 0; i <= 16; i++) { const t = i / 16; b.dot(-7.9 + t * 15.8, 4.4 - Math.sin(t * Math.PI) * 1, z, .06, i % 4 ? 0xffe9a0 : [0xb04ad9, 0x4fae6a][k % 2], 1.25); } }
+      /* the brass band, on the right, and everyone else around the edge */
+      b.box(5.4, 0, -7.6, 3.6, .25, 2, 0x3a3540); for (let k = 0; k < 4; k++) { person(30 + k, 4.1 + k * .85, -7.6, -.3, .25, { top: k % 2 ? 0xf2efe6 : 0x2a2a33, cap: 0x2a2a33 }); b.cyl(4.1 + k * .85, 1.05, -7.2, .13, .34, 0xffd23a, .5, 6, .4); }
+      b.cyl(6.9, .25, -6.9, .45, .6, 0xe5484d, 1, 10); b.cyl(6.9, .85, -6.9, .46, .04, 0xf2efe6, 1, 10);
+      let n = 0; for (const sx of [-1, 1]) for (let i = 0; i < 2; i++) { const x = sx * 6.2, z = 1.6 - i * 3.6; roundTable(b, x, z); person(n++ + 12, x - sx * 1, z - .9, sx > 0 ? -1.2 : 1.2); person(n++ + 15, x + sx * .3, z - 1.3, sx > 0 ? -.6 : .6); }
+      for (const [x, z, f] of [[-3.4, -8.4, .3], [-2.2, -8.9, .1], [1.2, -8.8, -.1], [2.6, -8.3, -.3], [-6.6, -3.4, 1.2], [6.8, -3.2, -1.2]]) person(n++ + 20, x, z, f);
+      b.box(-6.4, 0, -9.6, 2.2, .8, .8, 0xfff6e6); for (let k = 0; k < 6; k++) b.ball(-7.1 + k * .28, .92, -9.6, .11, 0xf2e6c8);                                                  // a table of beignets, obviously
+      c.amb.push(ambient({ n: 50, col: 0xffe9a0, size: .1, area: 9, h: 6 }));
+    } },
+
+  /* ───────────── 7 · WAITING FOR GODOT — West 44th Street to the Hudson Theatre ───────────── */
   { id: 'godot', shot: [0, 0], prop: 'playbill', caption: 'nothing happens, twice. we loved it.', kicker: 'October 22, 2025 · Hudson Theatre', title: 'Waiting for Godot', sub: 'he never shows. we did, barely.',
     game: 'runner', icon: '★', stars: [30, 70, 110],
     how: 'Curtain is at 2:00 and West 44th is jammed.\n◀ ▶ change lane around the cabs · A jumps the barricades · grab the tickets',

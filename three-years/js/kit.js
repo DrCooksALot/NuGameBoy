@@ -102,6 +102,11 @@ function drawFrame(G, o, dir, step, cheer) {
   const rect = (x, y, w, h, c) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) put(x + i, y + j, c); };
   const skin = hexCss(o.skin), hair = hexCss(o.hair), hair2 = hexCss(o.hair2 || o.hair, o.hair2 ? 1 : 1.5), top = hexCss(o.top), topD = hexCss(o.top, .76), legs = hexCss(o.legs), shoe = hexCss(o.legs, .55);
   const curly = o.style === 'curly', dress = curly || o.style === 'long' || o.style === 'bun', eye = '#2a1820', bob = step ? 1 : 0, side = dir === 'side';
+  // antlers: drawn last so they sit on top of hair and hats, with their own dark edge
+  const antlers = () => { if (!o.antlers) return; const c = hexCss(o.antlers), hi = hexCss(o.antlers, 1.3), L = [[4, 1], [8, 1], [4, 2], [6, 2], [8, 2], [4, 3], [5, 3], [6, 3], [8, 3], [6, 4], [7, 4], [8, 4], [6, 5], [7, 5], [6, 6], [7, 6], [6, 7], [7, 7]], pts = [];
+    for (const [x, y] of L) { if (side) pts.push([x + 6, y]); else { pts.push([x, y]); pts.push([23 - x, y]); } }
+    for (const [x, y] of pts) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) put(x + dx, y + dy + bob, '#2a1a2c');
+    for (const [x, y] of pts) put(x, y + bob, y < 3 ? hi : c); };
   // legs + feet
   if (side) { if (step) { rect(8, 26, 3, 2, shoe); rect(14, 26, 3, 2, shoe); if (!dress) { rect(9, 23, 3, 3, legs); rect(13, 23, 3, 3, legs); } } else { rect(11, 26, 4, 2, shoe); if (!dress) rect(10, 23, 4, 3, legs); } }
   else { rect(8, 26 - (step ? 1 : 0), 3, 2, shoe); rect(13, 26, 3, 2, shoe); if (!dress) { rect(8, 23, 3, 3, legs); rect(13, 23, 3, 3, legs); } }
@@ -122,7 +127,7 @@ function drawFrame(G, o, dir, step, cheer) {
   if (o.style === 'bun') ell(12, 1.5 + hy, 2.6, 2.4, hair);
   if (dir === 'back') { ell(12, 10.5 + hy, 6.6, 6.2, hair); rect(9, 16 + hy, 6, 1, skin);
     if (curly) for (const [x, y, c] of [[8, 7, hair2], [13, 5, hair2], [16, 10, hair2], [10, 12, hair2], [14, 14, hair]]) ell(x, y + hy, 2.2, 2, c);
-    if (o.cap) { const c = hexCss(o.cap); rect(5, 1 + hy, 14, 5, c); rect(5, 6 + hy, 14, 1, hexCss(o.cap, .8)); } return; }
+    if (o.cap) { const c = hexCss(o.cap); rect(5, 1 + hy, 14, 5, c); rect(5, 6 + hy, 14, 1, hexCss(o.cap, .8)); } antlers(); return; }
   ell(fx, 10.5 + hy, 6.6, 6.2, skin);
   if (curly) { for (const [x, y, c] of [[7, 5, hair2], [10.5, 4, hair], [14, 4, hair2], [17, 5, hair], [5.5, 8, hair], [18.5, 8, hair2]]) if (!side || x < 17) ell(x + (side ? .6 : 0), y + hy, 2.3, 2.1, c); for (const [x, y] of [[4, 4], [9, 1], [3, 10]]) { put(x, y + hy, hair2); put(x + 1, y + hy, hair2); } if (side) rect(5, 7 + hy, 4, 9, hair); }
   else if (dress) { rect(fx - 6, 4 + hy, 12, 3, hair); if (side) rect(4, 6 + hy, 4, 11, hair); }
@@ -135,6 +140,8 @@ function drawFrame(G, o, dir, step, cheer) {
   if (o.beard) { const b = hexCss(o.beard); for (let y = 13; y <= 16; y++) for (let x = fx - 6; x <= fx + 6; x++) if (((x + .5 - fx) / 6.4) ** 2 + ((y + .5 - 10.5) / 6.2) ** 2 <= 1 && (y > 13 || x < fx - 4 || x > fx + 3) && !(side && x < fx - 2 && y < 15)) put(x, y + hy, b);
     rect(side ? 15 : 10, 14 + hy, side ? 3 : 4, 1, cheer ? '#fff' : '#f6dccb'); }
   else if (cheer) rect(side ? 15 : 11, 14 + hy, 2, 2, '#b4483f'); else rect(side ? 16 : 11, 14 + hy, 2, 1, '#b4483f');
+  if (o.collar && dress && dir === 'front') { const c = hexCss(o.collar); rect(9, by, 2, 1, c); rect(13, by, 2, 1, c); put(10, by + 1, c); put(13, by + 1, c); put(11, by, '#e5352f'); put(12, by, '#e5352f'); }
+  antlers();
 }
 const atlasCache = new Map();
 function atlas(o) {

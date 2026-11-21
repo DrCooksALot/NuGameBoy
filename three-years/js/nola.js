@@ -652,7 +652,7 @@ export function errands(ctx) {
 export const NOLA = {
   id: 'nola', shot: [BX, BZ - 2.3], prop: 'beignet', caption: 'powdered sugar in a thunderstorm', kicker: 'April 2025 · French Quarter', title: 'New Orleans', sub: 'a list, a timeshare, gators, a steamboat.',
   game: 'errands', icon: '⚜', stars: [40, 70, 100],
-  how: 'A hotel room in the Quarter. Write the list, then go cross it off.\nWeed, food and gifts come from any of several shops. The man in the life vest at the dock has the adventures: the Hilton, the airboat race, then the steamboat.\nSTICK walk · A talk and buy · B map',
+  how: 'A hotel room in the Quarter. The wedding is tomorrow; today is yours. Write the list, then go cross it off.\nWeed, food and gifts come from any of several shops. The man in the life vest at the dock has the adventures: the Hilton, the airboat race, then the steamboat.\nSTICK walk · A talk and buy · B map',
   P: { col: 0xffd27a },
   build(b, c) {
     b.lo = true;

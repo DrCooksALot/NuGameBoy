@@ -37,10 +37,10 @@ Drawn procedurally in `three-years/js/kit.js` (`drawFrame`, `atlas`, `makeChar`)
 - **Proportions:** chibi. The head is roughly half the height. Two-by-three pixel eyes with a one-pixel white highlight, a pink blush pixel pair, a one-pixel mouth.
 - **Animation:** two-frame walk with a small bob. Idle breathes very slightly. Keep it this simple.
 - **The two leads** (defaults in `three-years/config.js`):
-  - **Ahanu:** big curly **pink** hair in two tones (`0xff5fa8`, highlights `0xffa6cf`), light skin with a slight tan (`0xecc4a0`), teal top.
-  - **TEK:** short **blue** hair and beard (`0x3a82f6`), fair skin (`0xf6dcc6`) with freckles, dark top, blue jeans.
-  - The pink and blue hair is deliberate. It makes the two leads readable at a glance in any scene and keeps them stylised instead of lookalikes of real people. Do not "correct" it to natural colours.
-- **Outfits change per level** through the level's `outfit` field, never by editing the defaults. Examples in use: tan jacket and tan hat with a leather jacket (Lightscape), suit and floral dress (Metah's wedding), red trousers (Anthony & Nicka's), all black with beanies (The Heist).
+  - **NUNU:** big curly pink hair in two tones (`0xff5fa8`, highlights `0xffa6cf`), small **red antlers** (`antlers: 0xe5352f`, drawn over hair and hats), light skin with a slight tan, a lilac dress with pale dots, a white collar with a red bow, red shoes.
+  - **TEK:** short dark brown hair and beard, fair skin with freckles, dark top, blue jeans. **No blue hair.** It was tried and rejected outright.
+  - The in-game names are NUNU and TEK. Do not use any other name for either lead in dialogue, titles or docs.
+- **Outfits change per level** through the level's `outfit` field, never by editing the defaults. Examples in use: tan jacket and tan hat with a leather jacket (Lightscape), suit and floral dress (Metah's wedding), red trousers (Anthony & Nicka's), all black with beanies, antlers poking through (The Heist).
 - **Everyone else** (guests, visitors, the guard, couples) uses the same sprite system with varied skin, hair and tops, so the whole cast matches.
 
 ## 4. The world (3D)
@@ -82,7 +82,7 @@ All UI is HTML over the canvas, styled in `three-years/index.html`.
 
 - Vertical field of view 54° when the screen is squarer than 1.2 : 1 (phones in portrait), otherwise 44°.
 - Walk-around levels: the camera sits about 9 units up and 9 units south of the player, looking slightly down at them, and follows smoothly.
-- Fixed-view levels (catch, rhythm, runner) use one static camera each; see each game's `cam()` in `games.js`.
+- Fixed-view levels (dance, catch, runner) use one camera each; see each game's `cam()`. The dance camera sits close on the couple and drifts with them.
 - Level openings are a short push-in from higher and further back. No orbiting.
 
 ## 8. Tone and writing
@@ -103,7 +103,7 @@ Measured with `renderer.info` during play. Stay inside these.
 | | Target | Heaviest level today |
 |---|---|---|
 | Draw calls | under 50 | 46 |
-| Triangles | under 75k | about 70k (Lightscape). New Orleans is a known exception at about 111k: it is five sets in one merged mesh. Do not add to it. |
+| Triangles | under 75k | about 76k (Lightscape, at the limit: add nothing without removing something). New Orleans is a known exception at about 111k: it is five sets in one merged mesh. Do not add to it. |
 
 - Static scenery: one merged mesh per level, plus one for unlit glow.
 - Repeated moving things: pooled `InstancedMesh` via `items()`. Never one mesh per pickup for the whole level.
@@ -132,15 +132,37 @@ Synthesized with Web Audio; no audio files except one. Each level has its own up
 |---|---|
 | Reference games | *Secret of Mana*, *Tunic*, *Little Devil Inside*, *The Legend of Zelda*. |
 | "How we usually do our cool 3D games" | An earlier 3D game with a diorama feel, probably deleted. The diorama view is the thing to keep building on. |
-| The two leads | See section 3. Stylised on purpose: pink hair and blue hair. |
+| The two leads | See section 3. Named NUNU and TEK. Nunu is the stylised one: pink hair, red antlers. |
 | How dark is night | See section 5. Night only for Lightscape and the weddings. |
 | Voice | The deadpan NPC tone is right. |
+
+## Per-level mood (from the owner)
+
+| Level | Mood |
+|---|---|
+| Lightscape | Neon lights covering the botanic garden. An Alice in Wonderland light show in a secret garden. Cool and fun. Built as: neon-edged paths, colour-lit trees, oversized glowing mushrooms and flowers, a rainbow light tunnel, drifting pink and cyan lights. |
+| The Heist | Super goofy, not tense. The grow room is grey and white, with orange shelving being taken apart, lots of grow lights, and pumps. The guard is a friend: if he catches you he says something and looks away. No fine, no dropped gear, no stun. |
+| Metah's Wedding | A small white tent next to a lake. A giant hill on one side. On the other side, a small bathroom up its own hill. The reception was on a big lawn right next to the lake. Built with the camera looking across the lawn at the tent, lake behind it, hill left, bathroom right. At night (confirmed). |
+| Anthony & Nicka's Wedding | At night. Mood details still to ask. |
+| Noah & Chloe's Wedding | In New Orleans, at night. It was the reason for the New Orleans trip. Its own level, right after New Orleans. The courtyard and brass band are a guess. |
+
+## Weddings are dances (from the owner)
+
+Every wedding level is a dance, and it is a **couples dance**: the two leads dance with each other, not side by side in time. The old three-lane falling-note game was rejected as a "guitar hero rip off" and removed. Do not bring back lanes or falling notes.
+
+How it works (`three-years/js/dance.js`):
+
+- The two stand close, facing each other. One leads a move on the beat; the other answers the same move on the next strong beat; then both do it together.
+- The lead swaps every four moves. Every fifth move has no leader: both press A together.
+- Moves: step left, step right, spin, dip, jump. A level can limit the set (`P.moves`); the slow dance by the lake has no spin.
+- What the player sees: one line saying whose turn it is, one bubble over the couple with the move, one ring closing on the bubble as the beat arrives. Hearts along the bottom count how well it is going.
+- Two phones: the leader's phone sends the move, the follower's phone sends back whether they kept up. Each phone answers on its own beat, because their clocks never match exactly.
 
 ## Still open
 
 Ask about these one level at a time; do not guess in bulk.
 
-1. **Per-level mood, one line each:** weather and the single thing that must be recognisable. Lightscape, The Heist, Metah's Wedding, Anthony & Nicka's Wedding, New Orleans, Waiting for Godot, Happy Birthday.
+1. **Per-level mood, one line each:** weather and the single thing that must be recognisable. Still to ask: Anthony & Nicka's Wedding (what it looked like), Noah & Chloe's Wedding (what it looked like), New Orleans, Waiting for Godot, Happy Birthday.
 2. **Sprite detail:** keep 24 × 30, or go larger? More animation for the leads (sitting, hugging, dancing)?
 3. **Type:** stay with Courier New, or bundle a real pixel font?
 4. **Shell colour:** keep the periwinkle body?
