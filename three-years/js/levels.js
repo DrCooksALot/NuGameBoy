@@ -35,28 +35,70 @@ function cherry(b, x, z, i) {
 
 export const LEVELS = [
   /* ───────────── 1 · LIGHTSCAPE — Brooklyn Botanic Garden ─────────────
-     Cherry Esplanade with Sea of Light on the lawn, the Winter Cathedral tunnel, the Supernova star,
-     and the Palm House with its lily pools beyond. */
-  { id: 'lightscape', shot: [0, 3.4], prop: 'lantern', caption: 'the night the garden glowed', kicker: 'December 2023 · Brooklyn Botanic Garden', title: 'Lightscape', sub: 'the garden, lit up. so were we.',
-    game: 'collect', R: 11, icon: '✦', stars: [25, 60, 100],
-    how: 'Cherry Esplanade, all lit up. Gather the lanterns; clear them and a new round appears.\nSquirrels break your streak — dash (A) past them.',
-    P: { count: 10, time: 60, waves: true, shape: 'lantern', col: [0xffd77e, 0xff9a62], hazards: 3, hazard: () => critter('squirrel'), hazPop: 'squirrel!', hazR: .8, note: '' },
+     Laid out from satellite views. Lily Pool Terrace (two long pools, the round fountain between them, the Palm House
+     alongside) is the start. A path west runs through the Winter Cathedral to Cherry Esplanade, with the Cranford Rose
+     Garden beside it. North is up the screen. */
+  { id: 'lightscape', shot: [4, 2.9], prop: 'lantern', caption: 'taken by two strangers who also love Spirited Away', kicker: 'December 2023 · Brooklyn Botanic Garden', title: 'Lightscape', sub: 'find someone to take our picture.',
+    game: 'explore', icon: '✦', stars: [8, 18, 28],
+    how: 'You are at the lily pools and you want a picture together.\nWalk the garden and ask couples (A). When one says yes, lead them back to the fountain between the pools.\nLanterns are points. Squirrels break your streak; dash (A) past them.',
+    P: { count: 16, shape: 'lantern', col: [0xffd77e, 0xff9a62], bounds: [-22.5, 8.4, -33.4, 12.6], goal: { x: 4, z: 2.9 },
+      note: 'ask a couple to take your picture (A)', escortNote: 'lead them to the fountain between the pools',
+      hazAt: [[-9, -21, 2.8], [-13, 4, 3], [-18.8, -21.5, 1.1]], hazard: () => critter('squirrel'), hazPop: 'squirrel!', yesFrom: [2, 3, 4, 5, 6],
+      yesLines: (who) => [[who, 'a picture? of course. where do you want it?'], ['AHANU', 'by the fountain, between the two pools.'],
+        [who, 'good choice. with all these lights on the water it looks like Spirited Away.'], ['TEK', 'the bathhouse at night. that is exactly what we said.'],
+        [who, "just don't eat anything in here or you'll turn into pigs."], ['AHANU', 'too late. we already had the hot chocolate.'], [who, 'ha. okay, lead the way. we will follow you.']],
+      couples: [
+        { x: 4, z: -10.2, name: 'couple at the wall fountain', looks: [{ skin: 0xd59a70, hair: 0x1a1412, top: 0x3d8bd9, legs: 0x2a2a33, style: 'long' }, { skin: 0xe6b596, hair: 0x6b3a24, top: 0x4fae6a, legs: 0x3b4a8a }], no: ['sorry, we cannot feel our hands. december.', 'still frozen. try the people by the cherry trees.'] },
+        { x: 1, z: -5.4, name: 'couple on the bench', looks: [{ skin: 0xf0c8a4, hair: 0xc8a050, top: 0xe5484d, legs: 0x2a2a33, style: 'bun' }, { skin: 0xb9794f, hair: 0x15100e, top: 0x8a5ad0, legs: 0x2a2a33, beard: 0x15100e }], no: ['one second, he is about to propose. ...never mind, he is tying his shoe.', 'he is still tying it.'] },
+        { x: -9, z: 2.6, name: 'couple by the light tunnel', looks: [{ skin: 0xe6b596, hair: 0x3a2a20, top: 0xffd27a, legs: 0x3b4a8a, style: 'curly', hair2: 0x5a4030 }, { skin: 0x9a6a48, hair: 0x1a1412, top: 0xf2efe6, legs: 0x6a5240 }], no: ['we would, but our phone is at 1%. so is yours? oh no.', 'now it is at 0%.'] },
+        { x: -9, z: -19, name: 'couple on the esplanade', looks: [{ skin: 0xb9794f, hair: 0x15100e, top: 0xff9ab8, legs: 0x2a2a33, style: 'long' }, { skin: 0xf0c8a4, hair: 0x555060, top: 0x2a2a33, legs: 0x3b4a8a, cap: 0x8a2a3a }], no: ['we are actually looking for someone to take OUR picture.', 'if you find someone, send them our way too.'] },
+        { x: -8, z: -30.4, name: 'couple under the big star', looks: [{ skin: 0xf0c8a4, hair: 0x6b3a24, top: 0x4fae6a, legs: 0x6a5240, style: 'bun' }, { skin: 0xd59a70, hair: 0x3a2a20, top: 0xe5484d, legs: 0x2a2a33 }], no: ['sorry, we have been trying to find the exit since november.', 'is it this way? no? okay.'] },
+        { x: -18.8, z: -13.6, name: 'couple under the pergola', looks: [{ skin: 0x9a6a48, hair: 0x1a1412, top: 0x7ad7ff, legs: 0x2a2a33, style: 'curly' }, { skin: 0xe6b596, hair: 0xc8a050, top: 0x8a5ad0, legs: 0x3b4a8a, beard: 0xa88040 }], no: ['we are mid-argument about whether roses count as lights. give us a minute.', 'they do not count. he is wrong.'] },
+        { x: -18.8, z: -22.2, name: 'couple in the rose garden', looks: [{ skin: 0xe6b596, hair: 0x555060, top: 0xf2efe6, legs: 0x2a2a33, style: 'long' }, { skin: 0xb9794f, hair: 0x555060, top: 0x6a7ac8, legs: 0x6a5240 }], no: ['oh, we are terrible at phones. you would get our thumbs.', 'we tried. it was our thumbs.'] }] },
     build(b, c) {
-      sky(0x141c5c, 0x4a56c0, 0x3a46a8, 500); lights(0xa8b4ff, 0x4a8a70, 2.6, 0xdfe4ff, 2.2, -4, 9, 5); fog(0x3a46a8, 36, 120); orb(-40, 46, -90, 5, 0xdfe6ff, 1.2);
-      island(b, 11, 0x3f9a70, { edge: 'lights', woods: 0x2f8a5c, hills: 0x2f6a78 });
-      for (const sx of [-1, 1]) for (let i = 0; i < 5; i++) { const x = sx * 7, z = -6 + i * 3; cherry(b, x, z, i + (sx > 0 ? 5 : 0)); c.colliders.push({ x, z, r: .35 }); }        // the two cherry allées
-      for (let gx = -5.2; gx <= 5.2; gx += .8) for (let gz = -3; gz <= 8; gz += .8) { const j = Math.sin(gx * 12.9 + gz * 78.2) * .25; if (Math.hypot(gx, gz) > 10.2) continue;                 // Sea of Light
-        b.dot(gx + j, .16, gz - j, .045, [0x7ad7ff, 0x9bffe0, 0xffffff, 0x9aa8ff][Math.abs(Math.round(gx * 3 + gz * 5)) % 4], 1.25); }
-      for (let a = 0; a < 9; a++) { const z = -3.6 - a * .8; for (let k = 0; k <= 14; k++) { const t = k / 14 * Math.PI; b.dot(Math.cos(t) * 1.8, .1 + Math.sin(t) * 3.3, z, .06, 0xfff2c8, 1.25); } }   // Winter Cathedral
-      b.cyl(4.4, 0, 2.2, .07, 3.2, 0x3b3b4a, 1, 6); for (let k = 0; k < 8; k++) b.box(4.4, 2.9, 2.2, .07, 2.6, .07, 0xfff0b0, k * .8, 1.25, k * 1.1, k * .7); b.ball(4.4, 4.2, 2.2, .26, 0xffffff, 1.25); c.colliders.push({ x: 4.4, z: 2.2, r: .4 });   // Supernova
-      // the Palm House and Lily Pool Terrace, north of the esplanade
-      b.box(0, 0, -19, 8, 3.4, 4.4, 0xeef4f6); b.ball(0, 3.4, -19, 3.4, 0xd8eef4, 0, .62); b.box(0, 5.4, -19, .5, .9, .5, 0xeef4f6);
-      for (const sx of [-1, 1]) { b.box(sx * 8.2, 0, -19, 8.4, 2.5, 3.4, 0xeef4f6); b.cyl(sx * 8.2, 2.5, -19, 2, 1.1, 0xd8eef4, .3, 8); }
-      for (let i = -9; i <= 9; i++) b.box(i * 1.26, .5, -16.76, .7, i > -4 && i < 4 ? 2.3 : 1.6, .05, 0xffe9b0, 0, 1.2);
-      for (const sx of [-1, 1]) { b.box(sx * 3.5, .02, -14.2, 5.2, .1, 2.5, 0xd8d0c0); b.box(sx * 3.5, .06, -14.2, 4.8, .08, 2.1, 0x2f5aa8); for (let k = 0; k < 5; k++) { b.cyl(sx * 3.5 - 1.8 + k * .9, .14, -14.2 + (k % 2 ? .4 : -.4), .2, .02, 0x3f9a52, 1, 7); if (k % 2) b.dot(sx * 3.5 - 1.8 + k * .9, .2, -14.2 + .4, .06, 0xff9ab8, 1.2); } }
-      for (const [x, z] of [[-7, -3], [-7, 3], [7, 0]]) for (let k = 0; k < 9; k++) b.dot(x + Math.cos(k * .7) * (.1 + (k % 3) * .14), 2.9 - (k % 3) * .2, z + 1.5 + Math.sin(k * .7) * (.1 + (k % 3) * .14), .05, 0xffe9a0, 1.25);     // Chandelier Walk
-      c.amb.push(ambient({ n: 110, col: 0xffffff, size: .09, area: 13, h: 9, vy: -.7, drift: .3, add: false, opacity: .9 }));
-      c.spawn = { x: 0, z: 8.2 };
+      sky(0x0b1040, 0x2c3690, 0x283080, 600); lights(0x8f9cf0, 0x3a6a5a, 2.1, 0xcfd8ff, 1.6, -4, 9, 5); fog(0x283080, 30, 88); orb(-40, 46, -90, 5, 0xdfe6ff, 1.2);
+      turf(150, 150, 0x2c7458, -7, -10);
+      const BRICK = 0xa8604e, STONE = 0xd8cab8, WATER = 0x161e52, PATH = 0x8f90a4, GLOBE = [0xff7ab6, 0x7ad7ff, 0xffd77e, 0x9bffb0];
+      /* Lily Pool Terrace */
+      b.box(4, 0, 1, 9.6, .06, 24.8, BRICK);
+      const pool = (z0, z1, round) => { const zc = (z0 + z1) / 2, len = z1 - z0; b.box(4, .06, zc, 4, .1, len + .8, STONE); b.box(4, .1, zc, 3.2, .08, len, WATER);
+        if (round) { b.cyl(4, .06, z0, 2, .1, STONE, 1, 14); b.cyl(4, .1, z0, 1.6, .08, WATER, 1, 14); }
+        for (let z = z0 + .6; z < z1; z += 1.25) { c.colliders.push({ x: 4, z, r: 1.75 }); for (const sx of [-1, 1]) b.dot(4 + sx * 1.9, .2, z, .05, 0xffe9b0, 1.25); }                    // you cannot walk on water; lights along the rim
+        for (let k = 0; k < 9; k++) { const x = 4 + Math.sin(k * 2.3 + z0) * 1.2, z = z0 + .7 + (k + .5) * (len - 1) / 9; b.cyl(x, .18, z, .2, .02, 0x3f8a52, 1, 7); if (k % 2) b.ball(x + .3, .3, z + .2, .13, GLOBE[k % 4], 1.25); } };
+      pool(-9, -2.2, true); pool(3.5, 10.4, false);
+      b.cyl(4, .02, .65, 2.7, .06, STONE, 1, 22); b.cyl(4, .08, .65, 1.6, .16, STONE, 1, 18); b.cyl(4, .2, .65, 1.35, .06, WATER, 1, 18);                                               // the round fountain between them
+      b.cyl(4, .2, .65, .34, .5, 0xf2efe6, .8, 10); b.ball(4, .86, .65, .3, 0xf2efe6); for (let k = 0; k < 6; k++) b.dot(4 + Math.cos(k * 1.05) * .2, 1.1 + (k % 3) * .22, .65 + Math.sin(k * 1.05) * .2, .05, 0xdff4ff, 1.25);
+      c.colliders.push({ x: 4, z: .65, r: 1.65 });
+      b.box(4, 0, -11.7, 9.6, .3, 1.1, STONE); b.box(4, 0, -12.5, 9.6, .6, .8, STONE); b.box(4, .6, -13.2, 9.6, 1, .5, STONE); b.cyl(4, .3, -11.9, 1, .5, STONE, 1, 12); b.cyl(4, .78, -11.9, .8, .04, WATER, 1, 12);   // north steps and wall fountain
+      for (const z of [-7, -4, 5.2, 8.4]) { b.box(.2, 0, z, .5, .44, 1.5, 0x6a4a30); b.box(-.05, .44, z, .1, .4, 1.5, 0x6a4a30); c.colliders.push({ x: .2, z, r: .7 }); }
+      for (const z of [-10, -2.4, 3.6, 11.4]) for (const x of [-.4, 8.5]) { lamp(b, x, z, 0xffe9b0, 2.4); if (x < 0) c.colliders.push({ x, z, r: .2 }); }
+      /* the Palm House, along the east side: glass walls, white ribs, the curved end facing the fountain */
+      b.box(13.3, 0, 1, 6.2, 3.2, 23, 0xb8ddd8); b.box(13.3, 3.2, 1, 6.5, .2, 23.3, 0xeaf4f0); b.box(13.3, 3.4, 1, 4.4, .55, 22.6, 0xc8e8e2); b.box(13.3, 3.95, 1, 2.4, .45, 22.2, 0xd8f0ea);
+      b.ball(10.6, 0, .65, 3.5, 0xc0e4de, 0, .98);
+      for (let z = -10; z <= 12; z += 1.1) { b.box(10.17, 0, z, .07, 3.2, .09, 0xffffff); if (Math.abs(z - .65) > 3.4 && Math.round(z * 3) % 2) b.box(10.16, .4, z + .55, .04, 2.3, .8, 0xffe9b0, 0, 1.15); }
+      for (let k = -4; k <= 4; k++) { const a = k * .34; b.box(10.6 - Math.cos(a) * 3.5, 0, .65 + Math.sin(a) * 3.5, .07, 2.9, .07, 0xffffff); b.dot(10.6 - Math.cos(a) * 3.45, 2.2, .65 + Math.sin(a) * 3.45, .07, 0xffe9b0, 1.2); }
+      /* the path west through the Winter Cathedral, then north to the esplanade */
+      b.box(-4.9, .02, .65, 8.4, .05, 2.3, PATH); b.box(-9, .02, -4.6, 2.3, .05, 12.6, PATH);
+      for (let a = 0; a < 9; a++) { const x = -1.6 - a * .8; for (let k = 0; k <= 14; k++) { const t = k / 14 * Math.PI; b.dot(x, .1 + Math.sin(t) * 3.1, .65 + Math.cos(t) * 1.55, .06, 0xfff2c8, 1.25); } }
+      /* Cherry Esplanade: a long lawn between double rows of cherry trees, Sea of Light across it, the Supernova at the far end */
+      b.box(-9, .016, -21.6, 6.6, .03, 23.4, 0x3a8a66);
+      [-13.7, -12.3, -5.7, -4.3].forEach((x, r) => { for (let i = 0; i < 7; i++) { const z = -11.2 - i * 3.4 - (r % 2) * 1.2; cherry(b, x, z, i + r * 3); c.colliders.push({ x, z, r: .35 }); } });
+      for (let gx = -11.4; gx <= -6.6; gx += .8) for (let gz = -31.4; gz <= -11.4; gz += .95) { const j = Math.sin(gx * 12.9 + gz * 78.2) * .25; b.dot(gx + j, .16, gz - j, .045, [0x7ad7ff, 0x9bffe0, 0xb8c0ff, 0x7aa8ff][Math.abs(Math.round(gx * 3 + gz * 5)) % 4], 1.2); }
+      b.cyl(-9, 0, -32.6, .07, 3.4, 0x3b3b4a, 1, 6); for (let k = 0; k < 8; k++) b.box(-9, 3.1, -32.6, .07, 2.8, .07, 0xfff0b0, k * .8, 1.25, k * 1.1, k * .7); b.ball(-9, 4.5, -32.6, .28, 0xffffff, 1.25); c.colliders.push({ x: -9, z: -32.6, r: .4 });
+      /* Cranford Rose Garden: brick-edged beds in two columns with grass paths, and the white pergola at its south end */
+      for (const x of [-22.1, -15.5]) b.box(x, .02, -21.6, .7, .05, 19.6, BRICK); b.box(-18.8, .02, -31.2, 7.3, .05, .7, BRICK); b.box(-18.8, .02, -12.2, 7.3, .05, 1.6, BRICK);
+      for (const x of [-20.4, -17.2]) for (let i = 0; i < 5; i++) { const z = -29.4 + i * 3.7; b.box(x, .02, z, 2.4, .12, 2.9, 0x5a4034); c.colliders.push({ x, z: z - .7, r: 1.15 }, { x, z: z + .7, r: 1.15 });
+        for (let k = 0; k < 6; k++) { const rx = x - .8 + (k % 3) * .8, rz = z - .75 + Math.floor(k / 3) * 1.5; b.ball(rx, .3, rz, .3, 0x2f7a4a, 0, .8); b.dot(rx + .1, .56, rz, .07, [0xff5a6a, 0xff9ab8, 0xffffff][(k + i) % 3], 1.2); } }
+      for (let k = 0; k <= 5; k++) { const x = -21.6 + k * 1.12; for (const z of [-11.5, -12.9]) b.box(x, 0, z, .12, 2.5, .12, 0xf6f2e8); b.box(x, 2.5, -12.2, .12, .12, 2.2, 0xf6f2e8); b.dot(x, 2.36, -12.2, .07, 0xffe9a0, 1.25); b.dot(x + .56, 2.3, -11.5, .06, 0xffe9a0, 1.25); }
+      for (const z of [-11.5, -12.9]) b.box(-18.8, 2.5, z, 6, .12, .12, 0xf6f2e8); c.colliders.push({ x: -21.6, z: -12.2, r: .5 }, { x: -16, z: -12.2, r: .5 });
+      /* trees: some lit in colour inside the garden, a dark belt of them outside it */
+      for (const [x, z, s2, col] of [[-3, -7, 1.8, 0x8a5ad8], [-3.4, 6.4, 1.6, 0x3d8ad8], [-8, 8.6, 1.9, 0xd85a9a], [-14, 8, 2.1, 0x3fa878], [-18, 2, 1.9, 0x8a5ad8], [-13, -4, 1.7, 0x3d8ad8], [-19, 9.5, 1.8, 0xd85a9a], [-2.2, -17, 1.6, 0x3fa878], [-1.6, -27, 1.8, 0x8a5ad8]]) {
+        tree(b, x, z, s2, col); b.dot(x + .6, .14, z + .5, .1, 0xffffff, 1.2); c.colliders.push({ x, z, r: .55 }); }
+      let s = 3; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+      for (let i = 0; i < 26; i++) { const t = i / 26; (i % 3 ? tree : pine)(b, -26 - r() * 8, -38 + t * 56, 1.8 + r(), 0x1f5a48); (i % 3 ? pine : tree)(b, -25 + t * 40, -37.5 - r() * 8, 1.8 + r(), 0x1f5a48); }                               // nothing along the south edge: that is where the camera looks from
+      for (const [x, z, r2] of [[-48, -80, 26], [-8, -92, 34], [40, -84, 28]]) b.ball(x, -8, z, r2, 0x1f4a58, 0, .5);
+      c.amb.push(ambient({ n: 120, col: 0xffffff, size: .09, area: 14, h: 9, vy: -.7, drift: .3, add: false, opacity: .9 }));
+      c.spawn = { x: 1.2, z: 11.4 };
     } },
 
   /* ───────────── 2 · THE JITNEY — eastbound on the Long Island Expressway ───────────── */

@@ -11,10 +11,10 @@ const stars = () => Store.get('stars', {});
 const starStr = (n) => '★'.repeat(n) + '<i>' + '★'.repeat(3 - n) + '</i>';
 const center = new THREE.Vector3();
 
-function common(dt, t) { for (const a of S.amb) a.update(dt, t); FX.update(dt);
+function common(dt, t) { for (const a of S.amb) { a.update(dt, t); if (S.ctx && S.ctx.bounds) a.pts.position.set(Cam.look.x, 0, Cam.look.z); } FX.update(dt);   // on big maps the snow travels with the camera
   if (S.ctx && S.ctx.storm) { if (Math.random() < dt * .22) { S.flash = 1; Sfx.noise(.5, .05, .15); } S.flash = Math.max(0, (S.flash || 0) - dt * 3.5); renderer.toneMappingExposure = 1.15 + S.flash * .22; } }
 function reset() { S.run++; killTweens(); if (S.game && S.game.dispose) S.game.dispose(); S.game = null; S.ctx = null; S.amb = []; clearWorld(); renderer.toneMappingExposure = 1.15;
-  UI.panel(null); UI.card(); UI.say(); UI.hud(false); UI.cine(false); UI.tapA = false; ['pick', 'hit', 'pos', 'score', 'ready', 'start'].forEach((k) => Net.off(k)); return S.run; }
+  UI.panel(null); UI.card(); UI.say(); UI.hud(false); UI.cine(false); UI.tapA = false; ['pick', 'hit', 'pos', 'score', 'ready', 'start', 'yes', 'fin'].forEach((k) => Net.off(k)); return S.run; }
 
 /* ───────── title ───────── */
 async function title(first) {
@@ -200,6 +200,7 @@ async function photo(tok, L, ctx) {
   for (const c of [her, him]) { c.y = 0; c.cheer = 0; c.body.position.y = 0; c.face = 0; c.body.rotation.z = 0; }
   her.hold = [[0, .12], [-1.45, -.22]]; him.hold = [[-1.45, .22], [0, -.12]];
   
+  ctx.onPhoto && ctx.onPhoto(cx, cz);
   const pr = prop(L.prop); pr.scale.setScalar(1.5); pr.position.set(cx, .62, cz + .25); world.add(pr);
   FX.burst(cx, 2.1, cz, [0xff7ab6, 0xff9ab8, 0xffffff], 10, 1.6, 1.5, 1.6, 1.4);
   S.idle = (dt) => { her.anim(0, 0); him.anim(0, 0); };

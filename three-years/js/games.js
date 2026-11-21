@@ -9,7 +9,8 @@ function walk(ctx, ch, dt, speed) {
   const ax = Input.axis.x, az = Input.axis.y, l = Math.hypot(ax, az);
   if (l > .05) {
     const p = ch.g.position; p.x += ax * speed * dt; p.z += az * speed * dt; ch.face = Math.atan2(ax, az);
-    const d = Math.hypot(p.x, p.z), R = ctx.R - .5; if (d > R) { p.x *= R / d; p.z *= R / d; }
+    if (ctx.bounds) { const B = ctx.bounds; p.x = clamp(p.x, B[0], B[1]); p.z = clamp(p.z, B[2], B[3]); }                    // a walled map
+    else { const d = Math.hypot(p.x, p.z), R = ctx.R - .5; if (d > R) { p.x *= R / d; p.z *= R / d; } }                  // a round arena
     for (const c of ctx.colliders) { const dx = p.x - c.x, dz = p.z - c.z, dd = Math.hypot(dx, dz), m = c.r + .35; if (dd < m && dd > .001) { p.x = c.x + dx / dd * m; p.z = c.z + dz / dd * m; } }
   }
   ch.anim(dt, l * speed / 5);
@@ -42,7 +43,7 @@ export function collect(ctx) {
   const pick = (i, mine) => { const s = spots[i]; if (!s || !s.on) return; s.on = false; left--;
     if (mine) { ctx.add(1, s.x, .8, s.z); ctx.send('pick', i); me.cheer = .35; } else { FX.burst(s.x, .8, s.z, P.col || 0xffd77e, 8); Sfx.pick(); }
     if (!left) { if (P.waves) { wave++; place(); left = spots.length; for (const h of haz) h.w *= 1.22; UI.pop('ROUND ' + wave); Sfx.big(); ctx.add(wave * 2); } else if (P.goal) { goal = P.goal; UI.note(P.goalNote || ''); Sfx.big(); beacon = items(1, 'ring', 0xffd77e, 1.2); } else ctx.finish(); } };
-  ctx.on('pick', (i) => pick(i, false));
+  ctx.on('pick', (i) => pick(i, false)); ctx.on('fin', () => ctx.finish());
   UI.note(P.note || '');
   return {
     cam() { const p = me.g.position; Cam.set(p.x * .75, 8.6, p.z * .75 + 9.2, p.x * .75, .6, p.z * .75); },
@@ -55,7 +56,7 @@ export function collect(ctx) {
         if (Input.just.has('A')) {
           const near = npcs.find((q) => Math.hypot(q.x - p.x, q.z - p.z) < 1.7);
           const g = goal && Math.hypot(goal.x - p.x, goal.z - p.z) < 1.9;
-          if (g) { ctx.finish(); return; }
+          if (g) { ctx.send('fin', 0); ctx.finish(); return; }
           if (near) { talking = near; UI.say(near.name, near.lines[near.i++ % near.lines.length]); Sfx.move(); near.c.face = Math.atan2(p.x - near.x, p.z - near.z); }
           else if (cd <= 0) { dash = .22; cd = .7; Sfx.dash(); FX.burst(p.x, .3, p.z, 0xffffff, 5, 2, 2, .4, 1); }
         }
@@ -71,6 +72,64 @@ export function collect(ctx) {
         if (stun <= 0 && dash <= 0 && Math.hypot(x - p.x, z - p.z) < (P.hazR || .9)) { stun = .7; ctx.add(-1); rumble(80, .4); Sfx.bad(); UI.pop(P.hazPop || 'oof'); } }
       if (beacon) { beacon.set(0, goal.x, 2.4 + Math.sin(t * 3) * .2, goal.z, 1.6, t * 2); beacon.flush(); }
       if (P.time) { T -= dt; UI.time(T); if (T <= 0) ctx.finish(); }
+      this.cam();
+    },
+  };
+}
+
+/* ============ EXPLORE: a real place to walk around, people to ask, someone to bring back ============
+   Find the couple who will take your picture, then lead them to the photo spot. Lanterns on the way are the score. */
+export function explore(ctx) {
+  const P = ctx.P, me = ctx.me, pal = ctx.pal, B = ctx.bounds = P.bounds, spots = [];
+  for (let guard = 0; spots.length < P.count && guard < 6000; guard++) {
+    const x = B[0] + 1 + ctx.rnd() * (B[1] - B[0] - 2), z = B[2] + 1 + ctx.rnd() * (B[3] - B[2] - 2);
+    if (Math.hypot(x - ctx.spawn.x, z - ctx.spawn.z) < 3 || ctx.colliders.some((c) => Math.hypot(x - c.x, z - c.z) < c.r + .8) || spots.some((s) => Math.hypot(x - s.x, z - s.z) < 3.4)) continue;
+    spots.push({ x, z, on: true }); }
+  ctx.spots = spots;
+  const it = items(spots.length, P.shape || 'lantern');
+  const haz = (P.hazAt || []).map(([x, z, r], i) => { const o = P.hazard(i); world.add(o); return { o, cx: x, cz: z, r, a: ctx.rnd() * 6.283, w: (i % 2 ? -1 : 1) * (.5 + ctx.rnd() * .3) }; });
+  const couples = P.couples.map((c, i) => { const a = makeChar(c.looks[0]), b = makeChar(c.looks[1]); a.g.position.set(c.x - .42, 0, c.z); b.g.position.set(c.x + .42, 0, c.z); a.face = b.face = c.face || 0; world.add(a.g, b.g);
+    const col = { x: c.x, z: c.z, r: .8 }; ctx.colliders.push(col); return { ...c, i, a, b, col, asked: 0 }; });
+  const yes = P.yesFrom[Math.floor(ctx.rnd() * P.yesFrom.length)];      // seeded, so both phones agree on who says yes
+  ctx.yes = yes;
+  let stage = 0, chosen = null, leader = me, say = null, dash = 0, cd = 0, stun = 0, beacon = null, done = false;
+  const speak = (lines, after) => { say = { lines, i: 0, after }; UI.say(lines[0][0], lines[0][1]); Sfx.move(); };
+  const accept = (ci, mine) => { if (stage) return; stage = 1; chosen = couples[ci]; leader = mine ? me : pal; ctx.colliders.splice(ctx.colliders.indexOf(chosen.col), 1);
+    UI.note(P.escortNote || ''); Sfx.big(); UI.pop('they said yes!'); beacon = items(1, 'ring', 0xffd77e, 1.2); if (mine) ctx.send('yes', ci); };
+  const finish = (mine) => { if (done) return; done = true; if (mine) ctx.send('fin', 0); ctx.finish(); };
+  ctx.on('pick', (i) => { const s = spots[i]; if (s && s.on) { s.on = false; FX.burst(s.x, .8, s.z, 0xffd77e, 8); Sfx.pick(); } });
+  ctx.on('yes', (ci) => accept(ci, false)); ctx.on('fin', () => finish(false));
+  ctx.onPhoto = (cx, cz) => { if (beacon) { beacon.set(0, 0, -9, 0, 0); beacon.flush(); } if (chosen) { chosen.a.g.position.set(cx - .5, 0, cz + 9); chosen.b.g.position.set(cx + .5, 0, cz + 9); } };      // they are behind the camera now
+  UI.note(P.note || '');
+  return {
+    cam() { const p = me.g.position; Cam.set(p.x, 8.8, p.z + 9.4, p.x, .6, p.z); },
+    update(dt, t) {
+      const p = me.g.position, g = P.goal;
+      if (say) { me.anim(dt, 0); if (Input.just.has('A') || Input.just.has('B')) { if (++say.i < say.lines.length) { UI.say(say.lines[say.i][0], say.lines[say.i][1]); Sfx.move(); } else { const after = say.after; say = null; UI.say(); after && after(); } } }
+      else if (stun > 0) { stun -= dt; me.body.rotation.z = Math.sin(t * 40) * .2; me.anim(dt, 0); if (stun <= 0) me.body.rotation.z = 0; }
+      else {
+        cd -= dt; dash -= dt;
+        if (Input.just.has('A')) {
+          const c = couples.find((q) => q !== chosen && Math.hypot(q.x - p.x, q.z - p.z) < 2.1);
+          if (c) { c.a.face = c.b.face = Math.atan2(p.x - c.x, p.z - c.z);
+            if (stage) speak([[c.name, c.bye || 'have a good night, you two.']]);
+            else if (c.i === yes) speak(P.yesLines(c.name), () => accept(c.i, true));
+            else speak([[c.name, c.no[c.asked++ % c.no.length]]]); }
+          else if (cd <= 0) { dash = .22; cd = .7; Sfx.dash(); FX.burst(p.x, .3, p.z, 0xffffff, 5, 2, 2, .4, 1); }
+        }
+        walk(ctx, me, dt, dash > 0 ? 12 : 5.4);
+      }
+      if (ctx.twoP) ctx.palNet(dt); else follow(pal, p.x, p.z, dt);
+      for (const c of couples) { if (c !== chosen) { c.a.anim(dt, 0); c.b.anim(dt, 0); } }
+      if (chosen) { const l = leader.g.position; follow(chosen.a, l.x, l.z, dt, 2.2, 5.6); follow(chosen.b, chosen.a.g.position.x, chosen.a.g.position.z, dt, .9, 5.8);
+        if (leader === me && !say && Math.hypot(g.x - p.x, g.z - p.z) < 1.5 && Math.hypot(g.x - chosen.a.g.position.x, g.z - chosen.a.g.position.z) < 5) finish(true); }
+      for (let i = 0; i < spots.length; i++) { const s = spots[i];
+        if (s.on && Math.hypot(s.x - p.x, s.z - p.z) < .95) { s.on = false; ctx.add(1, s.x, .8, s.z); ctx.send('pick', i); me.cheer = .35; }
+        it.set(i, s.x, .8 + Math.sin(t * 3 + i) * .15, s.z, s.on ? 1.4 : 0, t * 2 + i); }
+      it.flush();
+      for (const h of haz) { h.a += h.w * dt; const x = h.cx + Math.cos(h.a) * h.r, z = h.cz + Math.sin(h.a) * h.r; h.o.position.set(x, Math.abs(Math.sin(t * 6 + h.r)) * .12, z); h.o.rotation.y = -h.a + (h.w > 0 ? Math.PI : 0);
+        if (stun <= 0 && dash <= 0 && !say && Math.hypot(x - p.x, z - p.z) < .8) { stun = .7; ctx.add(-1); rumble(80, .4); Sfx.bad(); UI.pop(P.hazPop || 'oof'); } }
+      if (beacon) { beacon.set(0, g.x, 2.6 + Math.sin(t * 3) * .2, g.z, 1.7, t * 2); beacon.flush(); }
       this.cam();
     },
   };
